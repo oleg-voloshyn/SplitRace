@@ -39,15 +39,15 @@ Rails.application.routes.draw do
     root to: "dashboard#index"
     get  "login",  to: "sessions#new",     as: :login
     post "login",  to: "sessions#create"
-    delete "logout", to: "sessions#destroy", as: :logout
+    post "logout", to: "sessions#destroy", as: :logout
 
     resources :segments, only: %i[index new create show edit update destroy]
     resources :tournaments, only: %i[index new create show edit update destroy] do
       member do
-        patch  :activate
-        patch  :complete
-        post   :add_segment
-        delete "segments/:segment_id", to: "tournaments#remove_segment", as: :remove_segment
+        post :activate
+        post :complete
+        post :add_segment
+        post "segments/:segment_id/remove", to: "tournaments#remove_segment", as: :remove_segment
       end
     end
     resources :users, only: %i[index edit update]
