@@ -9,27 +9,42 @@ class SegmentMatcher
   def call
     return if @activity.gps_points.blank?
 
-    active_segment_ids = active_tournament_segment_ids
-    return if active_segment_ids.empty?
-
-    segments = Segment.where(id: active_segment_ids)
-    segments.each { |segment| try_match(segment) }
+    @user.tournaments.where(status: "active").each do |tournament|
+      match_ordered_for(tournament)
+    end
   end
 
   private
 
-  def active_tournament_segment_ids
-    @user.tournaments
-      .where(status: "active")
-      .joins(:tournament_segments)
-      .pluck("tournament_segments.segment_id")
-      .uniq
+  # For Golden Fever: player must complete rated segments in order 1→2→3…
+  # Only check the player's NEXT required segment. If covered, check the next one.
+  def match_ordered_for(tournament)
+    rated_segments = tournament.tournament_segments
+      .where(is_rated: true)
+      .order(:order_number)
+      .includes(:segment)
+
+    return if rated_segments.empty?
+
+    completed_ids = SegmentEffort
+      .where(user: @user, segment_id: rated_segments.map(&:segment_id))
+      .pluck(:segment_id)
+      .to_set
+
+    rated_segments.each do |ts|
+      next if completed_ids.include?(ts.segment_id)
+
+      # This is the next required segment — try to match in this activity
+      effort = try_match(ts.segment)
+      break unless effort
+
+      completed_ids.add(ts.segment_id)
+    end
   end
 
   def try_match(segment)
-    return unless segment.start_point && segment.end_point && @activity.gps_track
+    return nil unless segment.start_point && segment.end_point && @activity.gps_track
 
-    # Check if activity passes near start and end of segment (PostGIS spatial query)
     near_start = Activity.where(id: @activity.id)
       .where("ST_DWithin(gps_track::geography, ?::geography, ?)",
              segment.start_point.to_s, PROXIMITY_METERS)
@@ -40,16 +55,16 @@ class SegmentMatcher
              segment.end_point.to_s, PROXIMITY_METERS)
       .exists?
 
-    return unless near_start && near_end
+    return nil unless near_start && near_end
 
     elapsed, started = interpolate_time(segment)
-    return unless elapsed && elapsed > 0
+    return nil unless elapsed && elapsed > 0
 
     existing = SegmentEffort.find_by(user: @user, segment: segment, activity: @activity)
-    return if existing && existing.elapsed_time_seconds <= elapsed
+    return existing if existing && existing.elapsed_time_seconds <= elapsed
 
     SegmentEffort.find_or_initialize_by(user: @user, segment: segment, activity: @activity)
-      .update!(elapsed_time_seconds: elapsed, started_at: started)
+      .tap { |e| e.update!(elapsed_time_seconds: elapsed, started_at: started) }
   end
 
   def interpolate_time(segment)
@@ -65,8 +80,7 @@ class SegmentMatcher
     end_ts   = points[end_idx]["ts"].to_f
     elapsed  = (end_ts - start_ts).to_i
 
-    started_at = Time.at(start_ts)
-    [elapsed, started_at]
+    [elapsed, Time.at(start_ts)]
   end
 
   def closest_point_index(points, geo_point)
@@ -84,11 +98,9 @@ class SegmentMatcher
       end
     end
 
-    # Only accept if within proximity threshold
     min_idx if min_dist <= PROXIMITY_METERS
   end
 
-  # Haversine distance in meters
   def haversine(lat1, lng1, lat2, lng2)
     rad = Math::PI / 180
     dlat = (lat2 - lat1) * rad

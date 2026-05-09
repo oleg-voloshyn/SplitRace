@@ -15,7 +15,10 @@
     "lastName": "Last Name",
     "orContinueWith": "Or continue with",
     "noAccount": "Don't have an account?",
-    "hasAccount": "Already have an account?"
+    "hasAccount": "Already have an account?",
+    "gender": "Gender",
+    "gender_male": "Male",
+    "gender_female": "Female"
   },
   "tournaments": {
     "title": "Tournaments",

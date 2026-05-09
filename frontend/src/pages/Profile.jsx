@@ -6,7 +6,7 @@ import { api } from '../api/client'
 export default function Profile() {
   const { t } = useTranslation()
   const { user } = useAuth()
-  const [form, setForm]         = useState({ first_name: user?.first_name || '', last_name: user?.last_name || '', units: user?.units || 'km' })
+  const [form, setForm]         = useState({ first_name: user?.first_name || '', last_name: user?.last_name || '', units: user?.units || 'km', gender: user?.gender || '' })
   const [saved, setSaved]       = useState(false)
   const [activities, setActivities] = useState(null)
 
@@ -24,11 +24,30 @@ export default function Profile() {
   return (
     <div style={{ maxWidth: '480px' }}>
       <h2>{t('profile.title')}</h2>
-      <p style={{ color: '#888', marginBottom: '1rem' }}>{user?.email}</p>
+      <p style={{ color: '#888', marginBottom: '0.75rem' }}>{user?.email}</p>
+
+      {!user?.gender && (
+        <div style={{ background: '#fff3cd', border: '1px solid #ffc107', borderRadius: '6px', padding: '0.6rem 0.9rem', marginBottom: '1rem', fontSize: '0.85rem', color: '#856404' }}>
+          ⚠ Please set your gender — it's required for tournament scoring.
+        </div>
+      )}
 
       <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
         <input placeholder="First Name" value={form.first_name} onChange={e => setForm({ ...form, first_name: e.target.value })} style={inputStyle} />
         <input placeholder="Last Name"  value={form.last_name}  onChange={e => setForm({ ...form, last_name:  e.target.value })} style={inputStyle} />
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+          <span style={{ fontSize: '0.85rem', color: '#555' }}>{t('auth.gender')}</span>
+          <div style={{ display: 'flex', gap: '1.5rem' }}>
+            {['male', 'female'].map(g => (
+              <label key={g} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer' }}>
+                <input type="radio" name="gender" value={g} checked={form.gender === g} onChange={() => setForm({ ...form, gender: g })} />
+                {t(`auth.gender_${g}`)}
+              </label>
+            ))}
+          </div>
+        </div>
+
         <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           {t('profile.units')}:
           <select value={form.units} onChange={e => setForm({ ...form, units: e.target.value })} style={inputStyle}>

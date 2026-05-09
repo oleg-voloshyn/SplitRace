@@ -42,8 +42,8 @@ module Api
         gender = params[:gender].presence
         scores = @tournament.tournament_scores
           .includes(:user)
-          .where.not(total_time_seconds: nil)
-          .order(:total_time_seconds)
+          .where("score > 0")
+          .order(score: :desc)
 
         scores = scores.joins(:user).where(users: { gender: gender }) if gender
 
@@ -94,11 +94,14 @@ module Api
           data[:segments] = tournament.tournament_segments.includes(:segment).order(:order_number).map do |ts|
             {
               order_number: ts.order_number,
-              is_rated:     ts.is_rated,
+              # is_rated intentionally hidden from players — it's part of the Golden Fever mechanic
               segment: {
                 id:              ts.segment.id,
                 name:            ts.segment.name,
-                distance_meters: ts.segment.distance_meters
+                distance_meters: ts.segment.distance_meters,
+                start_point:     ts.segment.start_point ? { lat: ts.segment.start_point.lat, lng: ts.segment.start_point.lon } : nil,
+                end_point:       ts.segment.end_point   ? { lat: ts.segment.end_point.lat,   lng: ts.segment.end_point.lon   } : nil,
+                polyline:        ts.segment.polyline ? ts.segment.polyline.points.map { |p| { lat: p.lat, lng: p.lon } } : nil,
               }
             }
           end

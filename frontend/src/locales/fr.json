@@ -1,6 +1,6 @@
 {
   "nav": { "tournaments": "Tournois", "run": "Démarrer", "profile": "Profil", "logout": "Déconnexion", "login": "Connexion" },
-  "auth": { "login": "Connexion", "register": "S'inscrire", "email": "Email", "password": "Mot de passe", "firstName": "Prénom", "lastName": "Nom", "orContinueWith": "Ou continuer avec", "noAccount": "Pas de compte ?", "hasAccount": "Déjà un compte ?" },
+  "auth": { "login": "Connexion", "register": "S'inscrire", "email": "Email", "password": "Mot de passe", "firstName": "Prénom", "lastName": "Nom", "orContinueWith": "Ou continuer avec", "noAccount": "Pas de compte ?", "hasAccount": "Déjà un compte ?" , "gender": "Sexe", "gender_male": "Homme", "gender_female": "Femme"},
   "tournaments": { "title": "Tournois", "active": "Actif", "completed": "Terminé", "join": "Rejoindre", "leave": "Quitter", "leaderboard": "Classement", "participants": "{{count}} participants", "segments": "{{count}} segments", "noTournaments": "Aucun tournoi disponible" },
   "run": { "title": "Démarrer", "start": "Départ", "stop": "Arrêter & Sauvegarder", "recording": "Enregistrement...", "distance": "Distance", "duration": "Durée", "gpsWaiting": "Attente du signal GPS...", "saved": "Course sauvegardée !" },
   "profile": { "title": "Profil", "units": "Unités", "km": "Kilomètres", "miles": "Miles", "save": "Sauvegarder" }

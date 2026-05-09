@@ -8,7 +8,7 @@ export default function Login() {
   const { login, register } = useAuth()
   const navigate = useNavigate()
   const [mode, setMode]     = useState('login')
-  const [form, setForm]     = useState({ email: '', password: '', first_name: '', last_name: '' })
+  const [form, setForm]     = useState({ email: '', password: '', first_name: '', last_name: '', gender: '' })
   const [error, setError]   = useState(null)
   const [loading, setLoading] = useState(false)
 
@@ -39,6 +39,17 @@ export default function Login() {
           <>
             <input placeholder={t('auth.firstName')} value={form.first_name} onChange={e => setForm({ ...form, first_name: e.target.value })} style={inputStyle} />
             <input placeholder={t('auth.lastName')}  value={form.last_name}  onChange={e => setForm({ ...form, last_name:  e.target.value })} style={inputStyle} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+              <span style={{ fontSize: '0.85rem', color: '#555' }}>{t('auth.gender')} *</span>
+              <div style={{ display: 'flex', gap: '1.5rem' }}>
+                {['male', 'female'].map(g => (
+                  <label key={g} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer' }}>
+                    <input type="radio" name="gender" value={g} checked={form.gender === g} onChange={() => setForm({ ...form, gender: g })} required />
+                    {t(`auth.gender_${g}`)}
+                  </label>
+                ))}
+              </div>
+            </div>
           </>
         )}
         <input type="email"    placeholder={t('auth.email')}    value={form.email}    onChange={e => setForm({ ...form, email:    e.target.value })} required style={inputStyle} />
