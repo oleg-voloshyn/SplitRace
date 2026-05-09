@@ -25,6 +25,20 @@
   <div class="col-auto text-muted">
     <%= @tournament.tournament_participants.count %> participants
   </div>
+  <%
+    actual_total = @tournament_segments.count
+    actual_rated = @tournament_segments.count(&:is_rated)
+  %>
+  <div class="col-auto">
+    <% if actual_total == @tournament.total_segments_count && actual_rated == @tournament.rated_segments_count %>
+      <span class="badge bg-success">✓ Segments complete</span>
+    <% else %>
+      <span class="badge bg-warning text-dark">
+        <%= actual_total %>/<%= @tournament.total_segments_count %> total &nbsp;·&nbsp;
+        <%= actual_rated %>/<%= @tournament.rated_segments_count %> rated
+      </span>
+    <% end %>
+  </div>
 </div>
 
 <% if @tournament.description.present? %>
@@ -76,9 +90,19 @@
   <!-- Add segment -->
   <div class="col-md-5">
     <div class="card">
-      <div class="card-header"><strong>Add Segment</strong></div>
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <strong>Add Segment</strong>
+        <small class="text-muted">
+          <%= actual_total %>/<%= @tournament.total_segments_count %> total &nbsp;·&nbsp;
+          <%= actual_rated %>/<%= @tournament.rated_segments_count %> rated
+        </small>
+      </div>
       <div class="card-body">
-        <% if @available_segments.any? %>
+        <% slots_left        = @tournament.total_segments_count - actual_total %>
+        <% rated_slots_left  = @tournament.rated_segments_count - actual_rated %>
+        <% if slots_left <= 0 %>
+          <p class="text-success mb-0">✓ All <%= @tournament.total_segments_count %> segments added.</p>
+        <% elsif @available_segments.any? %>
           <%= form_with url: add_segment_admin_tournament_path(@tournament), method: :post do |f| %>
             <div class="mb-2">
               <%= f.select :segment_id,
@@ -87,9 +111,10 @@
                     class: "form-select" %>
             </div>
             <div class="mb-3 form-check">
-              <%= f.check_box :is_rated, { class: "form-check-input", checked: true }, "1", "0" %>
-              <%= f.label :is_rated, "Rated segment", class: "form-check-label" %>
+              <%= f.check_box :is_rated, { class: "form-check-input", checked: rated_slots_left > 0 }, "1", "0" %>
+              <%= f.label :is_rated, "Rated segment #{"(#{rated_slots_left} left)" if rated_slots_left > 0}#{rated_slots_left <= 0 ? " (limit reached)" : ""}", class: "form-check-label" %>
             </div>
+            <p class="text-muted small mb-2"><%= slots_left %> slot<%= slots_left == 1 ? "" : "s" %> remaining</p>
             <%= f.submit "Add →", class: "btn btn-danger w-100" %>
           <% end %>
         <% else %>

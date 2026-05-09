@@ -29,6 +29,20 @@
     <%= f.text_area :description, class: "form-control", rows: 2 %>
   </div>
 
+  <div class="col-md-6">
+    <%= f.label :total_segments_count, "Total segments (all shown to players)", class: "form-label" %>
+    <%= f.number_field :total_segments_count, class: "form-control", min: 2, required: true,
+          disabled: !tournament.new_record? && tournament.status != "draft" %>
+    <div class="form-text">All segments players will see on the map.</div>
+  </div>
+
+  <div class="col-md-6">
+    <%= f.label :rated_segments_count, "Rated segments (hidden, must complete in order)", class: "form-label" %>
+    <%= f.number_field :rated_segments_count, class: "form-control", min: 1, required: true,
+          disabled: !tournament.new_record? && tournament.status != "draft" %>
+    <div class="form-text">Must be strictly less than total. Players don't know which ones are rated.</div>
+  </div>
+
   <div class="col-md-4">
     <%= f.label :starts_at, "Starts at", class: "form-label" %>
     <%= f.datetime_local_field :starts_at, class: "form-control", value: tournament.starts_at&.strftime("%Y-%m-%dT%H:%M") %>

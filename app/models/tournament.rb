@@ -50,8 +50,8 @@ class Tournament < ApplicationRecord
 
   def rated_count_within_total
     return unless rated_segments_count && total_segments_count
-    if rated_segments_count > total_segments_count
-      errors.add(:rated_segments_count, "cannot exceed total segments count")
+    if rated_segments_count >= total_segments_count
+      errors.add(:rated_segments_count, "must be less than total segments count (not equal)")
     end
   end
 end

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_09_145936) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_09_210730) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "postgis"
@@ -126,7 +126,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_09_145936) do
     t.integer "max_participants"
     t.string "name", null: false
     t.integer "rated_segments_count", default: 1, null: false
-    t.string "scoring_type", default: "fastest_total", null: false
+    t.string "scoring_type", default: "golden_fever", null: false
     t.string "slug", null: false
     t.datetime "starts_at"
     t.string "status", default: "draft", null: false

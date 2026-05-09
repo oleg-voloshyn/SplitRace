@@ -11,11 +11,11 @@ class Admin::TournamentsController < Admin::BaseController
   end
 
   def new
-    @tournament = Tournament.new(scoring_type: "fastest_total", total_segments_count: 1, rated_segments_count: 1)
+    @tournament = Tournament.new(total_segments_count: 10, rated_segments_count: 5)
   end
 
   def create
-    @tournament = Tournament.new(tournament_params.merge(created_by: @current_admin))
+    @tournament = Tournament.new(tournament_params.merge(created_by: @current_admin, scoring_type: "golden_fever"))
     if @tournament.save
       redirect_to admin_tournament_path(@tournament), notice: "Tournament created."
     else
@@ -40,6 +40,19 @@ class Admin::TournamentsController < Admin::BaseController
   end
 
   def activate
+    actual_total  = @tournament.tournament_segments.count
+    actual_rated  = @tournament.tournament_segments.where(is_rated: true).count
+
+    if actual_total != @tournament.total_segments_count
+      return redirect_to admin_tournament_path(@tournament),
+        alert: "Cannot activate: need #{@tournament.total_segments_count} total segments, have #{actual_total}."
+    end
+
+    if actual_rated != @tournament.rated_segments_count
+      return redirect_to admin_tournament_path(@tournament),
+        alert: "Cannot activate: need #{@tournament.rated_segments_count} rated segments, have #{actual_rated}."
+    end
+
     @tournament.activate!
     redirect_to admin_tournament_path(@tournament), notice: "Tournament is now active."
   rescue => e
@@ -54,11 +67,24 @@ class Admin::TournamentsController < Admin::BaseController
   end
 
   def add_segment
-    segment = Segment.find(params[:segment_id])
-    order   = @tournament.tournament_segments.count + 1
+    segment  = Segment.find(params[:segment_id])
     is_rated = params[:is_rated] != "0"
+
+    actual_total = @tournament.tournament_segments.count
+    actual_rated = @tournament.tournament_segments.where(is_rated: true).count
+
+    if actual_total >= @tournament.total_segments_count
+      return redirect_to admin_tournament_path(@tournament),
+        alert: "Cannot add more segments: tournament declared #{@tournament.total_segments_count} total."
+    end
+
+    if is_rated && actual_rated >= @tournament.rated_segments_count
+      return redirect_to admin_tournament_path(@tournament),
+        alert: "Cannot add more rated segments: tournament declared #{@tournament.rated_segments_count} rated."
+    end
+
+    order = actual_total + 1
     @tournament.tournament_segments.create!(segment: segment, order_number: order, is_rated: is_rated)
-    sync_counts
     redirect_to admin_tournament_path(@tournament), notice: "#{segment.name} added."
   rescue ActiveRecord::RecordNotUnique
     redirect_to admin_tournament_path(@tournament), alert: "Segment already in tournament."
@@ -69,27 +95,18 @@ class Admin::TournamentsController < Admin::BaseController
   def remove_segment
     ts = @tournament.tournament_segments.find_by!(segment_id: params[:segment_id])
     ts.destroy
-    sync_counts
     redirect_to admin_tournament_path(@tournament), notice: "Segment removed."
   end
 
   private
 
   def set_tournament
-    # to_param returns slug, so params[:id] is the slug
     @tournament = Tournament.find_by!(slug: params[:id])
-  end
-
-  def sync_counts
-    @tournament.update_columns(
-      total_segments_count:  @tournament.tournament_segments.count,
-      rated_segments_count:  @tournament.tournament_segments.where(is_rated: true).count,
-    )
   end
 
   def tournament_params
     params.require(:tournament).permit(
-      :name, :description, :scoring_type,
+      :name, :description,
       :total_segments_count, :rated_segments_count,
       :starts_at, :ends_at, :city, :country, :max_participants
     )
