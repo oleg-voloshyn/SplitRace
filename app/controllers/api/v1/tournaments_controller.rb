@@ -67,7 +67,7 @@ module Api
       end
 
       def tournament_params
-        params.permit(:name, :description, :scoring_type, :starts_at, :ends_at,
+        params.permit(:name, :description, :starts_at, :ends_at,
                       :total_segments_count, :rated_segments_count, :max_participants,
                       :city, :country)
       end
@@ -79,7 +79,6 @@ module Api
           slug:                   tournament.slug,
           description:            tournament.description,
           status:                 tournament.status,
-          scoring_type:           tournament.scoring_type,
           starts_at:              tournament.starts_at,
           ends_at:                tournament.ends_at,
           total_segments_count:   tournament.total_segments_count,

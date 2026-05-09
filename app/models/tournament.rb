@@ -7,7 +7,7 @@ class Tournament < ApplicationRecord
   has_many :tournament_scores, dependent: :destroy
 
   STATUSES       = %w[draft active completed].freeze
-  SCORING_TYPES  = %w[fastest_total best_of_n].freeze
+  SCORING_TYPES  = %w[golden_fever].freeze
 
   validates :name, presence: true
   validates :slug, presence: true, uniqueness: true, format: { with: /\A[a-z0-9-]+\z/ }
