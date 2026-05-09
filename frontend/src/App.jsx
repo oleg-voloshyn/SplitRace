@@ -21,10 +21,13 @@ function AppRoutes() {
   return (
     <>
       <Navbar />
-      <main style={isRunPage
-        ? { flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }
-        : { maxWidth: '800px', margin: '0 auto', padding: '1rem' }
-      }>
+      <main
+        className={isRunPage ? '' : 'sr-page-wrap'}
+        style={isRunPage
+          ? { flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }
+          : { maxWidth: '800px', margin: '0 auto', padding: '1rem' }
+        }
+      >
         <Routes>
           <Route path="/login"             element={<Login />} />
           <Route path="/oauth/callback"    element={<AuthCallback />} />

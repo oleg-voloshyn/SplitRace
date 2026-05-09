@@ -18,6 +18,89 @@ body {
 h2 { font-weight: 600; margin: 0 0 1rem; }
 p  { margin: 0; }
 
+/* ── Navbar ─────────────────────────────────────────────────────────────── */
+.sr-topbar {
+  background: #1a1a2e;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  padding: 0 1rem;
+  height: 52px;
+  flex-shrink: 0;
+  gap: 1.5rem;
+}
+.sr-brand {
+  color: #fff;
+  font-weight: 700;
+  font-size: 1.1rem;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.sr-link {
+  color: #ccc;
+  text-decoration: none;
+  font-size: 0.95rem;
+  white-space: nowrap;
+}
+.sr-link:hover, .sr-link.active { color: #fff; }
+.sr-logout {
+  background: transparent;
+  color: #ccc;
+  border: 1px solid #555;
+  border-radius: 4px;
+  padding: 0.2rem 0.6rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+/* desktop: show links, hide mobile logout */
+.sr-desktop-links { display: flex; align-items: center; gap: 1.5rem; margin-left: auto; }
+.sr-mobile-logout  { display: none; }
+.sr-bottomnav      { display: none; }
+
+@media (max-width: 640px) {
+  .sr-desktop-links  { display: none; }
+  .sr-mobile-logout  {
+    display: block;
+    margin-left: auto;
+    background: transparent;
+    color: #ccc;
+    border: 1px solid #555;
+    border-radius: 4px;
+    padding: 0.2rem 0.6rem;
+    cursor: pointer;
+    font-size: 0.82rem;
+  }
+  .sr-bottomnav {
+    display: flex;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: #1a1a2e;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    z-index: 1000;
+    height: 56px;
+  }
+  .sr-tab {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    color: #888;
+    font-size: 0.65rem;
+    gap: 2px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .sr-tab.active { color: #e53935; }
+  .sr-tab-icon   { font-size: 1.2rem; line-height: 1; }
+  .sr-tab-label  { font-size: 0.65rem; }
+
+  /* push page content up so bottom nav doesn't overlap */
+  .sr-page-wrap { padding-bottom: 56px; }
+}
+
 @keyframes pulse {
   0%   { box-shadow: 0 0 0 3px rgba(229,57,53,0.4); }
   70%  { box-shadow: 0 0 0 8px rgba(229,57,53,0); }

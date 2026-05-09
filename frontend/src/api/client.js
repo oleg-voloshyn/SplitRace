@@ -19,8 +19,9 @@ async function request(path, options = {}) {
 
   const res = await fetch(`${BASE}${path}`, { ...options, headers })
   if (res.status === 204) return null
-  const data = await res.json()
-  if (!res.ok) throw { status: res.status, errors: data.errors || [data.error] }
+  const text = await res.text()
+  const data = text.trim() ? JSON.parse(text) : {}
+  if (!res.ok) throw { status: res.status, errors: data.errors || [data.error] || [`HTTP ${res.status}`] }
   return data
 }
 
