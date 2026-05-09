@@ -57,5 +57,5 @@ Rails.application.routes.draw do
   pwa_proc = proc { [200, { "Content-Type" => "text/html" }, [File.read(Rails.root.join("public/app/index.html"))]] }
   root to: pwa_proc, constraints: ->(req) { File.exist?(Rails.root.join("public/app/index.html")) }
   get "*path", to: pwa_proc,
-               constraints: ->(req) { !req.path.start_with?("/api", "/auth", "/admin", "/up") && File.exist?(Rails.root.join("public/app/index.html")) }
+               constraints: ->(req) { !req.path.start_with?("/api", "/auth", "/admin", "/up", "/app/") && File.exist?(Rails.root.join("public/app/index.html")) }
 end
