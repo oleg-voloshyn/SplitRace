@@ -70,6 +70,7 @@ services:
   - type: redis
     name: splitrace-redis
     plan: free
+    ipAllowList: []
 
 databases:
   - name: splitrace-db
