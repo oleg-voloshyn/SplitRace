@@ -11,6 +11,10 @@ module Api
         activity.gps_track = build_gps_track(params[:gps_points]) if params[:gps_points].present?
 
         if activity.save
+          SegmentMatcher.new(activity).call
+          activity.user.tournaments.where(status: "active").each do |t|
+            TournamentScore.recalculate_all(t)
+          end
           render json: activity_json(activity), status: :created
         else
           render json: { errors: activity.errors.full_messages }, status: :unprocessable_entity
