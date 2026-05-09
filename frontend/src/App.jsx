@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import Navbar from './components/Navbar'
 import Login from './pages/Login'
@@ -15,10 +15,16 @@ function ProtectedRoute({ children }) {
 }
 
 function AppRoutes() {
+  const { pathname } = useLocation()
+  const isRunPage = pathname === '/run'
+
   return (
     <>
       <Navbar />
-      <main style={{ maxWidth: '800px', margin: '0 auto', padding: '1rem' }}>
+      <main style={isRunPage
+        ? { flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }
+        : { maxWidth: '800px', margin: '0 auto', padding: '1rem' }
+      }>
         <Routes>
           <Route path="/login"             element={<Login />} />
           <Route path="/oauth/callback"    element={<AuthCallback />} />
