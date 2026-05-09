@@ -1,6 +1,5 @@
 Rails.application.routes.draw do
   get "up" => "rails/health#show", as: :rails_health_check
-  get "/setup/admin", to: "setup#admin"
 
   # OmniAuth callbacks
   get  "/auth/:provider/callback", to: "api/v1/omniauth#callback"
