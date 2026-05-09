@@ -2,6 +2,7 @@ services:
   - type: web
     name: splitrace
     runtime: ruby
+    plan: free
     buildCommand: |
       bundle install
       (cd frontend && npm install && npm run build)
@@ -50,6 +51,7 @@ services:
   - type: worker
     name: splitrace-worker
     runtime: ruby
+    plan: free
     buildCommand: bundle install
     startCommand: bundle exec sidekiq -C config/sidekiq.yml
     envVars:
