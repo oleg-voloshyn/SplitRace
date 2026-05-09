@@ -1,0 +1,19 @@
+default: &default
+  adapter: postgis
+  encoding: unicode
+  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+  username: <%= ENV.fetch("DB_USERNAME", "") %>
+  password: <%= ENV.fetch("DB_PASSWORD", "") %>
+  host: <%= ENV.fetch("DB_HOST", "localhost") %>
+
+development:
+  <<: *default
+  database: splitrace_development
+
+test:
+  <<: *default
+  database: splitrace_test
+
+production:
+  <<: *default
+  url: <%= ENV["DATABASE_URL"] %>

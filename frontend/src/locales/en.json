@@ -1,0 +1,48 @@
+{
+  "nav": {
+    "tournaments": "Tournaments",
+    "run": "Start Run",
+    "profile": "Profile",
+    "logout": "Logout",
+    "login": "Login"
+  },
+  "auth": {
+    "login": "Login",
+    "register": "Register",
+    "email": "Email",
+    "password": "Password",
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "orContinueWith": "Or continue with",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?"
+  },
+  "tournaments": {
+    "title": "Tournaments",
+    "active": "Active",
+    "completed": "Completed",
+    "join": "Join",
+    "leave": "Leave",
+    "leaderboard": "Leaderboard",
+    "participants": "{{count}} participants",
+    "segments": "{{count}} segments",
+    "noTournaments": "No tournaments available"
+  },
+  "run": {
+    "title": "Start Run",
+    "start": "Start",
+    "stop": "Stop & Save",
+    "recording": "Recording...",
+    "distance": "Distance",
+    "duration": "Duration",
+    "gpsWaiting": "Waiting for GPS signal...",
+    "saved": "Run saved!"
+  },
+  "profile": {
+    "title": "Profile",
+    "units": "Units",
+    "km": "Kilometers",
+    "miles": "Miles",
+    "save": "Save"
+  }
+}

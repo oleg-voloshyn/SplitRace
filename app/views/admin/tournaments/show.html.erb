@@ -1,0 +1,106 @@
+<div class="page-header">
+  <h1><%= @tournament.name %></h1>
+  <div class="d-flex gap-2">
+    <%= link_to "Edit", edit_admin_tournament_path(@tournament), class: "btn btn-outline-secondary" %>
+    <% if @tournament.status == "draft" %>
+      <%= button_to "→ Activate", activate_admin_tournament_path(@tournament), method: :patch, class: "btn btn-success" %>
+    <% elsif @tournament.status == "active" %>
+      <%= button_to "✓ Complete", complete_admin_tournament_path(@tournament), method: :patch,
+            form: { data: { turbo_confirm: "Finalize scores and mark as completed?" } },
+            class: "btn btn-primary" %>
+    <% end %>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-auto">
+    <span class="badge badge-status-<%= @tournament.status %> fs-6"><%= @tournament.status.upcase %></span>
+  </div>
+  <div class="col-auto text-muted">
+    <%= @tournament.scoring_type.humanize %>
+  </div>
+  <% if @tournament.starts_at %>
+    <div class="col-auto text-muted">
+      <%= @tournament.starts_at.strftime("%d %b %Y") %> → <%= @tournament.ends_at&.strftime("%d %b %Y") || "?" %>
+    </div>
+  <% end %>
+  <div class="col-auto text-muted">
+    <%= @tournament.tournament_participants.count %> participants
+  </div>
+</div>
+
+<% if @tournament.description.present? %>
+  <p class="text-muted mb-4"><%= @tournament.description %></p>
+<% end %>
+
+<div class="row g-3">
+  <!-- Current segments -->
+  <div class="col-md-7">
+    <div class="card">
+      <div class="card-header"><strong>Segments in this tournament</strong> (<%= @tournament_segments.count %>)</div>
+      <div class="card-body p-0">
+        <table class="table table-sm mb-0">
+          <thead class="table-light">
+            <tr>
+              <th class="ps-3">#</th>
+              <th>Segment</th>
+              <th>Distance</th>
+              <th>Rated</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @tournament_segments.each do |ts| %>
+              <tr>
+                <td class="ps-3 text-muted"><%= ts.order_number %></td>
+                <td><%= ts.segment.name %></td>
+                <td class="text-muted"><%= ts.segment.distance_meters ? "#{(ts.segment.distance_meters / 1000.0).round(2)} km" : "—" %></td>
+                <td>
+                  <% if ts.is_rated %>
+                    <span class="badge bg-warning text-dark">Rated</span>
+                  <% end %>
+                </td>
+                <td class="text-end pe-3">
+                  <%= button_to "Remove", admin_tournament_remove_segment_path(@tournament, segment_id: ts.segment_id),
+                        method: :delete,
+                        form: { data: { turbo_confirm: "Remove #{ts.segment.name}?" } },
+                        class: "btn btn-sm btn-outline-danger" %>
+                </td>
+              </tr>
+            <% end %>
+            <% if @tournament_segments.empty? %>
+              <tr><td colspan="5" class="text-muted text-center py-3">No segments added yet</td></tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add segment -->
+  <div class="col-md-5">
+    <div class="card">
+      <div class="card-header"><strong>Add Segment</strong></div>
+      <div class="card-body">
+        <% if @available_segments.any? %>
+          <%= form_with url: add_segment_admin_tournament_path(@tournament), method: :post do |f| %>
+            <div class="mb-2">
+              <%= f.select :segment_id,
+                    @available_segments.map { |s| ["#{s.name} (#{s.distance_meters ? (s.distance_meters/1000.0).round(2).to_s + ' km' : '?'})", s.id] },
+                    { prompt: "Select segment..." },
+                    class: "form-select" %>
+            </div>
+            <div class="mb-3 form-check">
+              <%= f.check_box :is_rated, { class: "form-check-input", checked: true }, "1", "0" %>
+              <%= f.label :is_rated, "Rated segment", class: "form-check-label" %>
+            </div>
+            <%= f.submit "Add →", class: "btn btn-danger w-100" %>
+          <% end %>
+        <% else %>
+          <p class="text-muted mb-2">All active segments are already in this tournament.</p>
+          <%= link_to "Create new segment", new_admin_segment_path, class: "btn btn-outline-secondary btn-sm" %>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>

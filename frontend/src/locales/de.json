@@ -1,0 +1,48 @@
+{
+  "nav": {
+    "tournaments": "Turniere",
+    "run": "Lauf starten",
+    "profile": "Profil",
+    "logout": "Abmelden",
+    "login": "Anmelden"
+  },
+  "auth": {
+    "login": "Anmelden",
+    "register": "Registrieren",
+    "email": "E-Mail",
+    "password": "Passwort",
+    "firstName": "Vorname",
+    "lastName": "Nachname",
+    "orContinueWith": "Oder weiter mit",
+    "noAccount": "Noch kein Konto?",
+    "hasAccount": "Schon ein Konto?"
+  },
+  "tournaments": {
+    "title": "Turniere",
+    "active": "Aktiv",
+    "completed": "Abgeschlossen",
+    "join": "Beitreten",
+    "leave": "Verlassen",
+    "leaderboard": "Rangliste",
+    "participants": "{{count}} Teilnehmer",
+    "segments": "{{count}} Strecken",
+    "noTournaments": "Keine Turniere verfügbar"
+  },
+  "run": {
+    "title": "Lauf starten",
+    "start": "Start",
+    "stop": "Stopp & Speichern",
+    "recording": "Aufnahme...",
+    "distance": "Distanz",
+    "duration": "Dauer",
+    "gpsWaiting": "Warte auf GPS-Signal...",
+    "saved": "Lauf gespeichert!"
+  },
+  "profile": {
+    "title": "Profil",
+    "units": "Einheiten",
+    "km": "Kilometer",
+    "miles": "Meilen",
+    "save": "Speichern"
+  }
+}

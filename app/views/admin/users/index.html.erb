@@ -1,0 +1,45 @@
+<div class="page-header">
+  <h1>Users</h1>
+  <span class="text-muted"><%= @users.count %> total</span>
+</div>
+
+<div class="card">
+  <div class="card-body p-0">
+    <table class="table table-hover mb-0">
+      <thead class="table-light">
+        <tr>
+          <th class="ps-3">Name</th>
+          <th>Email</th>
+          <th>Role</th>
+          <th>Auth</th>
+          <th>Joined</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @users.each do |u| %>
+          <tr>
+            <td class="ps-3">
+              <%= u.full_name %>
+            </td>
+            <td class="text-muted"><%= u.email %></td>
+            <td>
+              <% case u.role %>
+              <% when "admin" %><span class="badge bg-danger">admin</span>
+              <% when "moderator" %><span class="badge bg-warning text-dark">moderator</span>
+              <% else %><span class="badge bg-secondary">user</span>
+              <% end %>
+            </td>
+            <td class="text-muted small">
+              <%= u.oauth_identities.map(&:provider).join(", ").presence || "password" %>
+            </td>
+            <td class="text-muted small"><%= u.created_at.strftime("%d %b %Y") %></td>
+            <td class="text-end pe-3">
+              <%= link_to "Edit role", edit_admin_user_path(u), class: "btn btn-sm btn-outline-secondary" %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</div>
