@@ -56,8 +56,9 @@ export default function RunTracker() {
         gps_points:           points,
       })
       setStatus('saved')
-    } catch {
-      setError('Failed to save run')
+    } catch (err) {
+      const msg = err?.errors?.join(', ') || err?.message || 'Failed to save run'
+      setError(msg)
       setStatus('error')
     }
   }
