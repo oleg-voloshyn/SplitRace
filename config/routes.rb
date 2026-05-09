@@ -54,6 +54,8 @@ Rails.application.routes.draw do
   end
 
   # Serve React PWA for all non-API routes
-  get "*path", to: proc { [200, { "Content-Type" => "text/html" }, [File.read(Rails.root.join("public/app/index.html"))]] },
-               constraints: ->(req) { !req.path.start_with?("/api", "/auth", "/up") && File.exist?(Rails.root.join("public/app/index.html")) }
+  pwa_proc = proc { [200, { "Content-Type" => "text/html" }, [File.read(Rails.root.join("public/app/index.html"))]] }
+  root to: pwa_proc, constraints: ->(req) { File.exist?(Rails.root.join("public/app/index.html")) }
+  get "*path", to: pwa_proc,
+               constraints: ->(req) { !req.path.start_with?("/api", "/auth", "/admin", "/up") && File.exist?(Rails.root.join("public/app/index.html")) }
 end
