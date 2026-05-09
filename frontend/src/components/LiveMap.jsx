@@ -28,7 +28,7 @@ export default function LiveMap({ points }) {
     <MapContainer
       center={[last.lat, last.lng]}
       zoom={16}
-      style={{ height: '100%', width: '100%' }}
+      style={{ position: 'absolute', inset: 0 }}
       scrollWheelZoom={false}
       zoomControl={false}
     >

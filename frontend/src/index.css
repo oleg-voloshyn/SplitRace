@@ -99,6 +99,9 @@ p  { margin: 0; }
 
   /* push page content up so bottom nav doesn't overlap */
   .sr-page-wrap { padding-bottom: 56px; }
+
+  /* hide bottom nav while actively recording a run */
+  body.run-recording .sr-bottomnav { display: none; }
 }
 
 @keyframes pulse {

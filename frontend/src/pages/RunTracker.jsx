@@ -79,9 +79,18 @@ export default function RunTracker() {
     }
   }
 
+  // Hide bottom nav while recording so it doesn't cover the Stop button
+  useEffect(() => {
+    if (status === 'recording') {
+      document.body.classList.add('run-recording')
+      return () => document.body.classList.remove('run-recording')
+    }
+  }, [status])
+
   useEffect(() => () => {
     clearInterval(timerRef.current)
     if (watchId.current) navigator.geolocation.clearWatch(watchId.current)
+    document.body.classList.remove('run-recording')
   }, [])
 
   // ── IDLE / ERROR ───────────────────────────────────────────────────────────
