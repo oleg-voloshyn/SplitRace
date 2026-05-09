@@ -43,7 +43,7 @@ module Splitrace
     config.active_job.queue_adapter = :sidekiq
 
     # OmniAuth needs sessions to store the state parameter between redirect and callback
-    config.middleware.use ActionDispatch::MethodOverride
+    config.middleware.insert_before 0, ActionDispatch::MethodOverride
     config.middleware.use ActionDispatch::Cookies
     config.middleware.use ActionDispatch::Session::CookieStore, key: "_splitrace_session"
     config.middleware.use ActionDispatch::Flash
