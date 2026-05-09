@@ -16,4 +16,4 @@ test:
 
 production:
   <<: *default
-  url: <%= ENV["DATABASE_URL"] %>
+  url: <%= ENV["DATABASE_URL"]&.sub(/\Apostgres(ql)?:/, "postgis:") %>

@@ -3,8 +3,8 @@ services:
     name: splitrace
     runtime: ruby
     buildCommand: |
-      cd frontend && npm install && npm run build && cd ..
       bundle install
+      (cd frontend && npm install && npm run build)
       bundle exec rails db:migrate
     startCommand: bundle exec puma -C config/puma.rb
     healthCheckPath: /up
@@ -15,6 +15,8 @@ services:
         value: "true"
       - key: RAILS_SERVE_STATIC_FILES
         value: "true"
+      - key: NODE_VERSION
+        value: "20"
       - key: RAILS_MASTER_KEY
         sync: false
       - key: DATABASE_URL
@@ -53,6 +55,8 @@ services:
     envVars:
       - key: RAILS_ENV
         value: production
+      - key: RAILS_MASTER_KEY
+        sync: false
       - key: DATABASE_URL
         fromDatabase:
           name: splitrace-db
@@ -62,8 +66,6 @@ services:
           name: splitrace-redis
           type: redis
           property: connectionString
-      - key: RAILS_MASTER_KEY
-        sync: false
 
   - type: redis
     name: splitrace-redis
