@@ -5,6 +5,7 @@ import LiveMap from '../components/LiveMap'
 
 export default function RunTracker() {
   const { t } = useTranslation()
+  // idle → acquiring → recording → saved | error
   const [status, setStatus]     = useState('idle')
   const [points, setPoints]     = useState([])
   const [duration, setDuration] = useState(0)
@@ -12,29 +13,44 @@ export default function RunTracker() {
   const watchId   = useRef(null)
   const startTime = useRef(null)
   const timerRef  = useRef(null)
+  const firstPoint = useRef(false)
 
-  function startRun() {
+  function startAcquiring() {
     if (!navigator.geolocation) { setError('Geolocation not supported'); return }
     setPoints([])
     setDuration(0)
     setError(null)
-    setStatus('recording')
-    startTime.current = Date.now()
-
-    timerRef.current = setInterval(() => {
-      setDuration(Math.floor((Date.now() - startTime.current) / 1000))
-    }, 1000)
+    firstPoint.current = false
+    setStatus('acquiring')
 
     watchId.current = navigator.geolocation.watchPosition(
-      pos => setPoints(prev => [...prev, {
-        lat: pos.coords.latitude,
-        lng: pos.coords.longitude,
-        ts:  Math.floor(pos.timestamp / 1000),
-        accuracy: pos.coords.accuracy,
-      }]),
-      err => setError(err.message),
-      { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
+      pos => {
+        const pt = {
+          lat:      pos.coords.latitude,
+          lng:      pos.coords.longitude,
+          ts:       Math.floor(pos.timestamp / 1000),
+          accuracy: pos.coords.accuracy,
+        }
+        // Start timer only when first GPS fix arrives
+        if (!firstPoint.current) {
+          firstPoint.current = true
+          startTime.current  = Date.now()
+          timerRef.current   = setInterval(() => {
+            setDuration(Math.floor((Date.now() - startTime.current) / 1000))
+          }, 1000)
+          setStatus('recording')
+        }
+        setPoints(prev => [...prev, pt])
+      },
+      err => { setError(err.message); setStatus('error') },
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 }
     )
+  }
+
+  function cancelAcquiring() {
+    navigator.geolocation.clearWatch(watchId.current)
+    setStatus('idle')
+    setError(null)
   }
 
   async function stopRun() {
@@ -68,14 +84,12 @@ export default function RunTracker() {
     if (watchId.current) navigator.geolocation.clearWatch(watchId.current)
   }, [])
 
-  // ── IDLE ──────────────────────────────────────────────────────────────────
+  // ── IDLE / ERROR ───────────────────────────────────────────────────────────
   if (status === 'idle' || status === 'error') return (
     <div style={styles.centerPage}>
       <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: '1.1rem', color: '#888', marginBottom: '2rem' }}>
-          {t('run.title')}
-        </div>
-        <button onClick={startRun} style={styles.roundBtn('#4caf50')}>
+        <div style={{ fontSize: '1.1rem', color: '#888', marginBottom: '2rem' }}>{t('run.title')}</div>
+        <button onClick={startAcquiring} style={styles.roundBtn('#4caf50')}>
           {t('run.start')}
         </button>
         {error && <p style={{ color: '#e53935', marginTop: '1.5rem', fontSize: '0.9rem' }}>{error}</p>}
@@ -83,17 +97,33 @@ export default function RunTracker() {
     </div>
   )
 
-  // ── SAVED ─────────────────────────────────────────────────────────────────
+  // ── ACQUIRING GPS ──────────────────────────────────────────────────────────
+  if (status === 'acquiring') return (
+    <div style={styles.centerPage}>
+      <div style={{ textAlign: 'center' }}>
+        <div style={styles.gpsDot} />
+        <p style={{ color: '#fff', fontSize: '1rem', margin: '1.5rem 0 0.5rem' }}>
+          {t('run.gpsWaiting')}
+        </p>
+        <p style={{ color: '#888', fontSize: '0.85rem', marginBottom: '2rem' }}>
+          Go outside for a better signal
+        </p>
+        <button onClick={cancelAcquiring} style={{ ...styles.roundBtn('#555'), width: '70px', height: '70px', fontSize: '0.85rem' }}>
+          Cancel
+        </button>
+      </div>
+    </div>
+  )
+
+  // ── SAVED ──────────────────────────────────────────────────────────────────
   if (status === 'saved') return (
     <div style={styles.centerPage}>
       <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>✓</div>
-        <p style={{ color: '#4caf50', fontSize: '1.2rem', marginBottom: '2rem' }}>
-          {t('run.saved')}
-        </p>
-        <div style={{ color: '#555', marginBottom: '0.5rem' }}>
+        <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>✓</div>
+        <p style={{ color: '#4caf50', fontSize: '1.2rem', marginBottom: '0.5rem' }}>{t('run.saved')}</p>
+        <p style={{ color: '#888', fontSize: '0.95rem', marginBottom: '2rem' }}>
           {formatTime(duration)} · {(calcDistance(points) / 1000).toFixed(2)} km
-        </div>
+        </p>
         <button onClick={() => setStatus('idle')} style={styles.roundBtn('#1a1a2e')}>
           {t('run.start')}
         </button>
@@ -101,7 +131,7 @@ export default function RunTracker() {
     </div>
   )
 
-  // ── RECORDING ─────────────────────────────────────────────────────────────
+  // ── RECORDING ──────────────────────────────────────────────────────────────
   const distKm = calcDistance(points) / 1000
   const pace   = duration > 0 && distKm > 0.01
     ? formatTime(Math.round(duration / distKm))
@@ -109,7 +139,6 @@ export default function RunTracker() {
 
   return (
     <div style={styles.runScreen}>
-      {/* top stats bar */}
       <div style={styles.statsBar}>
         <div style={styles.dot} />
         <Stat label={t('run.duration')} value={formatTime(duration)} />
@@ -117,15 +146,10 @@ export default function RunTracker() {
         <Stat label="Pace /km"          value={pace} />
       </div>
 
-      {/* map fills remaining space */}
       <div style={styles.mapWrap}>
-        {points.length === 0
-          ? <div style={styles.gpsWait}>{t('run.gpsWaiting')}</div>
-          : <LiveMap points={points} />
-        }
+        <LiveMap points={points} />
       </div>
 
-      {/* stop button always pinned at bottom */}
       <div style={styles.footer}>
         <button onClick={stopRun} style={styles.roundBtn('#e53935')}>
           {t('run.stop')}
@@ -165,18 +189,14 @@ function haversine(a, b) {
 const styles = {
   centerPage: {
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    flex: 1, padding: '2rem',
+    flex: 1, padding: '2rem', background: '#1a1a2e',
   },
   runScreen: {
-    display: 'flex', flexDirection: 'column',
-    flex: 1,
-    background: '#1a1a2e',
+    display: 'flex', flexDirection: 'column', flex: 1, background: '#1a1a2e',
   },
   statsBar: {
     display: 'flex', alignItems: 'center', justifyContent: 'space-around',
-    padding: '0.75rem 1rem',
-    background: '#1a1a2e',
-    flexShrink: 0,
+    padding: '0.75rem 1rem', background: '#1a1a2e', flexShrink: 0,
   },
   dot: {
     width: 10, height: 10, borderRadius: '50%',
@@ -185,28 +205,23 @@ const styles = {
     animation: 'pulse 1.5s infinite',
     flexShrink: 0,
   },
-  mapWrap: {
-    flex: 1,
-    position: 'relative',
-    overflow: 'hidden',
+  gpsDot: {
+    width: 36, height: 36, borderRadius: '50%',
+    background: '#2196f3',
+    margin: '0 auto',
+    animation: 'pulse-blue 1.2s infinite',
   },
-  gpsWait: {
-    position: 'absolute', inset: 0,
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    color: '#888', fontSize: '0.95rem',
-    background: '#111',
+  mapWrap: {
+    flex: 1, position: 'relative', overflow: 'hidden',
   },
   footer: {
-    flexShrink: 0,
-    display: 'flex', justifyContent: 'center',
-    padding: '1rem',
-    background: '#1a1a2e',
+    flexShrink: 0, display: 'flex', justifyContent: 'center',
+    padding: '1rem', background: '#1a1a2e',
   },
   roundBtn: (bg) => ({
     background: bg, color: '#fff', border: 'none', borderRadius: '50%',
     width: '90px', height: '90px', fontSize: '1rem', cursor: 'pointer',
     fontWeight: '700', boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
-    WebkitTapHighlightColor: 'transparent',
-    touchAction: 'manipulation',
+    WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation',
   }),
 }
