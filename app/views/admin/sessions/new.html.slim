@@ -1,0 +1,17 @@
+div style="max-width: 380px; margin: 6rem auto;"
+  .text-center.mb-4
+    h2 style="color: #e53935; font-weight: 700;" ⚡ SplitRace
+    p.text-muted Admin panel
+
+  .card.shadow-sm
+    .card-body.p-4
+      - if flash[:alert]
+        .alert.alert-danger= flash[:alert]
+      = form_with url: admin_login_path, method: :post do |f|
+        .mb-3
+          = f.label :email, "Email", class: "form-label"
+          = f.email_field :email, class: "form-control", autofocus: true
+        .mb-4
+          = f.label :password, "Password", class: "form-label"
+          = f.password_field :password, class: "form-control"
+        = f.submit "Sign in", class: "btn btn-danger w-100"

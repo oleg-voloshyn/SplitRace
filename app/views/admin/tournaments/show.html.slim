@@ -1,0 +1,86 @@
+- actual_total = @tournament_segments.count
+- actual_rated = @tournament_segments.count(&:is_rated)
+
+.page-header
+  h1= @tournament.name
+  .d-flex.gap-2
+    = link_to "Edit", edit_admin_tournament_path(@tournament), class: "btn btn-outline-secondary"
+    - if @tournament.status == "draft"
+      = button_to "→ Activate", activate_admin_tournament_path(@tournament), class: "btn btn-success"
+    - elsif @tournament.status == "active"
+      = button_to "✓ Complete", complete_admin_tournament_path(@tournament), class: "btn btn-primary"
+
+.row.g-3.mb-4
+  .col-auto
+    span class="badge badge-status-#{@tournament.status} fs-6"= @tournament.status.upcase
+  .col-auto.text-muted Golden Fever
+  - if @tournament.starts_at
+    .col-auto.text-muted
+      = "#{@tournament.starts_at.strftime("%d %b %Y")} → #{@tournament.ends_at&.strftime("%d %b %Y") || "?"}"
+  .col-auto.text-muted= "#{@tournament.tournament_participants.count} participants"
+  .col-auto
+    - if actual_total == @tournament.total_segments_count && actual_rated == @tournament.rated_segments_count
+      span.badge.bg-success ✓ Segments complete
+    - else
+      span.badge.bg-warning.text-dark
+        = "#{actual_total}/#{@tournament.total_segments_count} total · #{actual_rated}/#{@tournament.rated_segments_count} rated"
+
+- if @tournament.description.present?
+  p.text-muted.mb-4= @tournament.description
+
+.row.g-3
+  .col-md-7
+    .card
+      .card-header
+        strong= "Segments in this tournament (#{@tournament_segments.count})"
+      .card-body.p-0
+        table.table.table-sm.mb-0
+          thead.table-light
+            tr
+              th.ps-3 #
+              th Segment
+              th Distance
+              th Rated
+              th
+          tbody
+            - @tournament_segments.each do |ts|
+              tr
+                td.ps-3.text-muted= ts.order_number
+                td= ts.segment.name
+                td.text-muted= ts.segment.distance_meters ? "#{(ts.segment.distance_meters / 1000.0).round(2)} km" : "—"
+                td
+                  - if ts.is_rated
+                    span.badge.bg-warning.text-dark Rated
+                td.text-end.pe-3
+                  = button_to "Remove", admin_tournament_remove_segment_path(@tournament, segment_id: ts.segment_id),
+                      class: "btn btn-sm btn-outline-danger"
+            - if @tournament_segments.empty?
+              tr
+                td colspan="5" class="text-muted text-center py-3" No segments added yet
+
+  .col-md-5
+    - slots_left       = @tournament.total_segments_count - actual_total
+    - rated_slots_left = @tournament.rated_segments_count - actual_rated
+    .card
+      .card-header.d-flex.justify-content-between.align-items-center
+        strong Add Segment
+        small.text-muted
+          = "#{actual_total}/#{@tournament.total_segments_count} total · #{actual_rated}/#{@tournament.rated_segments_count} rated"
+      .card-body
+        - if slots_left <= 0
+          p.text-success.mb-0= "✓ All #{@tournament.total_segments_count} segments added."
+        - elsif @available_segments.any?
+          = form_with url: add_segment_admin_tournament_path(@tournament), method: :post do |f|
+            .mb-2
+              = f.select :segment_id,
+                  @available_segments.map { |s| ["#{s.name} (#{s.distance_meters ? (s.distance_meters/1000.0).round(2).to_s + ' km' : '?'})", s.id] },
+                  { prompt: "Select segment..." },
+                  class: "form-select"
+            .mb-3.form-check
+              = f.check_box :is_rated, { class: "form-check-input", checked: rated_slots_left > 0 }, "1", "0"
+              = f.label :is_rated, "Rated segment#{rated_slots_left > 0 ? " (#{rated_slots_left} left)" : " (limit reached)"}", class: "form-check-label"
+            p.text-muted.small.mb-2= "#{slots_left} slot#{slots_left == 1 ? "" : "s"} remaining"
+            = f.submit "Add →", class: "btn btn-danger w-100"
+        - else
+          p.text-muted.mb-2 All active segments are already in this tournament.
+          = link_to "Create new segment", new_admin_segment_path, class: "btn btn-outline-secondary btn-sm"

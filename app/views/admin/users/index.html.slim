@@ -1,0 +1,33 @@
+.page-header
+  h1 Users
+  span.text-muted= "#{@users.count} total"
+
+.card
+  .card-body.p-0
+    table.table.table-hover.mb-0
+      thead.table-light
+        tr
+          th.ps-3 Name
+          th Email
+          th Role
+          th Gender
+          th Auth
+          th Joined
+          th
+      tbody
+        - @users.each do |u|
+          tr
+            td.ps-3= u.full_name
+            td.text-muted= u.email
+            td
+              - if u.role == "admin"
+                span.badge.bg-danger admin
+              - elsif u.role == "moderator"
+                span.badge.bg-warning.text-dark moderator
+              - else
+                span.badge.bg-secondary user
+            td.text-muted.small= u.gender || "—"
+            td.text-muted.small= u.oauth_identities.map(&:provider).join(", ").presence || "password"
+            td.text-muted.small= u.created_at.strftime("%d %b %Y")
+            td.text-end.pe-3
+              = link_to "Edit role", edit_admin_user_path(u), class: "btn btn-sm btn-outline-secondary"

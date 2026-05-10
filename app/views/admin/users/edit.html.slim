@@ -1,0 +1,12 @@
+.page-header
+  h1= "Edit Role: #{@user.full_name}"
+  = link_to "← Back", admin_users_path, class: "btn btn-outline-secondary"
+
+.card style="max-width: 400px;"
+  .card-body
+    p.text-muted.mb-3= @user.email
+    = form_with model: [:admin, @user] do |f|
+      .mb-3
+        = f.label :role, class: "form-label"
+        = f.select :role, User::ROLES.map { |r| [r.capitalize, r] }, {}, class: "form-select"
+      = f.submit "Save", class: "btn btn-danger"

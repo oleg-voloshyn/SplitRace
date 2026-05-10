@@ -31,6 +31,9 @@ gem "redis", "~> 5.0"
 # CORS
 gem "rack-cors", "~> 2.0"
 
+# Admin views
+gem "slim-rails", "~> 3.6"
+
 group :development, :test do
   gem "debug", platforms: %i[ mri windows ]
   gem "dotenv-rails", "~> 3.1"

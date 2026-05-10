@@ -1,0 +1,37 @@
+.page-header
+  h1 Segments
+  = link_to "+ New Segment", new_admin_segment_path, class: "btn btn-danger"
+
+.card
+  .card-body.p-0
+    table.table.table-hover.mb-0
+      thead.table-light
+        tr
+          th.ps-3 Name
+          th Distance
+          th City
+          th Active
+          th Created
+          th
+      tbody
+        - @segments.each do |s|
+          tr
+            td.ps-3.fw-semibold= s.name
+            td= s.distance_meters ? "#{(s.distance_meters / 1000.0).round(2)} km" : "—"
+            td= [s.city, s.country].compact.join(", ").presence || "—"
+            td
+              - if s.is_active
+                span.badge.bg-success Active
+              - else
+                span.badge.bg-secondary Inactive
+            td.text-muted= s.created_at.strftime("%d %b %Y")
+            td.text-end.pe-3
+              = link_to "Edit", edit_admin_segment_path(s), class: "btn btn-sm btn-outline-secondary me-1"
+              = button_to "Delete", admin_segment_path(s), method: :delete,
+                  form: { data: { turbo_confirm: "Delete #{s.name}?" } },
+                  class: "btn btn-sm btn-outline-danger"
+        - if @segments.empty?
+          tr
+            td colspan="6" class="text-center text-muted py-4"
+              | No segments yet.
+              = link_to " Create one →", new_admin_segment_path

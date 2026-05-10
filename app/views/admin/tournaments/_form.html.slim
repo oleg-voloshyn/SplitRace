@@ -1,0 +1,52 @@
+= form_with model: [:admin, tournament], class: "row g-3" do |f|
+  - if tournament.errors.any?
+    .col-12
+      .alert.alert-danger
+        - tournament.errors.full_messages.each do |m|
+          div= m
+
+  .col-md-6
+    = f.label :name, class: "form-label"
+    = f.text_field :name, class: "form-control", placeholder: "Kyiv Spring 2026"
+
+  .col-md-3
+    = f.label :city, class: "form-label"
+    = f.text_field :city, class: "form-control"
+
+  .col-md-3
+    = f.label :country, class: "form-label"
+    = f.text_field :country, class: "form-control", placeholder: "UA / US / DE..."
+
+  .col-12
+    = f.label :description, class: "form-label"
+    = f.text_area :description, class: "form-control", rows: 2
+
+  .col-md-6
+    = f.label :total_segments_count, "Total segments (all shown to players)", class: "form-label"
+    = f.number_field :total_segments_count, class: "form-control", min: 2, required: true,
+        disabled: !tournament.new_record? && tournament.status != "draft"
+    .form-text All segments players will see on the map.
+
+  .col-md-6
+    = f.label :rated_segments_count, "Rated segments (hidden, must complete in order)", class: "form-label"
+    = f.number_field :rated_segments_count, class: "form-control", min: 1, required: true,
+        disabled: !tournament.new_record? && tournament.status != "draft"
+    .form-text Must be strictly less than total. Players don't know which ones are rated.
+
+  .col-md-4
+    = f.label :starts_at, "Starts at", class: "form-label"
+    = f.datetime_local_field :starts_at, class: "form-control",
+        value: tournament.starts_at&.strftime("%Y-%m-%dT%H:%M")
+
+  .col-md-4
+    = f.label :ends_at, "Ends at", class: "form-label"
+    = f.datetime_local_field :ends_at, class: "form-control",
+        value: tournament.ends_at&.strftime("%Y-%m-%dT%H:%M")
+
+  .col-md-4
+    = f.label :max_participants, "Max participants", class: "form-label"
+    = f.number_field :max_participants, class: "form-control", placeholder: "Leave blank for unlimited"
+
+  .col-12
+    = f.submit tournament.new_record? ? "Create Tournament" : "Update Tournament", class: "btn btn-danger"
+    = link_to "Cancel", admin_tournaments_path, class: "btn btn-outline-secondary ms-2"

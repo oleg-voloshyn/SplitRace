@@ -1,0 +1,54 @@
+.page-header
+  h1 Dashboard
+
+.row.g-3.mb-4
+  .col-md-3
+    .stat-card
+      .number= @stats[:users]
+      .label Users
+  .col-md-3
+    .stat-card
+      .number= @stats[:segments]
+      .label Segments
+  .col-md-3
+    .stat-card
+      .number= @stats[:tournaments]
+      .label Tournaments
+  .col-md-3
+    .stat-card
+      .number= @stats[:activities]
+      .label Activities
+
+.row.g-3
+  .col-md-6
+    .card
+      .card-header.d-flex.justify-content-between.align-items-center
+        strong Recent Tournaments
+        = link_to "New", new_admin_tournament_path, class: "btn btn-sm btn-danger"
+      .card-body.p-0
+        table.table.table-sm.mb-0
+          tbody
+            - @recent_tournaments.each do |t|
+              tr
+                td.ps-3= link_to t.name, admin_tournament_path(t)
+                td
+                  span class="badge badge-status-#{t.status}"= t.status
+            - if @recent_tournaments.empty?
+              tr
+                td.text-muted.ps-3.py-3 No tournaments yet
+
+  .col-md-6
+    .card
+      .card-header.d-flex.justify-content-between.align-items-center
+        strong Recent Segments
+        = link_to "New", new_admin_segment_path, class: "btn btn-sm btn-danger"
+      .card-body.p-0
+        table.table.table-sm.mb-0
+          tbody
+            - @recent_segments.each do |s|
+              tr
+                td.ps-3= link_to s.name, edit_admin_segment_path(s)
+                td.text-muted= s.distance_meters ? "#{(s.distance_meters / 1000.0).round(2)} km" : "—"
+            - if @recent_segments.empty?
+              tr
+                td.text-muted.ps-3.py-3 No segments yet
