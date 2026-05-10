@@ -69,7 +69,7 @@ export default function Tournament() {
               <tr style={{ background: '#f5f5f5' }}>
                 <th style={thStyle}>#</th>
                 <th style={thStyle}>Runner</th>
-                <th style={thStyle}>Time</th>
+                <th style={thStyle}>Score</th>
                 <th style={thStyle}>Segments</th>
               </tr>
             </thead>
@@ -78,7 +78,7 @@ export default function Tournament() {
                 <tr key={entry.user.id} style={{ borderBottom: '1px solid #eee' }}>
                   <td style={tdStyle}>{i + 1}</td>
                   <td style={tdStyle}>{entry.user.full_name}</td>
-                  <td style={tdStyle}>{formatTime(entry.total_time_seconds)}</td>
+                  <td style={tdStyle}>{entry.score?.toFixed(1) ?? '—'}</td>
                   <td style={tdStyle}>{entry.completed_segments}</td>
                 </tr>
               ))}
