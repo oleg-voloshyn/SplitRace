@@ -23,7 +23,6 @@ export default function Navbar() {
             {/* desktop links */}
             <div className="sr-desktop-links">
               <NavLink to="/tournaments" className={({ isActive }) => isActive ? 'sr-link active' : 'sr-link'}>{t('nav.tournaments')}</NavLink>
-              <NavLink to="/run"         className={({ isActive }) => isActive ? 'sr-link active' : 'sr-link'}>{t('nav.run')}</NavLink>
               <NavLink to="/profile"     className={({ isActive }) => isActive ? 'sr-link active' : 'sr-link'}>{t('nav.profile')}</NavLink>
               <button onClick={handleLogout} className="sr-logout">{t('nav.logout')}</button>
             </div>
@@ -42,10 +41,6 @@ export default function Navbar() {
           <NavLink to="/tournaments" className={({ isActive }) => isActive ? 'sr-tab active' : 'sr-tab'}>
             <span className="sr-tab-icon">🏆</span>
             <span className="sr-tab-label">{t('nav.tournaments')}</span>
-          </NavLink>
-          <NavLink to="/run" className={({ isActive }) => isActive ? 'sr-tab active' : 'sr-tab'}>
-            <span className="sr-tab-icon">▶</span>
-            <span className="sr-tab-label">{t('nav.run')}</span>
           </NavLink>
           <NavLink to="/profile" className={({ isActive }) => isActive ? 'sr-tab active' : 'sr-tab'}>
             <span className="sr-tab-icon">👤</span>
