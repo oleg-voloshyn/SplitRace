@@ -1,0 +1,45 @@
+.page-header
+  h1
+    | Activities
+    - if @user
+      span.text-muted.fs-5
+        | &nbsp;— #{@user.full_name}
+  - if @user
+    = link_to "← All users", admin_users_path, class: "btn btn-outline-secondary"
+
+.card
+  .card-body.p-0
+    table.table.table-hover.mb-0
+      thead.table-light
+        tr
+          th.ps-3 Date
+          th User
+          th Distance
+          th Time
+          th Pace
+          th Segments
+          th Source
+          th
+      tbody
+        - if @activities.empty?
+          tr
+            td colspan="8" class="text-muted text-center py-4" No activities yet
+        - @activities.each do |a|
+          tr
+            td.ps-3= a.started_at&.strftime("%d %b %Y %H:%M")
+            td
+              = link_to a.user.full_name, admin_activities_path(user_id: a.user_id), class: "text-decoration-none"
+              br
+              span.text-muted.small= a.user.email
+            td.text-muted= a.distance_meters ? "#{(a.distance_meters / 1000.0).round(2)} km" : "—"
+            td.text-muted= format_seconds(a.elapsed_time_seconds)
+            td.text-muted= format_pace(a.elapsed_time_seconds, a.distance_meters)
+            td
+              - count = a.segment_efforts.size
+              - if count > 0
+                span.badge.bg-warning.text-dark= count
+              - else
+                span.text-muted —
+            td.text-muted.small= a.source
+            td.text-end.pe-3
+              = link_to "View", admin_activity_path(a), class: "btn btn-sm btn-outline-secondary"

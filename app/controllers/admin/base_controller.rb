@@ -11,7 +11,8 @@ class Admin::BaseController < ActionController::Base
                 :admin_tournament_path, :edit_admin_tournament_path,
                 :activate_admin_tournament_path, :complete_admin_tournament_path,
                 :add_segment_admin_tournament_path, :remove_segment_admin_tournament_path,
-                :admin_users_path, :admin_user_path, :edit_admin_user_path
+                :admin_users_path, :admin_user_path, :edit_admin_user_path,
+                :admin_activities_path, :admin_activity_path
 
   private
 

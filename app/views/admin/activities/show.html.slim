@@ -1,0 +1,82 @@
+.page-header
+  h1= "Activity by #{@activity.user.full_name}"
+  = link_to "← Back", admin_activities_path, class: "btn btn-outline-secondary"
+
+.row.g-3
+  .col-md-4
+    .card
+      .card-body
+        h6.text-muted.mb-2 Runner
+        p.mb-3
+          strong= @activity.user.full_name
+          br
+          span.text-muted.small= @activity.user.email
+
+        h6.text-muted.mb-1 Started
+        p.mb-2= @activity.started_at&.strftime("%d %b %Y %H:%M")
+
+        - if @activity.finished_at
+          h6.text-muted.mb-1 Finished
+          p.mb-2= @activity.finished_at.strftime("%d %b %Y %H:%M")
+
+        h6.text-muted.mb-1 Distance
+        p.mb-2= @activity.distance_meters ? "#{(@activity.distance_meters / 1000.0).round(2)} km" : "—"
+
+        h6.text-muted.mb-1 Duration
+        p.mb-2= format_seconds(@activity.elapsed_time_seconds)
+
+        h6.text-muted.mb-1 Pace
+        p.mb-2= format_pace(@activity.elapsed_time_seconds, @activity.distance_meters)
+
+        h6.text-muted.mb-1 Source
+        p.mb-2.text-muted.small= @activity.source
+
+        h6.text-muted.mb-1 GPS points
+        p.mb-0= @activity.gps_points.is_a?(Array) ? @activity.gps_points.size : 0
+
+  .col-md-8
+    .card.mb-3
+      .card-header
+        strong Route
+      .card-body.p-0
+        - if @activity.gps_points.is_a?(Array) && @activity.gps_points.size > 1
+          #activity-map style="height: 480px; border-radius: 0 0 8px 8px;"
+        - else
+          p.text-muted.text-center.py-5.mb-0 No route data
+
+    .card
+      .card-header
+        strong Segment efforts (#{@activity.segment_efforts.size})
+      .card-body.p-0
+        - if @activity.segment_efforts.empty?
+          p.text-muted.text-center.py-3.mb-0 No matched segments
+        - else
+          table.table.table-sm.mb-0
+            thead.table-light
+              tr
+                th.ps-3 Segment
+                th Distance
+                th Time
+                th Pace
+            tbody
+              - @activity.segment_efforts.each do |se|
+                tr
+                  td.ps-3= se.segment.name
+                  td.text-muted= se.segment.distance_meters ? "#{(se.segment.distance_meters / 1000.0).round(2)} km" : "—"
+                  td= format_seconds(se.elapsed_time_seconds)
+                  td.text-muted= format_pace(se.elapsed_time_seconds, se.segment.distance_meters)
+
+- if @activity.gps_points.is_a?(Array) && @activity.gps_points.size > 1
+  javascript:
+    (function() {
+      const points = #{raw @activity.gps_points.to_json};
+      const latlngs = points.map(p => [p.lat, p.lng]);
+      const map = L.map('activity-map').setView(latlngs[0], 15);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(map);
+      L.polyline(latlngs, { color: '#e53935', weight: 4, opacity: 0.85 }).addTo(map);
+      L.circleMarker(latlngs[0], { radius: 8, color: '#4caf50', fillColor: '#4caf50', fillOpacity: 1, weight: 2 }).addTo(map).bindTooltip('Start');
+      L.circleMarker(latlngs[latlngs.length - 1], { radius: 8, color: '#e53935', fillColor: '#e53935', fillOpacity: 1, weight: 2 }).addTo(map).bindTooltip('Finish');
+      map.fitBounds(latlngs, { padding: [30, 30] });
+    })();

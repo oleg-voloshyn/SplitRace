@@ -51,6 +51,7 @@ Rails.application.routes.draw do
       end
     end
     resources :users, only: %i[index edit update]
+    resources :activities, only: %i[index show]
   end
 
   # Serve React PWA for all non-API routes
