@@ -24,89 +24,93 @@ export default function Profile() {
   }
 
   return (
-    <div style={{ maxWidth: '480px' }}>
+    <div>
       <h2>{t('profile.title')}</h2>
-      <p style={{ color: '#888', marginBottom: '0.75rem' }}>{user?.email}</p>
 
-      {!user?.gender && (
-        <div style={{ background: '#fff3cd', border: '1px solid #ffc107', borderRadius: '6px', padding: '0.6rem 0.9rem', marginBottom: '1rem', fontSize: '0.85rem', color: '#856404' }}>
-          ⚠ Please set your gender — it's required for tournament scoring.
-        </div>
-      )}
+      <div className="sr-profile-grid">
+        <div className="sr-card">
+          <p style={{ color: '#888', marginBottom: '0.75rem', fontSize: '0.9rem' }}>{user?.email}</p>
 
-      <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-        <input placeholder="First Name" value={form.first_name} onChange={e => setForm({ ...form, first_name: e.target.value })} style={inputStyle} />
-        <input placeholder="Last Name"  value={form.last_name}  onChange={e => setForm({ ...form, last_name:  e.target.value })} style={inputStyle} />
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-          <span style={{ fontSize: '0.85rem', color: '#555' }}>{t('auth.gender')}</span>
-          <div style={{ display: 'flex', gap: '1.5rem' }}>
-            {['male', 'female'].map(g => (
-              <label key={g} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer' }}>
-                <input type="radio" name="gender" value={g} checked={form.gender === g} onChange={() => setForm({ ...form, gender: g })} />
-                {t(`auth.gender_${g}`)}
-              </label>
-            ))}
-          </div>
-        </div>
-
-        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          {t('profile.units')}:
-          <select value={form.units} onChange={e => setForm({ ...form, units: e.target.value })} style={inputStyle}>
-            <option value="km">{t('profile.km')}</option>
-            <option value="miles">{t('profile.miles')}</option>
-          </select>
-        </label>
-        <button type="submit" style={{ background: '#1a1a2e', color: '#fff', border: 'none', borderRadius: '4px', padding: '0.6rem', cursor: 'pointer' }}>
-          {saved ? '✓ Saved!' : t('profile.save')}
-        </button>
-      </form>
-
-      {/* ── Recent runs ───────────────────────────────────────────── */}
-      <h3 style={{ marginTop: '2rem', marginBottom: '0.75rem', fontSize: '1rem', fontWeight: '600' }}>
-        Recent runs
-      </h3>
-
-      {activities === null && <p style={{ color: '#888', fontSize: '0.9rem' }}>Loading...</p>}
-      {activities?.length === 0 && <p style={{ color: '#888', fontSize: '0.9rem' }}>No runs yet.</p>}
-      {activities?.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          {activities.map(a => (
-            <div key={a.id} style={cardStyle}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontWeight: '600', fontSize: '0.95rem' }}>
-                  {fmtDate(a.started_at)}
-                </span>
-                {a.segment_efforts_count > 0 && (
-                  <span style={{ fontSize: '0.75rem', background: '#fff3cd', color: '#856404', borderRadius: '4px', padding: '0.15rem 0.5rem' }}>
-                    {a.segment_efforts_count} segment{a.segment_efforts_count !== 1 ? 's' : ''}
-                  </span>
-                )}
-              </div>
-              <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.35rem', color: '#555', fontSize: '0.85rem' }}>
-                <span>{fmtDist(a.distance_meters)}</span>
-                <span>{fmtTime(a.elapsed_time_seconds)}</span>
-                {a.distance_meters > 0 && a.elapsed_time_seconds > 0 && (
-                  <span>{fmtPace(a.elapsed_time_seconds, a.distance_meters)} /km</span>
-                )}
-              </div>
-
-              {a.gps_points?.length > 1 && (
-                <button
-                  onClick={() => setExpanded(expanded === a.id ? null : a.id)}
-                  style={{ marginTop: '0.5rem', background: 'none', border: '1px solid #ccc', borderRadius: '4px', padding: '0.25rem 0.6rem', fontSize: '0.8rem', cursor: 'pointer', color: '#555' }}
-                >
-                  {expanded === a.id ? 'Hide route' : 'Show route'}
-                </button>
-              )}
-
-              {expanded === a.id && (
-                <ActivityRouteMap points={a.gps_points} />
-              )}
+          {!user?.gender && (
+            <div style={{ background: '#fff3cd', border: '1px solid #ffc107', borderRadius: '6px', padding: '0.6rem 0.9rem', marginBottom: '1rem', fontSize: '0.85rem', color: '#856404' }}>
+              ⚠ Please set your gender — it's required for tournament scoring.
             </div>
-          ))}
+          )}
+
+          <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <input placeholder="First Name" value={form.first_name} onChange={e => setForm({ ...form, first_name: e.target.value })} style={inputStyle} />
+            <input placeholder="Last Name"  value={form.last_name}  onChange={e => setForm({ ...form, last_name:  e.target.value })} style={inputStyle} />
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+              <span style={{ fontSize: '0.85rem', color: '#555' }}>{t('auth.gender')}</span>
+              <div style={{ display: 'flex', gap: '1.5rem' }}>
+                {['male', 'female'].map(g => (
+                  <label key={g} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer' }}>
+                    <input type="radio" name="gender" value={g} checked={form.gender === g} onChange={() => setForm({ ...form, gender: g })} />
+                    {t(`auth.gender_${g}`)}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              {t('profile.units')}:
+              <select value={form.units} onChange={e => setForm({ ...form, units: e.target.value })} style={inputStyle}>
+                <option value="km">{t('profile.km')}</option>
+                <option value="miles">{t('profile.miles')}</option>
+              </select>
+            </label>
+            <button type="submit" style={{ background: '#1a1a2e', color: '#fff', border: 'none', borderRadius: '4px', padding: '0.6rem', cursor: 'pointer', fontWeight: 600 }}>
+              {saved ? '✓ Saved!' : t('profile.save')}
+            </button>
+          </form>
         </div>
-      )}
+
+        <div>
+          <h3 style={{ marginBottom: '0.75rem' }}>Recent runs</h3>
+
+          {activities === null && <p style={{ color: '#888', fontSize: '0.9rem' }}>Loading...</p>}
+          {activities?.length === 0 && <p style={{ color: '#888', fontSize: '0.9rem' }}>No runs yet.</p>}
+          {activities?.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+              {activities.map(a => (
+                <div key={a.id} className="sr-card" style={{ padding: '0.85rem 1rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontWeight: '600', fontSize: '0.95rem' }}>
+                      {fmtDate(a.started_at)}
+                    </span>
+                    {a.segment_efforts_count > 0 && (
+                      <span style={{ fontSize: '0.75rem', background: '#fff3cd', color: '#856404', borderRadius: '4px', padding: '0.15rem 0.5rem' }}>
+                        {a.segment_efforts_count} segment{a.segment_efforts_count !== 1 ? 's' : ''}
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.4rem', color: '#555', fontSize: '0.88rem' }}>
+                    <span>{fmtDist(a.distance_meters)}</span>
+                    <span>{fmtTime(a.elapsed_time_seconds)}</span>
+                    {a.distance_meters > 0 && a.elapsed_time_seconds > 0 && (
+                      <span>{fmtPace(a.elapsed_time_seconds, a.distance_meters)} /km</span>
+                    )}
+                  </div>
+
+                  {a.gps_points?.length > 1 && (
+                    <button
+                      onClick={() => setExpanded(expanded === a.id ? null : a.id)}
+                      style={{ marginTop: '0.5rem', background: 'none', border: '1px solid #ccc', borderRadius: '4px', padding: '0.25rem 0.7rem', fontSize: '0.8rem', cursor: 'pointer', color: '#555' }}
+                    >
+                      {expanded === a.id ? 'Hide route' : 'Show route'}
+                    </button>
+                  )}
+
+                  {expanded === a.id && (
+                    <ActivityRouteMap points={a.gps_points} />
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   )
 }

@@ -25,7 +25,7 @@ function AppRoutes() {
         className={isRunPage ? '' : 'sr-page-wrap'}
         style={isRunPage
           ? { flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }
-          : { maxWidth: '800px', margin: '0 auto', padding: '1rem' }
+          : undefined
         }
       >
         <Routes>

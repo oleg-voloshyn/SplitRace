@@ -35,9 +35,9 @@ export default function Tournament() {
   return (
     <div>
       <h2>{tournament.name}</h2>
-      {tournament.description && <p style={{ color: '#666' }}>{tournament.description}</p>}
+      {tournament.description && <p style={{ color: '#666', marginBottom: '1rem' }}>{tournament.description}</p>}
 
-      <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+      <div className="sr-stats-row">
         <Stat label="Status"       value={tournament.status} />
         <Stat label="Participants" value={tournament.participants_count} />
         <Stat label="Segments"     value={tournament.total_segments_count} />
@@ -45,56 +45,68 @@ export default function Tournament() {
         {tournament.ends_at   && <Stat label="Ends"   value={new Date(tournament.ends_at).toLocaleDateString()} />}
       </div>
 
-      {tournament.segments?.length > 0 && (
-        <section style={{ marginBottom: '2rem' }}>
-          <MapView segments={tournament.segments.map(ts => ts.segment)} height="350px" />
-          <h3 style={{ marginTop: '1rem' }}>Segments</h3>
-          {tournament.segments.map(ts => (
-            <div key={ts.segment.id} style={{ padding: '0.5rem', borderBottom: '1px solid #eee' }}>
-              <strong>#{ts.order_number}</strong> {ts.segment.name}
-              {ts.segment.distance_meters && <span style={{ color: '#888', marginLeft: '0.5rem' }}>({(ts.segment.distance_meters / 1000).toFixed(2)} km)</span>}
-              {ts.is_rated && <span style={{ background: '#ff9800', color: '#fff', fontSize: '0.75rem', padding: '0.1rem 0.4rem', borderRadius: '4px', marginLeft: '0.5rem' }}>Rated</span>}
-            </div>
-          ))}
-        </section>
-      )}
+      <div className="sr-tournament-detail">
+        <div>
+          {tournament.segments?.length > 0 && (
+            <>
+              <div className="sr-card" style={{ padding: 0, overflow: 'hidden', marginBottom: '1rem' }}>
+                <MapView segments={tournament.segments.map(ts => ts.segment)} height="420px" />
+              </div>
+              <div className="sr-card">
+                <h3>Segments</h3>
+                {tournament.segments.map(ts => (
+                  <div key={ts.segment.id} style={{ padding: '0.6rem 0', borderBottom: '1px solid #f0f0f0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <strong style={{ color: '#888', minWidth: 24 }}>#{ts.order_number}</strong>
+                    <span style={{ flex: 1 }}>{ts.segment.name}</span>
+                    {ts.segment.distance_meters && (
+                      <span style={{ color: '#888', fontSize: '0.85rem' }}>{(ts.segment.distance_meters / 1000).toFixed(2)} km</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
 
-      <section>
-        <h3>{t('tournaments.leaderboard')}</h3>
-        {leaderboard.length === 0 ? (
-          <p style={{ color: '#888' }}>No results yet</p>
-        ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ background: '#f5f5f5' }}>
-                <th style={thStyle}>#</th>
-                <th style={thStyle}>Runner</th>
-                <th style={thStyle}>Score</th>
-                <th style={thStyle}>Segments</th>
-              </tr>
-            </thead>
-            <tbody>
-              {leaderboard.map((entry, i) => (
-                <tr key={entry.user.id} style={{ borderBottom: '1px solid #eee' }}>
-                  <td style={tdStyle}>{i + 1}</td>
-                  <td style={tdStyle}>{entry.user.full_name}</td>
-                  <td style={tdStyle}>{entry.score?.toFixed(1) ?? '—'}</td>
-                  <td style={tdStyle}>{entry.completed_segments}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </section>
+        <div>
+          <div className="sr-card">
+            <h3>{t('tournaments.leaderboard')}</h3>
+            {leaderboard.length === 0 ? (
+              <p style={{ color: '#888' }}>No results yet</p>
+            ) : (
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ borderBottom: '2px solid #e9ecef' }}>
+                    <th style={thStyle}>#</th>
+                    <th style={thStyle}>Runner</th>
+                    <th style={{ ...thStyle, textAlign: 'right' }}>Score</th>
+                    <th style={{ ...thStyle, textAlign: 'right' }}>Seg</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {leaderboard.map((entry, i) => (
+                    <tr key={entry.user.id} style={{ borderBottom: '1px solid #f0f0f0' }}>
+                      <td style={{ ...tdStyle, color: '#888', fontWeight: 600 }}>{i + 1}</td>
+                      <td style={tdStyle}>{entry.user.full_name}</td>
+                      <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600 }}>{entry.score?.toFixed(1) ?? '—'}</td>
+                      <td style={{ ...tdStyle, textAlign: 'right', color: '#888' }}>{entry.completed_segments}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
 
 function Stat({ label, value }) {
   return (
-    <div style={{ background: '#f5f5f5', padding: '0.5rem 1rem', borderRadius: '6px', textAlign: 'center' }}>
-      <div style={{ fontSize: '0.75rem', color: '#888' }}>{label}</div>
-      <div style={{ fontWeight: 'bold' }}>{value}</div>
+    <div className="sr-stat-pill">
+      <div className="label">{label}</div>
+      <div className="value">{value}</div>
     </div>
   )
 }

@@ -6,7 +6,7 @@ body {
   margin: 0;
   font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
   color: #1a1a2e;
-  background: #fff;
+  background: #f8f9fa;
 }
 
 #root {
@@ -15,7 +15,8 @@ body {
   flex-direction: column;
 }
 
-h2 { font-weight: 600; margin: 0 0 1rem; }
+h2 { font-weight: 700; margin: 0 0 1.25rem; font-size: 1.5rem; }
+h3 { font-weight: 600; margin: 0 0 0.75rem; font-size: 1.15rem; }
 p  { margin: 0; }
 
 /* ── Navbar ─────────────────────────────────────────────────────────────── */
@@ -24,41 +25,111 @@ p  { margin: 0; }
   color: #fff;
   display: flex;
   align-items: center;
-  padding: 0 1rem;
-  height: 52px;
+  padding: 0 1.5rem;
+  height: 56px;
   flex-shrink: 0;
-  gap: 1.5rem;
+  gap: 2rem;
 }
 .sr-brand {
   color: #fff;
   font-weight: 700;
-  font-size: 1.1rem;
+  font-size: 1.15rem;
   text-decoration: none;
   white-space: nowrap;
+  letter-spacing: -0.01em;
 }
 .sr-link {
-  color: #ccc;
+  color: #aaa;
   text-decoration: none;
   font-size: 0.95rem;
   white-space: nowrap;
+  padding: 0.4rem 0.2rem;
+  border-bottom: 2px solid transparent;
+  transition: color .15s, border-color .15s;
 }
-.sr-link:hover, .sr-link.active { color: #fff; }
+.sr-link:hover { color: #fff; }
+.sr-link.active { color: #fff; border-bottom-color: #e53935; }
 .sr-logout {
   background: transparent;
   color: #ccc;
   border: 1px solid #555;
   border-radius: 4px;
-  padding: 0.2rem 0.6rem;
+  padding: 0.3rem 0.8rem;
   cursor: pointer;
   font-size: 0.85rem;
   white-space: nowrap;
 }
+.sr-logout:hover { background: rgba(255,255,255,0.05); color: #fff; }
 
-/* desktop: show links, hide mobile logout */
-.sr-desktop-links { display: flex; align-items: center; gap: 1.5rem; margin-left: auto; }
+.sr-desktop-links { display: flex; align-items: center; gap: 1.75rem; margin-left: auto; }
 .sr-mobile-logout  { display: none; }
 .sr-bottomnav      { display: none; }
 
+/* ── Page container ─────────────────────────────────────────────────────── */
+.sr-page-wrap {
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 1.5rem 1.5rem 2rem;
+}
+
+/* ── Cards ──────────────────────────────────────────────────────────────── */
+.sr-card {
+  background: #fff;
+  border: 1px solid #e9ecef;
+  border-radius: 10px;
+  padding: 1.25rem;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+}
+.sr-card-clickable { cursor: pointer; transition: box-shadow .15s, transform .15s; }
+.sr-card-clickable:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); transform: translateY(-1px); }
+
+/* ── Layouts ────────────────────────────────────────────────────────────── */
+.sr-grid-tournaments {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+.sr-tournament-detail {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+}
+.sr-profile-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+}
+.sr-stats-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+.sr-stat-pill {
+  background: #fff;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 0.6rem 1rem;
+  min-width: 110px;
+  text-align: center;
+}
+.sr-stat-pill .label { font-size: 0.7rem; color: #888; text-transform: uppercase; letter-spacing: 0.05em; }
+.sr-stat-pill .value { font-size: 1rem; font-weight: 700; margin-top: 2px; }
+
+/* Tablet / desktop */
+@media (min-width: 720px) {
+  .sr-grid-tournaments { grid-template-columns: repeat(2, 1fr); gap: 1.25rem; }
+  .sr-page-wrap        { padding: 2rem 2rem 2.5rem; }
+}
+
+@media (min-width: 1024px) {
+  .sr-grid-tournaments { grid-template-columns: repeat(3, 1fr); }
+  .sr-tournament-detail { grid-template-columns: 2fr 1fr; }
+  .sr-profile-grid     { grid-template-columns: minmax(0, 380px) 1fr; }
+}
+
+/* ── Mobile ─────────────────────────────────────────────────────────────── */
 @media (max-width: 640px) {
   .sr-desktop-links  { display: none; }
   .sr-mobile-logout  {
@@ -97,10 +168,7 @@ p  { margin: 0; }
   .sr-tab-icon   { font-size: 1.2rem; line-height: 1; }
   .sr-tab-label  { font-size: 0.65rem; }
 
-  /* push page content up so bottom nav doesn't overlap */
-  .sr-page-wrap { padding-bottom: 56px; }
-
-  /* hide bottom nav while actively recording a run */
+  .sr-page-wrap { padding: 1rem 1rem calc(56px + 1rem); }
   body.run-recording .sr-bottomnav { display: none; }
 }
 
