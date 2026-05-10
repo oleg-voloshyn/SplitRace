@@ -64,7 +64,8 @@ module Api
           distance_meters:       activity.distance_meters,
           elapsed_time_seconds:  activity.elapsed_time_seconds,
           source:                activity.source,
-          segment_efforts_count: activity.segment_efforts.count
+          segment_efforts_count: activity.segment_efforts.count,
+          gps_points:            activity.gps_points || []
         }
       end
     end

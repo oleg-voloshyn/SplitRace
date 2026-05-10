@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { MapContainer, TileLayer, Polyline, CircleMarker, useMap } from 'react-leaflet'
 import { useAuth } from '../contexts/AuthContext'
 import { api } from '../api/client'
 
@@ -9,6 +10,7 @@ export default function Profile() {
   const [form, setForm]         = useState({ first_name: user?.first_name || '', last_name: user?.last_name || '', units: user?.units || 'km', gender: user?.gender || '' })
   const [saved, setSaved]       = useState(false)
   const [activities, setActivities] = useState(null)
+  const [expanded, setExpanded] = useState(null)
 
   useEffect(() => {
     api.activities().then(setActivities).catch(() => setActivities([]))
@@ -88,10 +90,58 @@ export default function Profile() {
                   <span>{fmtPace(a.elapsed_time_seconds, a.distance_meters)} /km</span>
                 )}
               </div>
+
+              {a.gps_points?.length > 1 && (
+                <button
+                  onClick={() => setExpanded(expanded === a.id ? null : a.id)}
+                  style={{ marginTop: '0.5rem', background: 'none', border: '1px solid #ccc', borderRadius: '4px', padding: '0.25rem 0.6rem', fontSize: '0.8rem', cursor: 'pointer', color: '#555' }}
+                >
+                  {expanded === a.id ? 'Hide route' : 'Show route'}
+                </button>
+              )}
+
+              {expanded === a.id && (
+                <ActivityRouteMap points={a.gps_points} />
+              )}
             </div>
           ))}
         </div>
       )}
+    </div>
+  )
+}
+
+function FitBounds({ points }) {
+  const map = useMap()
+  useEffect(() => {
+    if (points.length > 1) {
+      map.fitBounds(points.map(p => [p.lat, p.lng]), { padding: [12, 12] })
+    }
+  }, [map])
+  return null
+}
+
+function ActivityRouteMap({ points }) {
+  if (!points?.length) return null
+  const positions = points.map(p => [p.lat, p.lng])
+  const first = positions[0]
+  const last  = positions[positions.length - 1]
+
+  return (
+    <div style={{ position: 'relative', height: '200px', borderRadius: '6px', overflow: 'hidden', marginTop: '0.6rem' }}>
+      <MapContainer
+        center={first}
+        zoom={14}
+        style={{ position: 'absolute', inset: 0 }}
+        zoomControl={false}
+        attributionControl={false}
+      >
+        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+        <Polyline positions={positions} color="#e53935" weight={3} opacity={0.85} />
+        <CircleMarker center={first} radius={6} color="#4caf50" fillColor="#4caf50" fillOpacity={1} weight={2} />
+        <CircleMarker center={last}  radius={6} color="#e53935" fillColor="#e53935" fillOpacity={1} weight={2} />
+        <FitBounds points={points} />
+      </MapContainer>
     </div>
   )
 }
