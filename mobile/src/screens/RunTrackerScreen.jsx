@@ -4,6 +4,7 @@ import * as Location from 'expo-location'
 import * as TaskManager from 'expo-task-manager'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { api } from '../api/client'
+import LeafletMap from '../components/LeafletMap'
 
 const LOCATION_TASK = 'splitrace-location-task'
 const POINTS_KEY    = 'splitrace_run_points'
@@ -184,13 +185,15 @@ export default function RunTrackerScreen() {
         <Stat label="Pace/km"  value={pace} />
       </View>
 
-      {/* Map placeholder — Google Maps API key needed for real map */}
+      {/* Live map */}
       <View style={s.mapWrap}>
-        <View style={[StyleSheet.absoluteFill, s.noMap]}>
-          <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>
-            {points.length > 0 ? `${points.length} points recorded` : 'Waiting for GPS...'}
-          </Text>
-        </View>
+        {points.length > 0 ? (
+          <LeafletMap points={points} follow />
+        ) : (
+          <View style={[StyleSheet.absoluteFill, s.noMap]}>
+            <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>Waiting for GPS...</Text>
+          </View>
+        )}
       </View>
 
       {/* Stop button */}

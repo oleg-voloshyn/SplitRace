@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react'
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native'
 import { useAuth } from '../contexts/AuthContext'
 import { api } from '../api/client'
+import LeafletMap from '../components/LeafletMap'
 
 export default function ProfileScreen() {
   const { user, setUser, logout } = useAuth()
   const [form, setForm]     = useState({ first_name: user?.first_name || '', last_name: user?.last_name || '', gender: user?.gender || '' })
   const [saved, setSaved]   = useState(false)
   const [activities, setActivities] = useState(null)
+  const [expandedId, setExpandedId] = useState(null)
 
   useEffect(() => {
     api.activities().then(setActivities).catch(() => setActivities([]))
@@ -80,6 +82,16 @@ export default function ProfileScreen() {
               <Text style={s.stat}>{fmtPace(a.elapsed_time_seconds, a.distance_meters)} /km</Text>
             )}
           </View>
+          {a.gps_points?.length > 1 && (
+            <TouchableOpacity onPress={() => setExpandedId(expandedId === a.id ? null : a.id)} style={s.routeBtn}>
+              <Text style={s.routeBtnText}>{expandedId === a.id ? 'Hide route' : 'Show route'}</Text>
+            </TouchableOpacity>
+          )}
+          {expandedId === a.id && a.gps_points?.length > 1 && (
+            <View style={s.mapBox}>
+              <LeafletMap points={a.gps_points} />
+            </View>
+          )}
         </View>
       ))}
     </ScrollView>
@@ -129,4 +141,7 @@ const s = StyleSheet.create({
   segBadgeText:   { color: '#856404', fontSize: 12 },
   runStats:       { flexDirection: 'row', gap: 16 },
   stat:           { color: '#555', fontSize: 13 },
+  routeBtn:       { marginTop: 8, alignSelf: 'flex-start', borderWidth: 1, borderColor: '#ddd', borderRadius: 6, paddingHorizontal: 10, paddingVertical: 4 },
+  routeBtnText:   { color: '#555', fontSize: 12 },
+  mapBox:         { height: 200, marginTop: 8, borderRadius: 8, overflow: 'hidden' },
 })
