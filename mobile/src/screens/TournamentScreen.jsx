@@ -32,7 +32,7 @@ export default function TournamentScreen() {
 
   if (!data) return <View style={s.center}><ActivityIndicator color="#e53935" /></View>
 
-  const isParticipant = data.is_participant
+  const isParticipant = data.is_participating
   const canJoin = data.status === 'active' && !isParticipant
 
   return (
