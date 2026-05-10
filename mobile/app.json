@@ -27,6 +27,18 @@
         "android.permission.FOREGROUND_SERVICE_LOCATION"
       ]
     },
+    "ios": {
+      "bundleIdentifier": "com.splitrace.app",
+      "buildNumber": "1",
+      "supportsTablet": false,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "SplitRace needs your location to track your runs.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "SplitRace tracks your run in the background so the route is recorded even when the screen is off.",
+        "NSMotionUsageDescription": "SplitRace uses motion data to improve run tracking accuracy.",
+        "UIBackgroundModes": ["location", "fetch"],
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
     "plugins": [
       [
         "expo-location",

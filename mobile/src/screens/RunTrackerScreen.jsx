@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native'
+import { View, Text, TouchableOpacity, StyleSheet, Alert, Platform } from 'react-native'
 import * as Location from 'expo-location'
 import * as TaskManager from 'expo-task-manager'
 import AsyncStorage from '@react-native-async-storage/async-storage'
@@ -156,7 +156,7 @@ export default function RunTrackerScreen() {
         finished_at:          new Date().toISOString(),
         elapsed_time_seconds: elapsed,
         distance_meters:      Math.round(distance),
-        source:               'mobile_android',
+        source:               Platform.OS === 'ios' ? 'mobile_ios' : 'mobile_android',
         gps_points:           pts,
       })
       await AsyncStorage.removeItem(POINTS_KEY)
