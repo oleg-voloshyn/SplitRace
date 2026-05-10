@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { View, Text, TouchableOpacity, StyleSheet, Alert, AppState } from 'react-native'
+import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native'
 import * as Location from 'expo-location'
 import * as TaskManager from 'expo-task-manager'
 import AsyncStorage from '@react-native-async-storage/async-storage'
@@ -8,6 +8,7 @@ import LeafletMap from '../components/LeafletMap'
 
 const LOCATION_TASK = 'splitrace-location-task'
 const POINTS_KEY    = 'splitrace_run_points'
+const MIN_DISTANCE_M = 30  // below this we treat the activity as "not moving"
 
 // Background task — runs even when screen is locked
 TaskManager.defineTask(LOCATION_TASK, async ({ data, error }) => {
@@ -26,12 +27,16 @@ TaskManager.defineTask(LOCATION_TASK, async ({ data, error }) => {
 })
 
 export default function RunTrackerScreen() {
-  const [status, setStatus]     = useState('idle')   // idle | acquiring | recording | saving | saved | error
+  // idle | acquiring | recording | paused | saving | saved | error
+  const [status, setStatus]     = useState('idle')
   const [points, setPoints]     = useState([])
   const [duration, setDuration] = useState(0)
   const [error, setError]       = useState(null)
-  const startTime = useRef(null)
-  const timerRef  = useRef(null)
+
+  const startTime      = useRef(null)  // first START timestamp (used for started_at)
+  const segmentStart   = useRef(null)  // when current active recording segment began
+  const accumulatedMs  = useRef(0)     // total active time across pauses
+  const timerRef       = useRef(null)
 
   // Poll AsyncStorage for new GPS points while recording
   useEffect(() => {
@@ -51,6 +56,28 @@ export default function RunTrackerScreen() {
     Location.stopLocationUpdatesAsync(LOCATION_TASK).catch(() => {})
   }, [])
 
+  function startTimer() {
+    timerRef.current = setInterval(() => {
+      const totalMs = accumulatedMs.current + (Date.now() - segmentStart.current)
+      setDuration(Math.floor(totalMs / 1000))
+    }, 1000)
+  }
+
+  async function startLocationUpdates() {
+    await Location.startLocationUpdatesAsync(LOCATION_TASK, {
+      accuracy:            Location.Accuracy.BestForNavigation,
+      timeInterval:        3000,
+      distanceInterval:    5,
+      foregroundService: {
+        notificationTitle: 'SplitRace — Recording run',
+        notificationBody:  'Your route is being tracked.',
+        notificationColor: '#e53935',
+      },
+      pausesUpdatesAutomatically: false,
+      showsBackgroundLocationIndicator: true,
+    })
+  }
+
   async function startRun() {
     setError(null)
     setStatus('acquiring')
@@ -69,39 +96,59 @@ export default function RunTrackerScreen() {
 
     await AsyncStorage.removeItem(POINTS_KEY)
     setPoints([])
+    setDuration(0)
 
-    await Location.startLocationUpdatesAsync(LOCATION_TASK, {
-      accuracy:            Location.Accuracy.BestForNavigation,
-      timeInterval:        3000,
-      distanceInterval:    5,
-      foregroundService: {
-        notificationTitle: 'SplitRace — Recording run',
-        notificationBody:  'Your route is being tracked.',
-        notificationColor: '#e53935',
-      },
-      pausesUpdatesAutomatically: false,
-      showsBackgroundLocationIndicator: true,
-    })
+    await startLocationUpdates()
 
-    startTime.current = Date.now()
-    timerRef.current  = setInterval(() => {
-      setDuration(Math.floor((Date.now() - startTime.current) / 1000))
-    }, 1000)
+    startTime.current     = Date.now()
+    segmentStart.current  = Date.now()
+    accumulatedMs.current = 0
+    startTimer()
     setStatus('recording')
   }
 
-  async function stopRun() {
+  async function pauseRun() {
     clearInterval(timerRef.current)
     await Location.stopLocationUpdatesAsync(LOCATION_TASK).catch(() => {})
-    setStatus('saving')
+    accumulatedMs.current += Date.now() - segmentStart.current
+    setDuration(Math.floor(accumulatedMs.current / 1000))
 
+    // Pull final batch of points that the background task wrote
+    try {
+      const stored = await AsyncStorage.getItem(POINTS_KEY)
+      if (stored) setPoints(JSON.parse(stored))
+    } catch {}
+
+    setStatus('paused')
+  }
+
+  async function resumeRun() {
+    segmentStart.current = Date.now()
+    await startLocationUpdates()
+    startTimer()
+    setStatus('recording')
+  }
+
+  async function finishRun() {
     const stored = await AsyncStorage.getItem(POINTS_KEY)
     const pts = stored ? JSON.parse(stored) : points
-
-    if (pts.length < 2) { setStatus('idle'); return }
-
-    const elapsed  = Math.floor((Date.now() - startTime.current) / 1000)
     const distance = calcDistance(pts)
+
+    if (pts.length < 2 || distance < MIN_DISTANCE_M) {
+      Alert.alert(
+        'Not moving yet?',
+        'SplitRace needs a longer activity to save and analyze. Please continue or start over.',
+        [
+          { text: 'Discard', style: 'destructive', onPress: discardRun },
+          { text: 'Resume',  onPress: resumeRun },
+        ],
+        { cancelable: false }
+      )
+      return
+    }
+
+    setStatus('saving')
+    const elapsed = Math.floor(accumulatedMs.current / 1000)
 
     try {
       await api.saveActivity({
@@ -120,10 +167,20 @@ export default function RunTrackerScreen() {
     }
   }
 
+  async function discardRun() {
+    await AsyncStorage.removeItem(POINTS_KEY)
+    accumulatedMs.current = 0
+    setPoints([])
+    setDuration(0)
+    setError(null)
+    setStatus('idle')
+  }
+
   function reset() {
     setStatus('idle')
     setPoints([])
     setDuration(0)
+    accumulatedMs.current = 0
     setError(null)
   }
 
@@ -171,24 +228,29 @@ export default function RunTrackerScreen() {
     </View>
   )
 
-  // ── RECORDING ────────────────────────────────────────────────────────────────
-  const distKm = calcDistance(points) / 1000
-  const pace   = duration > 0 && distKm > 0.01 ? fmtTime(Math.round(duration / distKm)) : '--:--'
+  // ── RECORDING / PAUSED ───────────────────────────────────────────────────────
+  const distKm   = calcDistance(points) / 1000
+  const pace     = duration > 0 && distKm > 0.01 ? fmtTime(Math.round(duration / distKm)) : '--:--'
+  const isPaused = status === 'paused'
 
   return (
     <View style={s.screen}>
-      {/* Stats bar */}
-      <View style={s.statsBar}>
-        <View style={s.recDot} />
-        <Stat label="Time"     value={fmtTime(duration)} />
-        <Stat label="Distance" value={`${distKm.toFixed(2)} km`} />
-        <Stat label="Pace/km"  value={pace} />
+      {/* Header bar — yellow when paused */}
+      <View style={[s.statsBar, isPaused && s.statsBarPaused]}>
+        {isPaused ? (
+          <Text style={s.pausedLabel}>PAUSED</Text>
+        ) : (
+          <View style={s.recDot} />
+        )}
+        <Stat label="Time"     value={fmtTime(duration)} dark={isPaused} />
+        <Stat label="Distance" value={`${distKm.toFixed(2)} km`} dark={isPaused} />
+        <Stat label="Pace/km"  value={pace} dark={isPaused} />
       </View>
 
       {/* Live map */}
       <View style={s.mapWrap}>
         {points.length > 0 ? (
-          <LeafletMap points={points} follow />
+          <LeafletMap points={points} follow={!isPaused} />
         ) : (
           <View style={[StyleSheet.absoluteFill, s.noMap]}>
             <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>Waiting for GPS...</Text>
@@ -196,21 +258,34 @@ export default function RunTrackerScreen() {
         )}
       </View>
 
-      {/* Stop button */}
+      {/* Bottom controls */}
       <View style={s.footer}>
-        <TouchableOpacity style={s.roundBtn('#e53935')} onPress={stopRun}>
-          <Text style={s.btnLabel}>STOP</Text>
-        </TouchableOpacity>
+        {isPaused ? (
+          <View style={s.pausedRow}>
+            <TouchableOpacity style={s.pillBtn('#e53935')} onPress={resumeRun}>
+              <Text style={s.pillIcon}>▶</Text>
+              <Text style={s.pillLabel}>Resume</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={s.pillBtn('#1a1a2e')} onPress={finishRun}>
+              <Text style={s.pillIcon}>■</Text>
+              <Text style={s.pillLabel}>Finish</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <TouchableOpacity style={s.roundBtn('#e53935')} onPress={pauseRun}>
+            <Text style={s.btnLabel}>STOP</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   )
 }
 
-function Stat({ label, value }) {
+function Stat({ label, value, dark }) {
   return (
     <View style={{ alignItems: 'center' }}>
-      <Text style={{ color: 'rgba(255,255,255,0.55)', fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.8 }}>{label}</Text>
-      <Text style={{ color: '#fff', fontSize: 20, fontWeight: '700' }}>{value}</Text>
+      <Text style={{ color: dark ? 'rgba(0,0,0,0.55)' : 'rgba(255,255,255,0.55)', fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.8 }}>{label}</Text>
+      <Text style={{ color: dark ? '#1a1a2e' : '#fff', fontSize: 20, fontWeight: '700' }}>{value}</Text>
     </View>
   )
 }
@@ -234,14 +309,20 @@ function haversine(a, b) {
 }
 
 const s = StyleSheet.create({
-  screen:   { flex: 1, backgroundColor: '#1a1a2e' },
-  center:   { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  statsBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', paddingVertical: 14, paddingHorizontal: 16, backgroundColor: '#1a1a2e' },
-  recDot:   { width: 10, height: 10, borderRadius: 5, backgroundColor: '#e53935' },
-  mapWrap:  { flex: 1, position: 'relative' },
-  noMap:    { alignItems: 'center', justifyContent: 'center', backgroundColor: '#111' },
-  footer:   { alignItems: 'center', paddingVertical: 20, backgroundColor: '#1a1a2e' },
-  gpsDot:   { width: 36, height: 36, borderRadius: 18, backgroundColor: '#2196f3' },
-  roundBtn: (bg) => ({ backgroundColor: bg, width: 90, height: 90, borderRadius: 45, alignItems: 'center', justifyContent: 'center' }),
-  btnLabel: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  screen:        { flex: 1, backgroundColor: '#1a1a2e' },
+  center:        { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  statsBar:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', paddingVertical: 14, paddingHorizontal: 16, backgroundColor: '#1a1a2e' },
+  statsBarPaused:{ backgroundColor: '#ffc107' },
+  recDot:        { width: 10, height: 10, borderRadius: 5, backgroundColor: '#e53935' },
+  pausedLabel:   { color: '#1a1a2e', fontWeight: '800', fontSize: 11, letterSpacing: 1 },
+  mapWrap:       { flex: 1, position: 'relative' },
+  noMap:         { alignItems: 'center', justifyContent: 'center', backgroundColor: '#111' },
+  footer:        { alignItems: 'center', paddingVertical: 20, paddingHorizontal: 16, backgroundColor: '#1a1a2e' },
+  gpsDot:        { width: 36, height: 36, borderRadius: 18, backgroundColor: '#2196f3' },
+  roundBtn:      (bg) => ({ backgroundColor: bg, width: 90, height: 90, borderRadius: 45, alignItems: 'center', justifyContent: 'center' }),
+  btnLabel:      { color: '#fff', fontWeight: '700', fontSize: 15 },
+  pausedRow:     { flexDirection: 'row', gap: 12, width: '100%' },
+  pillBtn:       (bg) => ({ flex: 1, backgroundColor: bg, height: 56, borderRadius: 28, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }),
+  pillIcon:      { color: '#fff', fontSize: 14 },
+  pillLabel:     { color: '#fff', fontWeight: '700', fontSize: 16 },
 })
