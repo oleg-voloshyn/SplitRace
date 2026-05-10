@@ -24,9 +24,8 @@
             </td>
             <td class="text-muted"><%= u.email %></td>
             <td>
-              <% case u.role %>
-              <% when "admin" %><span class="badge bg-danger">admin</span>
-              <% when "moderator" %><span class="badge bg-warning text-dark">moderator</span>
+              <% if u.role == "admin" %><span class="badge bg-danger">admin</span>
+              <% elsif u.role == "moderator" %><span class="badge bg-warning text-dark">moderator</span>
               <% else %><span class="badge bg-secondary">user</span>
               <% end %>
             </td>
