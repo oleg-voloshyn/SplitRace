@@ -52,7 +52,7 @@
                   - if ts.is_rated
                     span.badge.bg-warning.text-dark Rated
                 td.text-end.pe-3
-                  = button_to "Remove", admin_tournament_remove_segment_path(@tournament, segment_id: ts.segment_id),
+                  = button_to "Remove", remove_segment_admin_tournament_path(@tournament, segment_id: ts.segment_id),
                       class: "btn btn-sm btn-outline-danger"
             - if @tournament_segments.empty?
               tr
