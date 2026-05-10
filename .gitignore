@@ -37,5 +37,12 @@
 /frontend/node_modules/
 /frontend/dist/
 
+# Mobile (Expo)
+/mobile/node_modules/
+/mobile/.expo/
+/mobile/dist/
+/mobile/android/
+/mobile/ios/
+
 # macOS
 .DS_Store

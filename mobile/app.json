@@ -1,0 +1,44 @@
+{
+  "expo": {
+    "name": "SplitRace",
+    "slug": "splitrace",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "platforms": [
+      "android"
+    ],
+    "android": {
+      "package": "com.splitrace.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#1a1a2e"
+      },
+      "permissions": [
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_BACKGROUND_LOCATION",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_LOCATION"
+      ]
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "SplitRace needs location to track your runs.",
+          "locationAlwaysPermission": "SplitRace tracks your run in the background so the route is recorded even when the screen is off.",
+          "locationWhenInUsePermission": "SplitRace needs location to track your runs.",
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
+        }
+      ],
+      "expo-secure-store"
+    ],
+    "newArchEnabled": false,
+    "extra": {
+      "eas": {
+        "projectId": "e75e2418-bebd-4907-8d99-5c4de8a3c70a"
+      }
+    }
+  }
+}

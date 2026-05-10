@@ -10,9 +10,9 @@ export default function RunTracker() {
   const [points, setPoints]     = useState([])
   const [duration, setDuration] = useState(0)
   const [error, setError]       = useState(null)
-  const watchId   = useRef(null)
-  const startTime = useRef(null)
-  const timerRef  = useRef(null)
+  const watchId    = useRef(null)
+  const startTime  = useRef(null)
+  const timerRef   = useRef(null)
   const firstPoint = useRef(false)
 
   function startAcquiring() {
