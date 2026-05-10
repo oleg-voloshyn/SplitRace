@@ -100,13 +100,23 @@ module Api
                 distance_meters: ts.segment.distance_meters,
                 start_point:     ts.segment.start_point ? { lat: ts.segment.start_point.lat, lng: ts.segment.start_point.lon } : nil,
                 end_point:       ts.segment.end_point   ? { lat: ts.segment.end_point.lat,   lng: ts.segment.end_point.lon   } : nil,
-                polyline:        ts.segment.polyline ? ts.segment.polyline.points.map { |p| { lat: p.lat, lng: p.lon } } : nil,
+                polyline:        polyline_to_coords(ts.segment.polyline),
               }
             }
           end
         end
 
         data
+      end
+
+      def polyline_to_coords(polyline)
+        return nil unless polyline
+        # Polyline is stored as MultiLineString — flatten all line strings into a single array of points
+        lines = polyline.respond_to?(:geometries) ? polyline.geometries : [polyline]
+        lines.flat_map { |line| line.points.map { |p| { lat: p.lat, lng: p.lon } } }
+      rescue StandardError => e
+        Rails.logger.warn "[polyline_to_coords] #{e.class}: #{e.message}"
+        nil
       end
 
       def score_json(score, rank)

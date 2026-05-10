@@ -10,14 +10,27 @@ export default function Tournament() {
   const [tournament, setTournament] = useState(null)
   const [leaderboard, setLeaderboard] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError]     = useState(null)
 
   useEffect(() => {
-    Promise.all([api.tournament(slug), api.leaderboard(slug)])
-      .then(([t, lb]) => { setTournament(t); setLeaderboard(lb) })
+    setLoading(true)
+    setError(null)
+    api.tournament(slug)
+      .then(t => {
+        setTournament(t)
+        return api.leaderboard(slug).catch(() => [])
+      })
+      .then(lb => setLeaderboard(lb || []))
+      .catch(e => {
+        const msg = e?.errors?.filter(Boolean).join(', ') || `Failed to load tournament (HTTP ${e?.status || '?'})`
+        setError(msg)
+      })
       .finally(() => setLoading(false))
   }, [slug])
 
-  if (loading || !tournament) return <p>Loading...</p>
+  if (loading) return <p>Loading...</p>
+  if (error)   return <div style={{ padding: '1rem', background: '#fee', border: '1px solid #f99', borderRadius: 6, color: '#c33' }}>{error}</div>
+  if (!tournament) return <p>Tournament not found</p>
 
   return (
     <div>
