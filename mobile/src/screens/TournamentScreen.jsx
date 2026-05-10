@@ -71,15 +71,15 @@ export default function TournamentScreen() {
         <FlatList
           style={{ flex: 1 }}
           data={board ?? []}
-          keyExtractor={r => r.user_id.toString()}
+          keyExtractor={r => String(r.user?.id ?? Math.random())}
           ListEmptyComponent={<Text style={s.empty}>No results yet</Text>}
           renderItem={({ item: r, index }) => (
-            <View style={[s.row, r.user_id === user?.id && s.rowMe]}>
+            <View style={[s.row, r.user?.id === user?.id && s.rowMe]}>
               <Text style={s.rank}>#{r.rank ?? index + 1}</Text>
-              <Text style={s.rowName}>{r.full_name}</Text>
+              <Text style={s.rowName}>{r.user?.full_name ?? '—'}</Text>
               <View style={{ alignItems: 'flex-end' }}>
-                <Text style={s.score}>{r.score?.toFixed(1) ?? '—'} pts</Text>
-                <Text style={s.segs}>{r.completed_segments_count} segments</Text>
+                <Text style={s.score}>{r.score != null ? `${r.score.toFixed(1)} pts` : '—'}</Text>
+                <Text style={s.segs}>{r.completed_segments ?? 0} segments</Text>
               </View>
             </View>
           )}
