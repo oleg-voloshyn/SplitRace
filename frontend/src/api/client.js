@@ -48,4 +48,7 @@ export const api = {
   // Activities
   activities:   ()       => request('/activities'),
   saveActivity: (params) => request('/activities', { method: 'POST', body: JSON.stringify(params) }),
+
+  // Cheating reports
+  reportCheating: (params) => request('/cheating_reports', { method: 'POST', body: JSON.stringify(params) }),
 }

@@ -1,0 +1,66 @@
+.page-header
+  h1 Report ##{@report.id}
+  = link_to "← Back", admin_cheating_reports_path, class: "btn btn-outline-secondary"
+
+.row.g-3
+  .col-md-8
+    .card.mb-3
+      .card-header.d-flex.justify-content-between.align-items-center
+        strong Details
+        - case @report.status
+        - when "pending"
+          span.badge.bg-warning.text-dark Pending
+        - when "dismissed"
+          span.badge.bg-secondary Dismissed
+        - when "upheld"
+          span.badge.bg-danger Upheld
+      .card-body
+        h6.text-muted.mb-1 Reporter
+        p.mb-2= "#{@report.reporter.full_name} (#{@report.reporter.email})"
+
+        h6.text-muted.mb-1 Reported user
+        p.mb-2
+          strong= @report.reported_user.full_name
+          br
+          span.text-muted.small= @report.reported_user.email
+          br
+          = link_to "View activities →", admin_activities_path(user_id: @report.reported_user_id), class: "small"
+
+        h6.text-muted.mb-1 Tournament
+        p.mb-2= link_to @report.tournament.name, admin_tournament_path(@report.tournament)
+
+        h6.text-muted.mb-1 Submitted
+        p.mb-3= @report.created_at.strftime("%d %b %Y %H:%M")
+
+        h6.text-muted.mb-1 Reason
+        .p-3 style="background:#f8f9fa; border-radius:6px; white-space:pre-wrap;"
+          = @report.reason
+
+        - if @report.reviewed_at
+          hr
+          h6.text-muted.mb-1 Reviewed by
+          p.mb-2= "#{@report.reviewed_by&.full_name || '—'} at #{@report.reviewed_at.strftime('%d %b %Y %H:%M')}"
+          - if @report.admin_notes.present?
+            h6.text-muted.mb-1 Admin notes
+            p.mb-0.text-muted= @report.admin_notes
+
+  .col-md-4
+    - if @report.status == "pending"
+      .card
+        .card-header
+          strong Action
+        .card-body
+          p.text-muted.small Investigate the reported user's activities in this tournament, then decide.
+
+          = form_with url: admin_cheating_report_path(@report), method: :patch do |f|
+            .mb-3
+              = f.label :admin_notes, "Notes (optional)", class: "form-label"
+              = f.text_area :admin_notes, class: "form-control", rows: 3, placeholder: "What did you find?"
+
+            .d-grid.gap-2
+              = f.submit "Dismiss (no cheating)", name: "status", value: "dismissed", class: "btn btn-secondary"
+              = f.submit "Uphold (confirm cheating)", name: "status", value: "upheld", class: "btn btn-danger"
+    - else
+      .card
+        .card-body.text-center.text-muted
+          p.mb-0 Already reviewed.

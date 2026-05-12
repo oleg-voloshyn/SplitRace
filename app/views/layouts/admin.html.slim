@@ -36,6 +36,11 @@ html lang="en"
         .nav-section System
         a href=admin_users_path Users
         a href=admin_activities_path Activities
+        a href=admin_cheating_reports_path
+          | Reports
+          - pending = CheatingReport.pending.count
+          - if pending > 0
+            span.badge.bg-danger.ms-2= pending
         div style="border-top: 1px solid rgba(255,255,255,0.1); margin-top: 2rem; padding-top: 1rem;"
           = button_to "Sign out", admin_logout_path, class: "btn btn-sm btn-outline-secondary ms-3"
 

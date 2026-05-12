@@ -32,6 +32,7 @@ export const api = {
   leaderboard: (slug)           => request(`/tournaments/${slug}/leaderboard`),
   activities:  ()               => request('/activities'),
   saveActivity: (params)        => request('/activities', { method: 'POST', body: JSON.stringify(params) }),
+  reportCheating: (params)      => request('/cheating_reports', { method: 'POST', body: JSON.stringify(params) }),
 }
 
 export const tokenStore = {

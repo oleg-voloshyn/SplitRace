@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native'
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Modal, TextInput } from 'react-native'
 import { useRoute } from '@react-navigation/native'
 import { api } from '../api/client'
 import { useAuth } from '../contexts/AuthContext'
@@ -11,6 +11,7 @@ export default function TournamentScreen() {
   const [board, setBoard]     = useState(null)
   const [tab, setTab]         = useState('info')
   const [joining, setJoining] = useState(false)
+  const [reportTarget, setReportTarget] = useState(null) // { user_id, full_name }
 
   useEffect(() => {
     api.tournament(slug).then(setData).catch(() => {})
@@ -73,19 +74,106 @@ export default function TournamentScreen() {
           data={board ?? []}
           keyExtractor={r => String(r.user?.id ?? Math.random())}
           ListEmptyComponent={<Text style={s.empty}>No results yet</Text>}
-          renderItem={({ item: r, index }) => (
-            <View style={[s.row, r.user?.id === user?.id && s.rowMe]}>
-              <Text style={s.rank}>#{r.rank ?? index + 1}</Text>
-              <Text style={s.rowName}>{r.user?.full_name ?? '—'}</Text>
-              <View style={{ alignItems: 'flex-end' }}>
-                <Text style={s.score}>{r.score != null ? `${r.score.toFixed(1)} pts` : '—'}</Text>
-                <Text style={s.segs}>{r.completed_segments ?? 0} segments</Text>
+          renderItem={({ item: r, index }) => {
+            const isMe = r.user?.id === user?.id
+            return (
+              <View style={[s.row, isMe && s.rowMe]}>
+                <Text style={s.rank}>#{r.rank ?? index + 1}</Text>
+                <Text style={s.rowName}>{r.user?.full_name ?? '—'}</Text>
+                <View style={{ alignItems: 'flex-end', marginRight: 8 }}>
+                  <Text style={s.score}>{r.score != null ? `${r.score.toFixed(1)} pts` : '—'}</Text>
+                  <Text style={s.segs}>{r.completed_segments ?? 0} segments</Text>
+                </View>
+                {!isMe && r.user?.id && (
+                  <TouchableOpacity
+                    onPress={() => setReportTarget({ user_id: r.user.id, full_name: r.user.full_name })}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    style={s.reportBtn}
+                  >
+                    <Text style={s.reportIcon}>⚐</Text>
+                  </TouchableOpacity>
+                )}
               </View>
-            </View>
-          )}
+            )
+          }}
+        />
+      )}
+
+      {reportTarget && (
+        <ReportModal
+          target={reportTarget}
+          tournamentSlug={slug}
+          onClose={() => setReportTarget(null)}
         />
       )}
     </View>
+  )
+}
+
+function ReportModal({ target, tournamentSlug, onClose }) {
+  const [reason, setReason] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState(null)
+  const [success, setSuccess] = useState(false)
+
+  async function submit() {
+    if (reason.trim().length < 10) { setError('Please provide at least 10 characters'); return }
+    setSubmitting(true)
+    setError(null)
+    try {
+      await api.reportCheating({
+        reported_user_id: target.user_id,
+        tournament_slug:  tournamentSlug,
+        reason,
+      })
+      setSuccess(true)
+      setTimeout(onClose, 1500)
+    } catch (e) {
+      setError(e?.errors?.join(', ') || 'Could not submit report')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <Modal transparent animationType="fade" onRequestClose={onClose}>
+      <View style={m.backdrop}>
+        <View style={m.box}>
+          {success ? (
+            <View style={{ alignItems: 'center', paddingVertical: 16 }}>
+              <Text style={{ fontSize: 40, marginBottom: 6 }}>✓</Text>
+              <Text style={{ color: '#4caf50', fontWeight: '700', fontSize: 16 }}>Report submitted</Text>
+              <Text style={{ color: '#888', fontSize: 13, marginTop: 6 }}>An admin will review it.</Text>
+            </View>
+          ) : (
+            <>
+              <Text style={m.title}>Report cheating</Text>
+              <Text style={m.subtitle}>
+                Reporting <Text style={{ fontWeight: '700' }}>{target.full_name}</Text>. Describe what looks suspicious.
+              </Text>
+              <TextInput
+                value={reason}
+                onChangeText={setReason}
+                placeholder="e.g. impossible pace, finished too fast for fitness..."
+                multiline
+                numberOfLines={5}
+                style={m.textarea}
+                textAlignVertical="top"
+              />
+              {error && <Text style={m.error}>{error}</Text>}
+              <View style={m.actions}>
+                <TouchableOpacity onPress={onClose} disabled={submitting} style={m.btnCancel}>
+                  <Text style={m.btnCancelText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={submit} disabled={submitting} style={m.btnSubmit}>
+                  <Text style={m.btnSubmitText}>{submitting ? '...' : 'Submit'}</Text>
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
+        </View>
+      </View>
+    </Modal>
   )
 }
 
@@ -117,4 +205,20 @@ const s = StyleSheet.create({
   rowName:      { flex: 1, fontSize: 15 },
   score:        { fontWeight: '700', fontSize: 15 },
   segs:         { color: '#888', fontSize: 12 },
+  reportBtn:    { padding: 4, marginLeft: 4 },
+  reportIcon:   { fontSize: 18, color: '#bbb' },
+})
+
+const m = StyleSheet.create({
+  backdrop:     { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 },
+  box:          { backgroundColor: '#fff', borderRadius: 12, padding: 20 },
+  title:        { fontSize: 18, fontWeight: '700', marginBottom: 6 },
+  subtitle:     { color: '#666', fontSize: 13, marginBottom: 14 },
+  textarea:     { borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 10, fontSize: 14, minHeight: 100 },
+  error:        { color: '#e53935', fontSize: 13, marginTop: 8 },
+  actions:      { flexDirection: 'row', gap: 10, justifyContent: 'flex-end', marginTop: 16 },
+  btnCancel:    { paddingVertical: 10, paddingHorizontal: 18, borderRadius: 6, borderWidth: 1, borderColor: '#ccc' },
+  btnCancelText:{ color: '#555' },
+  btnSubmit:    { paddingVertical: 10, paddingHorizontal: 18, borderRadius: 6, backgroundColor: '#e53935' },
+  btnSubmitText:{ color: '#fff', fontWeight: '700' },
 })

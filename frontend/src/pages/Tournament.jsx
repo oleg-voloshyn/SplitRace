@@ -2,15 +2,18 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api/client'
+import { useAuth } from '../contexts/AuthContext'
 import MapView from '../components/MapView'
 
 export default function Tournament() {
   const { slug } = useParams()
   const { t } = useTranslation()
+  const { user } = useAuth()
   const [tournament, setTournament] = useState(null)
   const [leaderboard, setLeaderboard] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError]     = useState(null)
+  const [reportTarget, setReportTarget] = useState(null) // {user_id, full_name}
 
   useEffect(() => {
     setLoading(true)
@@ -81,6 +84,7 @@ export default function Tournament() {
                     <th style={thStyle}>Runner</th>
                     <th style={{ ...thStyle, textAlign: 'right' }}>Score</th>
                     <th style={{ ...thStyle, textAlign: 'right' }}>Seg</th>
+                    <th style={thStyle}></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -90,6 +94,17 @@ export default function Tournament() {
                       <td style={tdStyle}>{entry.user.full_name}</td>
                       <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600 }}>{entry.score?.toFixed(1) ?? '—'}</td>
                       <td style={{ ...tdStyle, textAlign: 'right', color: '#888' }}>{entry.completed_segments}</td>
+                      <td style={{ ...tdStyle, textAlign: 'right' }}>
+                        {entry.user.id !== user?.id && (
+                          <button
+                            onClick={() => setReportTarget({ user_id: entry.user.id, full_name: entry.user.full_name })}
+                            title="Report cheating"
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#999', fontSize: '0.85rem', padding: '0.2rem 0.4rem' }}
+                          >
+                            ⚐
+                          </button>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -97,6 +112,71 @@ export default function Tournament() {
             )}
           </div>
         </div>
+      </div>
+
+      {reportTarget && (
+        <ReportModal
+          target={reportTarget}
+          tournamentSlug={slug}
+          onClose={() => setReportTarget(null)}
+        />
+      )}
+    </div>
+  )
+}
+
+function ReportModal({ target, tournamentSlug, onClose }) {
+  const [reason, setReason] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState(null)
+  const [success, setSuccess] = useState(false)
+
+  async function submit() {
+    if (reason.trim().length < 10) { setError('Please provide at least 10 characters'); return }
+    setSubmitting(true)
+    setError(null)
+    try {
+      await api.reportCheating({ reported_user_id: target.user_id, tournament_slug: tournamentSlug, reason })
+      setSuccess(true)
+      setTimeout(onClose, 1500)
+    } catch (e) {
+      setError(e?.errors?.join(', ') || 'Could not submit report')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', zIndex: 1000 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 10, padding: '1.5rem', maxWidth: 480, width: '100%' }}>
+        {success ? (
+          <div style={{ textAlign: 'center', padding: '1rem 0' }}>
+            <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>✓</div>
+            <p style={{ color: '#4caf50', fontWeight: 600 }}>Report submitted</p>
+            <p style={{ color: '#888', fontSize: '0.85rem', marginTop: '0.5rem' }}>An admin will review it.</p>
+          </div>
+        ) : (
+          <>
+            <h3 style={{ margin: '0 0 0.5rem' }}>Report cheating</h3>
+            <p style={{ color: '#666', fontSize: '0.9rem', marginBottom: '1rem' }}>
+              Reporting <strong>{target.full_name}</strong>. Describe what makes their performance look suspicious.
+            </p>
+            <textarea
+              value={reason}
+              onChange={e => setReason(e.target.value)}
+              placeholder="e.g. impossible pace for segment X, finished too fast for their usual fitness..."
+              rows={5}
+              style={{ width: '100%', padding: '0.6rem', border: '1px solid #ccc', borderRadius: 6, fontFamily: 'inherit', fontSize: '0.9rem', resize: 'vertical' }}
+            />
+            {error && <p style={{ color: '#e53935', fontSize: '0.85rem', marginTop: '0.5rem' }}>{error}</p>}
+            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', justifyContent: 'flex-end' }}>
+              <button onClick={onClose} disabled={submitting} style={{ background: 'none', border: '1px solid #ccc', borderRadius: 4, padding: '0.5rem 1rem', cursor: 'pointer' }}>Cancel</button>
+              <button onClick={submit} disabled={submitting} style={{ background: '#e53935', color: '#fff', border: 'none', borderRadius: 4, padding: '0.5rem 1rem', cursor: 'pointer', fontWeight: 600 }}>
+                {submitting ? '...' : 'Submit report'}
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   )

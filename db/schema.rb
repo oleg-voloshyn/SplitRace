@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_09_210730) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_11_102958) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "postgis"
@@ -28,6 +28,25 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_09_210730) do
     t.bigint "user_id", null: false
     t.index ["user_id", "started_at"], name: "index_activities_on_user_id_and_started_at"
     t.index ["user_id"], name: "index_activities_on_user_id"
+  end
+
+  create_table "cheating_reports", force: :cascade do |t|
+    t.text "admin_notes"
+    t.datetime "created_at", null: false
+    t.text "reason", null: false
+    t.bigint "reported_user_id", null: false
+    t.bigint "reporter_id", null: false
+    t.datetime "reviewed_at"
+    t.bigint "reviewed_by_id"
+    t.string "status", default: "pending", null: false
+    t.bigint "tournament_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["reported_user_id"], name: "index_cheating_reports_on_reported_user_id"
+    t.index ["reporter_id", "reported_user_id", "tournament_id"], name: "idx_cheating_reports_uniq", unique: true
+    t.index ["reporter_id"], name: "index_cheating_reports_on_reporter_id"
+    t.index ["reviewed_by_id"], name: "index_cheating_reports_on_reviewed_by_id"
+    t.index ["status"], name: "index_cheating_reports_on_status"
+    t.index ["tournament_id"], name: "index_cheating_reports_on_tournament_id"
   end
 
   create_table "oauth_identities", force: :cascade do |t|
@@ -155,6 +174,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_09_210730) do
   end
 
   add_foreign_key "activities", "users"
+  add_foreign_key "cheating_reports", "tournaments"
+  add_foreign_key "cheating_reports", "users", column: "reported_user_id"
+  add_foreign_key "cheating_reports", "users", column: "reporter_id"
+  add_foreign_key "cheating_reports", "users", column: "reviewed_by_id"
   add_foreign_key "oauth_identities", "users"
   add_foreign_key "segment_efforts", "activities"
   add_foreign_key "segment_efforts", "segments"

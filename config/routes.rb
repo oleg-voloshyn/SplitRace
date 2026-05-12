@@ -31,6 +31,9 @@ Rails.application.routes.draw do
 
       # Activities
       resources :activities, only: %i[index create]
+
+      # Cheating reports
+      resources :cheating_reports, only: %i[create]
     end
   end
 
@@ -52,6 +55,7 @@ Rails.application.routes.draw do
     end
     resources :users, only: %i[index edit update]
     resources :activities, only: %i[index show]
+    resources :cheating_reports, only: %i[index show update]
   end
 
   # Serve React PWA for all non-API routes
