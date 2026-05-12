@@ -2,6 +2,9 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import LanguageSwitcher from '../components/LanguageSwitcher'
 
+// Latest Android APK — update on each EAS build
+const ANDROID_APK_URL = 'https://expo.dev/artifacts/eas/sK8v3JbKbgsxPmHnzHX5tL.apk'
+
 export default function Landing() {
   const { t } = useTranslation()
 
@@ -20,7 +23,12 @@ export default function Landing() {
       <section className="sr-hero">
         <h1 className="sr-hero-title">{t('landing.heroTitle')}</h1>
         <p className="sr-hero-subtitle">{t('landing.heroSubtitle')}</p>
-        <Link to="/login" className="sr-hero-cta">{t('landing.getStarted')} →</Link>
+        <div className="sr-hero-buttons">
+          <Link to="/login" className="sr-hero-cta">{t('landing.getStarted')} →</Link>
+          <a href={ANDROID_APK_URL} className="sr-hero-cta-alt" target="_blank" rel="noopener noreferrer">
+            <span style={{ fontSize: '1.1rem' }}>⬇</span> {t('landing.downloadAndroid')}
+          </a>
+        </div>
         <p className="sr-hero-note">{t('landing.heroNote')}</p>
       </section>
 
