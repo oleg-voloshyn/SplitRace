@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from 'react'
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, RefreshControl, ActivityIndicator } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
+import { useTranslation } from 'react-i18next'
 import { api } from '../api/client'
-import { useAuth } from '../contexts/AuthContext'
 
 export default function TournamentsScreen() {
-  const { user } = useAuth()
+  const { t } = useTranslation()
   const navigation = useNavigation()
   const [tournaments, setTournaments] = useState(null)
   const [refreshing, setRefreshing]   = useState(false)
@@ -28,19 +28,19 @@ export default function TournamentsScreen() {
     <FlatList
       style={s.list}
       data={tournaments}
-      keyExtractor={t => t.id.toString()}
+      keyExtractor={tn => tn.id.toString()}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#e53935" />}
-      ListEmptyComponent={<Text style={s.empty}>No tournaments yet</Text>}
-      renderItem={({ item: t }) => (
-        <TouchableOpacity style={s.card} onPress={() => navigation.navigate('Tournament', { slug: t.slug })}>
+      ListEmptyComponent={<Text style={s.empty}>{t('tournaments.noTournaments')}</Text>}
+      renderItem={({ item: tn }) => (
+        <TouchableOpacity style={s.card} onPress={() => navigation.navigate('Tournament', { slug: tn.slug })}>
           <View style={s.cardHeader}>
-            <Text style={s.name}>{t.name}</Text>
-            <View style={[s.badge, { backgroundColor: badgeColor(t.status) }]}>
-              <Text style={s.badgeText}>{t.status.toUpperCase()}</Text>
+            <Text style={s.name}>{tn.name}</Text>
+            <View style={[s.badge, { backgroundColor: badgeColor(tn.status) }]}>
+              <Text style={s.badgeText}>{t(`tournaments.${tn.status}`).toUpperCase()}</Text>
             </View>
           </View>
-          {t.city && <Text style={s.meta}>{t.city}{t.country ? ` · ${t.country}` : ''}</Text>}
-          <Text style={s.meta}>{t.participants_count ?? 0} participants</Text>
+          {tn.city && <Text style={s.meta}>{tn.city}{tn.country ? ` · ${tn.country}` : ''}</Text>}
+          <Text style={s.meta}>{t('tournaments.participants', { count: tn.participants_count ?? 0 })}</Text>
         </TouchableOpacity>
       )}
     />

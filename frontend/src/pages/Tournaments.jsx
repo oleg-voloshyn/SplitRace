@@ -14,7 +14,7 @@ export default function Tournaments() {
       .finally(() => setLoading(false))
   }, [])
 
-  if (loading) return <p>Loading...</p>
+  if (loading) return <p>{t('common.loading')}</p>
 
   return (
     <div>
@@ -85,7 +85,7 @@ function TournamentCard({ tournament, onUpdate }) {
           </button>
         )}
         {tournament.is_participating && (
-          <span style={{ color: '#4caf50', fontWeight: 600, fontSize: '0.85rem' }}>✓ Joined</span>
+          <span style={{ color: '#4caf50', fontWeight: 600, fontSize: '0.85rem' }}>✓ {t('tournaments.joined')}</span>
         )}
       </div>
     </Link>

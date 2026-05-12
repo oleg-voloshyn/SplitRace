@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet, Alert, Platform } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import * as Location from 'expo-location'
 import * as TaskManager from 'expo-task-manager'
 import AsyncStorage from '@react-native-async-storage/async-storage'
@@ -27,6 +28,7 @@ TaskManager.defineTask(LOCATION_TASK, async ({ data, error }) => {
 })
 
 export default function RunTrackerScreen() {
+  const { t } = useTranslation()
   // idle | acquiring | recording | paused | saving | saved | error
   const [status, setStatus]     = useState('idle')
   const [points, setPoints]     = useState([])
@@ -83,14 +85,14 @@ export default function RunTrackerScreen() {
     setStatus('acquiring')
 
     const { status: fg } = await Location.requestForegroundPermissionsAsync()
-    if (fg !== 'granted') { setError('Location permission denied'); setStatus('error'); return }
+    if (fg !== 'granted') { setError(t('run.permissionDenied')); setStatus('error'); return }
 
     const { status: bg } = await Location.requestBackgroundPermissionsAsync()
     if (bg !== 'granted') {
       Alert.alert(
-        'Background location needed',
-        'To record your run when the screen is off, please allow "Allow all the time" in location settings.',
-        [{ text: 'OK' }]
+        t('run.backgroundNeeded'),
+        t('run.backgroundNeededMsg'),
+        [{ text: t('common.ok') }]
       )
     }
 
@@ -136,11 +138,11 @@ export default function RunTrackerScreen() {
 
     if (pts.length < 2 || distance < MIN_DISTANCE_M) {
       Alert.alert(
-        'Not moving yet?',
-        'SplitRace needs a longer activity to save and analyze. Please continue or start over.',
+        t('run.notMoving'),
+        t('run.notMovingMsg'),
         [
-          { text: 'Discard', style: 'destructive', onPress: discardRun },
-          { text: 'Resume',  onPress: resumeRun },
+          { text: t('run.discard'), style: 'destructive', onPress: discardRun },
+          { text: t('run.resume'), onPress: resumeRun },
         ],
         { cancelable: false }
       )
@@ -162,7 +164,7 @@ export default function RunTrackerScreen() {
       await AsyncStorage.removeItem(POINTS_KEY)
       setStatus('saved')
     } catch (e) {
-      setError(e?.errors?.join(', ') || 'Failed to save run')
+      setError(e?.errors?.join(', ') || t('run.saveFailed'))
       setStatus('error')
     }
   }
@@ -187,9 +189,9 @@ export default function RunTrackerScreen() {
   // ── IDLE / ERROR ─────────────────────────────────────────────────────────────
   if (status === 'idle' || status === 'error') return (
     <View style={[s.center, { backgroundColor: '#1a1a2e' }]}>
-      <Text style={{ color: 'rgba(255,255,255,0.5)', marginBottom: 32, fontSize: 15 }}>Ready to run</Text>
+      <Text style={{ color: 'rgba(255,255,255,0.5)', marginBottom: 32, fontSize: 15 }}>{t('run.ready')}</Text>
       <TouchableOpacity style={s.roundBtn('#4caf50')} onPress={startRun}>
-        <Text style={s.btnLabel}>START</Text>
+        <Text style={s.btnLabel}>{t('run.start')}</Text>
       </TouchableOpacity>
       {error && <Text style={{ color: '#e53935', marginTop: 20, textAlign: 'center', paddingHorizontal: 24 }}>{error}</Text>}
     </View>
@@ -199,10 +201,10 @@ export default function RunTrackerScreen() {
   if (status === 'acquiring') return (
     <View style={[s.center, { backgroundColor: '#1a1a2e' }]}>
       <View style={s.gpsDot} />
-      <Text style={{ color: '#fff', fontSize: 16, marginTop: 24, marginBottom: 8 }}>Getting GPS signal...</Text>
-      <Text style={{ color: 'rgba(255,255,255,0.45)', fontSize: 13, marginBottom: 40 }}>Go outside for a better signal</Text>
+      <Text style={{ color: '#fff', fontSize: 16, marginTop: 24, marginBottom: 8 }}>{t('run.gettingGps')}</Text>
+      <Text style={{ color: 'rgba(255,255,255,0.45)', fontSize: 13, marginBottom: 40 }}>{t('run.goOutside')}</Text>
       <TouchableOpacity style={[s.roundBtn('#555'), { width: 70, height: 70 }]} onPress={reset}>
-        <Text style={[s.btnLabel, { fontSize: 13 }]}>Cancel</Text>
+        <Text style={[s.btnLabel, { fontSize: 13 }]}>{t('run.cancel')}</Text>
       </TouchableOpacity>
     </View>
   )
@@ -210,7 +212,7 @@ export default function RunTrackerScreen() {
   // ── SAVING ───────────────────────────────────────────────────────────────────
   if (status === 'saving') return (
     <View style={[s.center, { backgroundColor: '#1a1a2e' }]}>
-      <Text style={{ color: '#fff', fontSize: 16 }}>Saving run...</Text>
+      <Text style={{ color: '#fff', fontSize: 16 }}>{t('run.saving')}</Text>
     </View>
   )
 
@@ -218,12 +220,12 @@ export default function RunTrackerScreen() {
   if (status === 'saved') return (
     <View style={[s.center, { backgroundColor: '#1a1a2e' }]}>
       <Text style={{ fontSize: 48, marginBottom: 8 }}>✓</Text>
-      <Text style={{ color: '#4caf50', fontSize: 20, marginBottom: 8 }}>Run saved!</Text>
+      <Text style={{ color: '#4caf50', fontSize: 20, marginBottom: 8 }}>{t('run.runSaved')}</Text>
       <Text style={{ color: 'rgba(255,255,255,0.6)', marginBottom: 40 }}>
         {fmtTime(duration)} · {(calcDistance(points) / 1000).toFixed(2)} km
       </Text>
       <TouchableOpacity style={s.roundBtn('#1a1a2e')} onPress={reset}>
-        <Text style={s.btnLabel}>NEW RUN</Text>
+        <Text style={s.btnLabel}>{t('run.newRun')}</Text>
       </TouchableOpacity>
     </View>
   )
@@ -238,13 +240,13 @@ export default function RunTrackerScreen() {
       {/* Header bar — yellow when paused */}
       <View style={[s.statsBar, isPaused && s.statsBarPaused]}>
         {isPaused ? (
-          <Text style={s.pausedLabel}>PAUSED</Text>
+          <Text style={s.pausedLabel}>{t('run.paused')}</Text>
         ) : (
           <View style={s.recDot} />
         )}
-        <Stat label="Time"     value={fmtTime(duration)} dark={isPaused} />
-        <Stat label="Distance" value={`${distKm.toFixed(2)} km`} dark={isPaused} />
-        <Stat label="Pace/km"  value={pace} dark={isPaused} />
+        <Stat label={t('run.time')}     value={fmtTime(duration)} dark={isPaused} />
+        <Stat label={t('run.distance')} value={`${distKm.toFixed(2)} km`} dark={isPaused} />
+        <Stat label={t('run.pace')}     value={pace} dark={isPaused} />
       </View>
 
       {/* Live map */}
@@ -253,7 +255,7 @@ export default function RunTrackerScreen() {
           <LeafletMap points={points} follow={!isPaused} />
         ) : (
           <View style={[StyleSheet.absoluteFill, s.noMap]}>
-            <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>Waiting for GPS...</Text>
+            <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>{t('run.waitingGps')}</Text>
           </View>
         )}
       </View>
@@ -264,16 +266,16 @@ export default function RunTrackerScreen() {
           <View style={s.pausedRow}>
             <TouchableOpacity style={s.pillBtn('#e53935')} onPress={resumeRun}>
               <Text style={s.pillIcon}>▶</Text>
-              <Text style={s.pillLabel}>Resume</Text>
+              <Text style={s.pillLabel}>{t('run.resume')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={s.pillBtn('#1a1a2e')} onPress={finishRun}>
               <Text style={s.pillIcon}>■</Text>
-              <Text style={s.pillLabel}>Finish</Text>
+              <Text style={s.pillLabel}>{t('run.finish')}</Text>
             </TouchableOpacity>
           </View>
         ) : (
           <TouchableOpacity style={s.roundBtn('#e53935')} onPress={pauseRun}>
-            <Text style={s.btnLabel}>STOP</Text>
+            <Text style={s.btnLabel}>{t('run.stop')}</Text>
           </TouchableOpacity>
         )}
       </View>

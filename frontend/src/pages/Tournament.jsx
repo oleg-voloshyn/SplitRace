@@ -31,9 +31,9 @@ export default function Tournament() {
       .finally(() => setLoading(false))
   }, [slug])
 
-  if (loading) return <p>Loading...</p>
+  if (loading) return <p>{t('common.loading')}</p>
   if (error)   return <div style={{ padding: '1rem', background: '#fee', border: '1px solid #f99', borderRadius: 6, color: '#c33' }}>{error}</div>
-  if (!tournament) return <p>Tournament not found</p>
+  if (!tournament) return <p>{t('tournaments.notFound')}</p>
 
   return (
     <div>
@@ -41,11 +41,11 @@ export default function Tournament() {
       {tournament.description && <p style={{ color: '#666', marginBottom: '1rem' }}>{tournament.description}</p>}
 
       <div className="sr-stats-row">
-        <Stat label="Status"       value={tournament.status} />
-        <Stat label="Participants" value={tournament.participants_count} />
-        <Stat label="Segments"     value={tournament.total_segments_count} />
-        {tournament.starts_at && <Stat label="Starts" value={new Date(tournament.starts_at).toLocaleDateString()} />}
-        {tournament.ends_at   && <Stat label="Ends"   value={new Date(tournament.ends_at).toLocaleDateString()} />}
+        <Stat label={t('tournaments.status')}       value={t(`tournaments.${tournament.status}`)} />
+        <Stat label={t('tournaments.participantsLabel')} value={tournament.participants_count} />
+        <Stat label={t('tournaments.segmentsHeader')} value={tournament.total_segments_count} />
+        {tournament.starts_at && <Stat label={t('tournaments.starts')} value={new Date(tournament.starts_at).toLocaleDateString()} />}
+        {tournament.ends_at   && <Stat label={t('tournaments.ends')}   value={new Date(tournament.ends_at).toLocaleDateString()} />}
       </div>
 
       <div className="sr-tournament-detail">
@@ -56,7 +56,7 @@ export default function Tournament() {
                 <MapView segments={tournament.segments.map(ts => ts.segment)} height="420px" />
               </div>
               <div className="sr-card">
-                <h3>Segments</h3>
+                <h3>{t('tournaments.segmentsHeader')}</h3>
                 {tournament.segments.map(ts => (
                   <div key={ts.segment.id} style={{ padding: '0.6rem 0', borderBottom: '1px solid #f0f0f0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <strong style={{ color: '#888', minWidth: 24 }}>#{ts.order_number}</strong>
@@ -75,15 +75,15 @@ export default function Tournament() {
           <div className="sr-card">
             <h3>{t('tournaments.leaderboard')}</h3>
             {leaderboard.length === 0 ? (
-              <p style={{ color: '#888' }}>No results yet</p>
+              <p style={{ color: '#888' }}>{t('tournaments.noResults')}</p>
             ) : (
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr style={{ borderBottom: '2px solid #e9ecef' }}>
                     <th style={thStyle}>#</th>
-                    <th style={thStyle}>Runner</th>
-                    <th style={{ ...thStyle, textAlign: 'right' }}>Score</th>
-                    <th style={{ ...thStyle, textAlign: 'right' }}>Seg</th>
+                    <th style={thStyle}>{t('tournaments.runner')}</th>
+                    <th style={{ ...thStyle, textAlign: 'right' }}>{t('tournaments.score')}</th>
+                    <th style={{ ...thStyle, textAlign: 'right' }}>{t('tournaments.seg')}</th>
                     <th style={thStyle}></th>
                   </tr>
                 </thead>
@@ -98,7 +98,7 @@ export default function Tournament() {
                         {entry.user.id !== user?.id && (
                           <button
                             onClick={() => setReportTarget({ user_id: entry.user.id, full_name: entry.user.full_name })}
-                            title="Report cheating"
+                            title={t('report.tooltip')}
                             style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#999', fontSize: '0.85rem', padding: '0.2rem 0.4rem' }}
                           >
                             ⚐
@@ -126,13 +126,14 @@ export default function Tournament() {
 }
 
 function ReportModal({ target, tournamentSlug, onClose }) {
+  const { t } = useTranslation()
   const [reason, setReason] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(false)
 
   async function submit() {
-    if (reason.trim().length < 10) { setError('Please provide at least 10 characters'); return }
+    if (reason.trim().length < 10) { setError(t('report.tooShort')); return }
     setSubmitting(true)
     setError(null)
     try {
@@ -140,7 +141,7 @@ function ReportModal({ target, tournamentSlug, onClose }) {
       setSuccess(true)
       setTimeout(onClose, 1500)
     } catch (e) {
-      setError(e?.errors?.join(', ') || 'Could not submit report')
+      setError(e?.errors?.join(', ') || t('report.failed'))
     } finally {
       setSubmitting(false)
     }
@@ -152,27 +153,27 @@ function ReportModal({ target, tournamentSlug, onClose }) {
         {success ? (
           <div style={{ textAlign: 'center', padding: '1rem 0' }}>
             <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>✓</div>
-            <p style={{ color: '#4caf50', fontWeight: 600 }}>Report submitted</p>
-            <p style={{ color: '#888', fontSize: '0.85rem', marginTop: '0.5rem' }}>An admin will review it.</p>
+            <p style={{ color: '#4caf50', fontWeight: 600 }}>{t('report.submitted')}</p>
+            <p style={{ color: '#888', fontSize: '0.85rem', marginTop: '0.5rem' }}>{t('report.reviewNote')}</p>
           </div>
         ) : (
           <>
-            <h3 style={{ margin: '0 0 0.5rem' }}>Report cheating</h3>
+            <h3 style={{ margin: '0 0 0.5rem' }}>{t('report.title')}</h3>
             <p style={{ color: '#666', fontSize: '0.9rem', marginBottom: '1rem' }}>
-              Reporting <strong>{target.full_name}</strong>. Describe what makes their performance look suspicious.
+              {t('report.subtitle', { name: target.full_name })}
             </p>
             <textarea
               value={reason}
               onChange={e => setReason(e.target.value)}
-              placeholder="e.g. impossible pace for segment X, finished too fast for their usual fitness..."
+              placeholder={t('report.placeholder')}
               rows={5}
               style={{ width: '100%', padding: '0.6rem', border: '1px solid #ccc', borderRadius: 6, fontFamily: 'inherit', fontSize: '0.9rem', resize: 'vertical' }}
             />
             {error && <p style={{ color: '#e53935', fontSize: '0.85rem', marginTop: '0.5rem' }}>{error}</p>}
             <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', justifyContent: 'flex-end' }}>
-              <button onClick={onClose} disabled={submitting} style={{ background: 'none', border: '1px solid #ccc', borderRadius: 4, padding: '0.5rem 1rem', cursor: 'pointer' }}>Cancel</button>
+              <button onClick={onClose} disabled={submitting} style={{ background: 'none', border: '1px solid #ccc', borderRadius: 4, padding: '0.5rem 1rem', cursor: 'pointer' }}>{t('report.cancel')}</button>
               <button onClick={submit} disabled={submitting} style={{ background: '#e53935', color: '#fff', border: 'none', borderRadius: 4, padding: '0.5rem 1rem', cursor: 'pointer', fontWeight: 600 }}>
-                {submitting ? '...' : 'Submit report'}
+                {submitting ? t('report.submitting') : t('report.submit')}
               </button>
             </div>
           </>

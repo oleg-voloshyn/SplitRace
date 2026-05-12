@@ -33,13 +33,13 @@ export default function Profile() {
 
           {!user?.gender && (
             <div style={{ background: '#fff3cd', border: '1px solid #ffc107', borderRadius: '6px', padding: '0.6rem 0.9rem', marginBottom: '1rem', fontSize: '0.85rem', color: '#856404' }}>
-              ⚠ Please set your gender — it's required for tournament scoring.
+              ⚠ {t('profile.genderWarning')}
             </div>
           )}
 
           <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            <input placeholder="First Name" value={form.first_name} onChange={e => setForm({ ...form, first_name: e.target.value })} style={inputStyle} />
-            <input placeholder="Last Name"  value={form.last_name}  onChange={e => setForm({ ...form, last_name:  e.target.value })} style={inputStyle} />
+            <input placeholder={t('auth.firstName')} value={form.first_name} onChange={e => setForm({ ...form, first_name: e.target.value })} style={inputStyle} />
+            <input placeholder={t('auth.lastName')}  value={form.last_name}  onChange={e => setForm({ ...form, last_name:  e.target.value })} style={inputStyle} />
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
               <span style={{ fontSize: '0.85rem', color: '#555' }}>{t('auth.gender')}</span>
@@ -61,16 +61,16 @@ export default function Profile() {
               </select>
             </label>
             <button type="submit" style={{ background: '#1a1a2e', color: '#fff', border: 'none', borderRadius: '4px', padding: '0.6rem', cursor: 'pointer', fontWeight: 600 }}>
-              {saved ? '✓ Saved!' : t('profile.save')}
+              {saved ? `✓ ${t('profile.saved')}` : t('profile.save')}
             </button>
           </form>
         </div>
 
         <div>
-          <h3 style={{ marginBottom: '0.75rem' }}>Recent runs</h3>
+          <h3 style={{ marginBottom: '0.75rem' }}>{t('profile.recentRuns')}</h3>
 
-          {activities === null && <p style={{ color: '#888', fontSize: '0.9rem' }}>Loading...</p>}
-          {activities?.length === 0 && <p style={{ color: '#888', fontSize: '0.9rem' }}>No runs yet.</p>}
+          {activities === null && <p style={{ color: '#888', fontSize: '0.9rem' }}>{t('profile.loading')}</p>}
+          {activities?.length === 0 && <p style={{ color: '#888', fontSize: '0.9rem' }}>{t('profile.noRuns')}</p>}
           {activities?.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
               {activities.map(a => (
@@ -98,7 +98,7 @@ export default function Profile() {
                       onClick={() => setExpanded(expanded === a.id ? null : a.id)}
                       style={{ marginTop: '0.5rem', background: 'none', border: '1px solid #ccc', borderRadius: '4px', padding: '0.25rem 0.7rem', fontSize: '0.8rem', cursor: 'pointer', color: '#555' }}
                     >
-                      {expanded === a.id ? 'Hide route' : 'Show route'}
+                      {expanded === a.id ? t('profile.hideRoute') : t('profile.showRoute')}
                     </button>
                   )}
 

@@ -1,8 +1,11 @@
 import { useState } from 'react'
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../contexts/AuthContext'
+import { SUPPORTED_LANGS } from '../i18n'
 
 export default function LoginScreen() {
+  const { t, i18n } = useTranslation()
   const { login, register } = useAuth()
   const [mode, setMode]     = useState('login')
   const [form, setForm]     = useState({ email: '', password: '', first_name: '', last_name: '', gender: '' })
@@ -18,11 +21,11 @@ export default function LoginScreen() {
       if (mode === 'login') {
         await login(form.email.trim(), form.password)
       } else {
-        if (!form.gender) { setError('Please select gender'); setLoading(false); return }
+        if (!form.gender) { setError(t('auth.selectGender')); setLoading(false); return }
         await register({ email: form.email.trim(), password: form.password, first_name: form.first_name, last_name: form.last_name, gender: form.gender })
       }
     } catch (e) {
-      setError(e?.errors?.join(', ') || e?.error || 'Something went wrong')
+      setError(e?.errors?.join(', ') || e?.error || t('auth.somethingWrong'))
     } finally {
       setLoading(false)
     }
@@ -31,40 +34,49 @@ export default function LoginScreen() {
   return (
     <KeyboardAvoidingView style={s.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={s.container} keyboardShouldPersistTaps="handled">
+        {/* Language switcher in the top-right */}
+        <View style={s.langRow}>
+          {SUPPORTED_LANGS.map(l => (
+            <TouchableOpacity key={l.code} onPress={() => i18n.changeLanguage(l.code)} style={s.langPill}>
+              <Text style={[s.langPillText, i18n.language === l.code && s.langPillActive]}>{l.code.toUpperCase()}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
         <Text style={s.logo}>SplitRace</Text>
-        <Text style={s.subtitle}>GPS Tournament Running</Text>
+        <Text style={s.subtitle}>{t('auth.subtitle')}</Text>
 
         <View style={s.card}>
           <View style={s.tabs}>
             {['login', 'register'].map(m => (
               <TouchableOpacity key={m} style={[s.tab, mode === m && s.tabActive]} onPress={() => { setMode(m); setError(null) }}>
-                <Text style={[s.tabText, mode === m && s.tabTextActive]}>{m === 'login' ? 'Sign In' : 'Register'}</Text>
+                <Text style={[s.tabText, mode === m && s.tabTextActive]}>{m === 'login' ? t('auth.signIn') : t('auth.register')}</Text>
               </TouchableOpacity>
             ))}
           </View>
 
           {mode === 'register' && (
             <>
-              <TextInput style={s.input} placeholder="First name" value={form.first_name} onChangeText={set('first_name')} />
-              <TextInput style={s.input} placeholder="Last name"  value={form.last_name}  onChangeText={set('last_name')} />
-              <Text style={s.label}>Gender</Text>
+              <TextInput style={s.input} placeholder={t('auth.firstName')} value={form.first_name} onChangeText={set('first_name')} />
+              <TextInput style={s.input} placeholder={t('auth.lastName')}  value={form.last_name}  onChangeText={set('last_name')} />
+              <Text style={s.label}>{t('auth.gender')}</Text>
               <View style={s.genderRow}>
                 {['male', 'female'].map(g => (
                   <TouchableOpacity key={g} style={[s.genderBtn, form.gender === g && s.genderBtnActive]} onPress={() => set('gender')(g)}>
-                    <Text style={[s.genderText, form.gender === g && s.genderTextActive]}>{g.charAt(0).toUpperCase() + g.slice(1)}</Text>
+                    <Text style={[s.genderText, form.gender === g && s.genderTextActive]}>{t(`auth.gender_${g}`)}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
             </>
           )}
 
-          <TextInput style={s.input} placeholder="Email" value={form.email} onChangeText={set('email')} autoCapitalize="none" keyboardType="email-address" />
-          <TextInput style={s.input} placeholder="Password" value={form.password} onChangeText={set('password')} secureTextEntry />
+          <TextInput style={s.input} placeholder={t('auth.email')} value={form.email} onChangeText={set('email')} autoCapitalize="none" keyboardType="email-address" />
+          <TextInput style={s.input} placeholder={t('auth.password')} value={form.password} onChangeText={set('password')} secureTextEntry />
 
           {error && <Text style={s.error}>{error}</Text>}
 
           <TouchableOpacity style={s.btn} onPress={submit} disabled={loading}>
-            <Text style={s.btnText}>{loading ? '...' : mode === 'login' ? 'Sign In' : 'Create Account'}</Text>
+            <Text style={s.btnText}>{loading ? '...' : mode === 'login' ? t('auth.signIn') : t('auth.createAccount')}</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -75,6 +87,10 @@ export default function LoginScreen() {
 const s = StyleSheet.create({
   flex:            { flex: 1, backgroundColor: '#1a1a2e' },
   container:       { flexGrow: 1, justifyContent: 'center', padding: 24 },
+  langRow:         { flexDirection: 'row', gap: 8, justifyContent: 'flex-end', marginBottom: 12 },
+  langPill:        { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.08)' },
+  langPillText:    { color: 'rgba(255,255,255,0.6)', fontSize: 12, fontWeight: '700' },
+  langPillActive:  { color: '#e53935' },
   logo:            { fontSize: 32, fontWeight: '800', color: '#fff', textAlign: 'center', marginBottom: 4 },
   subtitle:        { fontSize: 13, color: 'rgba(255,255,255,0.5)', textAlign: 'center', marginBottom: 32 },
   card:            { backgroundColor: '#fff', borderRadius: 16, padding: 20 },

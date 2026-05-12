@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react'
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../contexts/AuthContext'
 import { api } from '../api/client'
 import LeafletMap from '../components/LeafletMap'
+import { SUPPORTED_LANGS } from '../i18n'
 
 export default function ProfileScreen() {
+  const { t, i18n } = useTranslation()
   const { user, setUser, logout } = useAuth()
   const [form, setForm]     = useState({ first_name: user?.first_name || '', last_name: user?.last_name || '', gender: user?.gender || '' })
   const [saved, setSaved]   = useState(false)
@@ -22,14 +25,14 @@ export default function ProfileScreen() {
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
     } catch {
-      Alert.alert('Error', 'Could not save profile')
+      Alert.alert(t('common.error'), t('profile.saveError'))
     }
   }
 
   function confirmLogout() {
-    Alert.alert('Sign out', 'Are you sure?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Sign out', style: 'destructive', onPress: logout },
+    Alert.alert(t('profile.signOut'), t('profile.signOutConfirm'), [
+      { text: t('common.cancel'),     style: 'cancel' },
+      { text: t('profile.signOutBtn'), style: 'destructive', onPress: logout },
     ])
   }
 
@@ -39,34 +42,51 @@ export default function ProfileScreen() {
 
       {!user?.gender && (
         <View style={s.warning}>
-          <Text style={s.warningText}>⚠ Set your gender — required for tournament scoring</Text>
+          <Text style={s.warningText}>{t('profile.genderWarning')}</Text>
         </View>
       )}
 
-      <TextInput style={s.input} placeholder="First name" value={form.first_name} onChangeText={v => setForm(f => ({ ...f, first_name: v }))} />
-      <TextInput style={s.input} placeholder="Last name"  value={form.last_name}  onChangeText={v => setForm(f => ({ ...f, last_name: v }))} />
+      <TextInput style={s.input} placeholder={t('auth.firstName')} value={form.first_name} onChangeText={v => setForm(f => ({ ...f, first_name: v }))} />
+      <TextInput style={s.input} placeholder={t('auth.lastName')}  value={form.last_name}  onChangeText={v => setForm(f => ({ ...f, last_name: v }))} />
 
-      <Text style={s.label}>Gender</Text>
+      <Text style={s.label}>{t('auth.gender')}</Text>
       <View style={s.genderRow}>
         {['male', 'female'].map(g => (
           <TouchableOpacity key={g} style={[s.genderBtn, form.gender === g && s.genderBtnActive]} onPress={() => setForm(f => ({ ...f, gender: g }))}>
-            <Text style={[s.genderText, form.gender === g && s.genderTextActive]}>{g.charAt(0).toUpperCase() + g.slice(1)}</Text>
+            <Text style={[s.genderText, form.gender === g && s.genderTextActive]}>{t(`auth.gender_${g}`)}</Text>
           </TouchableOpacity>
         ))}
       </View>
 
       <TouchableOpacity style={s.saveBtn} onPress={handleSave}>
-        <Text style={s.saveBtnText}>{saved ? '✓ Saved!' : 'Save'}</Text>
+        <Text style={s.saveBtnText}>{saved ? t('profile.saved') : t('profile.save')}</Text>
       </TouchableOpacity>
 
+      {/* Language switcher */}
+      <Text style={s.label}>{t('profile.language')}</Text>
+      <View style={s.langRow}>
+        {SUPPORTED_LANGS.map(l => {
+          const active = i18n.language === l.code
+          return (
+            <TouchableOpacity
+              key={l.code}
+              style={[s.langBtn, active && s.langBtnActive]}
+              onPress={() => i18n.changeLanguage(l.code)}
+            >
+              <Text style={[s.langText, active && s.langTextActive]}>{l.label}</Text>
+            </TouchableOpacity>
+          )
+        })}
+      </View>
+
       <TouchableOpacity style={s.logoutBtn} onPress={confirmLogout}>
-        <Text style={s.logoutText}>Sign out</Text>
+        <Text style={s.logoutText}>{t('profile.signOut')}</Text>
       </TouchableOpacity>
 
       {/* Recent runs */}
-      <Text style={s.section}>Recent runs</Text>
-      {activities === null && <Text style={s.muted}>Loading...</Text>}
-      {activities?.length === 0 && <Text style={s.muted}>No runs yet</Text>}
+      <Text style={s.section}>{t('profile.recentRuns')}</Text>
+      {activities === null && <Text style={s.muted}>{t('common.loading')}</Text>}
+      {activities?.length === 0 && <Text style={s.muted}>{t('profile.noRuns')}</Text>}
       {activities?.map(a => (
         <View key={a.id} style={s.runCard}>
           <View style={s.runHeader}>
@@ -84,7 +104,7 @@ export default function ProfileScreen() {
           </View>
           {a.gps_points?.length > 1 && (
             <TouchableOpacity onPress={() => setExpandedId(expandedId === a.id ? null : a.id)} style={s.routeBtn}>
-              <Text style={s.routeBtnText}>{expandedId === a.id ? 'Hide route' : 'Show route'}</Text>
+              <Text style={s.routeBtnText}>{expandedId === a.id ? t('profile.hideRoute') : t('profile.showRoute')}</Text>
             </TouchableOpacity>
           )}
           {expandedId === a.id && a.gps_points?.length > 1 && (
@@ -128,8 +148,13 @@ const s = StyleSheet.create({
   genderBtnActive:{ borderColor: '#1a1a2e', backgroundColor: '#1a1a2e' },
   genderText:     { color: '#555' },
   genderTextActive:{ color: '#fff', fontWeight: '600' },
-  saveBtn:        { backgroundColor: '#1a1a2e', borderRadius: 8, padding: 14, alignItems: 'center', marginBottom: 10 },
+  saveBtn:        { backgroundColor: '#1a1a2e', borderRadius: 8, padding: 14, alignItems: 'center', marginBottom: 16 },
   saveBtnText:    { color: '#fff', fontWeight: '700', fontSize: 15 },
+  langRow:        { flexDirection: 'row', gap: 10, marginBottom: 16 },
+  langBtn:        { flex: 1, borderWidth: 1, borderColor: '#ddd', borderRadius: 8, paddingVertical: 10, alignItems: 'center', backgroundColor: '#fff' },
+  langBtnActive:  { borderColor: '#e53935', backgroundColor: '#fff' },
+  langText:       { color: '#555', fontSize: 14 },
+  langTextActive: { color: '#e53935', fontWeight: '700' },
   logoutBtn:      { borderRadius: 8, padding: 12, alignItems: 'center', marginBottom: 24 },
   logoutText:     { color: '#e53935', fontWeight: '600' },
   section:        { fontSize: 16, fontWeight: '700', marginBottom: 10 },

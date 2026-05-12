@@ -2,6 +2,7 @@ import { NavigationContainer } from '@react-navigation/native'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { Text } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../contexts/AuthContext'
 import LoginScreen       from '../screens/LoginScreen'
 import TournamentsScreen from '../screens/TournamentsScreen'
@@ -13,10 +14,11 @@ const Stack = createNativeStackNavigator()
 const Tab   = createBottomTabNavigator()
 
 function TournamentsStack() {
+  const { t } = useTranslation()
   return (
     <Stack.Navigator screenOptions={{ headerStyle: { backgroundColor: '#1a1a2e' }, headerTintColor: '#fff', headerTitleStyle: { fontWeight: '700' } }}>
-      <Stack.Screen name="TournamentsList" component={TournamentsScreen} options={{ title: 'Tournaments' }} />
-      <Stack.Screen name="Tournament"      component={TournamentScreen}  options={({ route }) => ({ title: route.params?.slug || 'Tournament' })} />
+      <Stack.Screen name="TournamentsList" component={TournamentsScreen} options={{ title: t('nav.tournaments') }} />
+      <Stack.Screen name="Tournament"      component={TournamentScreen}  options={({ route }) => ({ title: route.params?.slug || t('nav.tournaments') })} />
     </Stack.Navigator>
   )
 }
@@ -27,6 +29,7 @@ function TabIcon({ name, focused }) {
 }
 
 function AppTabs() {
+  const { t } = useTranslation()
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -39,9 +42,9 @@ function AppTabs() {
         headerTitleStyle: { fontWeight: '700' },
       })}
     >
-      <Tab.Screen name="Tournaments" component={TournamentsStack} options={{ headerShown: false }} />
-      <Tab.Screen name="Run"         component={RunTrackerScreen} options={{ title: 'Run', tabBarLabel: 'Run' }} />
-      <Tab.Screen name="Profile"     component={ProfileScreen} />
+      <Tab.Screen name="Tournaments" component={TournamentsStack} options={{ headerShown: false, tabBarLabel: t('nav.tournaments') }} />
+      <Tab.Screen name="Run"         component={RunTrackerScreen} options={{ title: t('nav.run'), tabBarLabel: t('nav.run') }} />
+      <Tab.Screen name="Profile"     component={ProfileScreen}    options={{ title: t('nav.profile'), tabBarLabel: t('nav.profile') }} />
     </Tab.Navigator>
   )
 }

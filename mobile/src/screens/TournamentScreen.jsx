@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Modal, TextInput } from 'react-native'
 import { useRoute } from '@react-navigation/native'
+import { useTranslation } from 'react-i18next'
 import { api } from '../api/client'
 import { useAuth } from '../contexts/AuthContext'
 
 export default function TournamentScreen() {
+  const { t } = useTranslation()
   const { slug } = useRoute().params
   const { user } = useAuth()
   const [data, setData]       = useState(null)
@@ -25,7 +27,7 @@ export default function TournamentScreen() {
       const updated = await api.tournament(slug)
       setData(updated)
     } catch (e) {
-      Alert.alert('Error', e?.error || 'Could not join')
+      Alert.alert(t('common.error'), e?.error || t('tournaments.couldNotJoin'))
     } finally {
       setJoining(false)
     }
@@ -40,9 +42,9 @@ export default function TournamentScreen() {
     <View style={s.screen}>
       {/* Tabs */}
       <View style={s.tabs}>
-        {['info', 'leaderboard'].map(t => (
-          <TouchableOpacity key={t} style={[s.tab, tab === t && s.tabActive]} onPress={() => setTab(t)}>
-            <Text style={[s.tabText, tab === t && s.tabTextActive]}>{t === 'info' ? 'Info' : 'Leaderboard'}</Text>
+        {['info', 'leaderboard'].map(key => (
+          <TouchableOpacity key={key} style={[s.tab, tab === key && s.tabActive]} onPress={() => setTab(key)}>
+            <Text style={[s.tabText, tab === key && s.tabTextActive]}>{key === 'info' ? t('tournaments.info') : t('tournaments.leaderboard')}</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -50,21 +52,21 @@ export default function TournamentScreen() {
       {tab === 'info' ? (
         <View style={s.info}>
           <View style={[s.badge, { backgroundColor: badgeColor(data.status), alignSelf: 'flex-start', marginBottom: 12 }]}>
-            <Text style={s.badgeText}>{data.status.toUpperCase()}</Text>
+            <Text style={s.badgeText}>{t(`tournaments.${data.status}`).toUpperCase()}</Text>
           </View>
           {data.description ? <Text style={s.desc}>{data.description}</Text> : null}
-          <Text style={s.meta}>{data.participants_count ?? 0} participants</Text>
-          {data.starts_at && <Text style={s.meta}>Starts: {new Date(data.starts_at).toLocaleDateString()}</Text>}
-          {data.ends_at   && <Text style={s.meta}>Ends: {new Date(data.ends_at).toLocaleDateString()}</Text>}
+          <Text style={s.meta}>{t('tournaments.participants', { count: data.participants_count ?? 0 })}</Text>
+          {data.starts_at && <Text style={s.meta}>{t('tournaments.starts')}: {new Date(data.starts_at).toLocaleDateString()}</Text>}
+          {data.ends_at   && <Text style={s.meta}>{t('tournaments.ends')}: {new Date(data.ends_at).toLocaleDateString()}</Text>}
 
           {canJoin && (
             <TouchableOpacity style={s.joinBtn} onPress={join} disabled={joining}>
-              <Text style={s.joinBtnText}>{joining ? '...' : 'Join Tournament'}</Text>
+              <Text style={s.joinBtnText}>{joining ? '...' : t('tournaments.join')}</Text>
             </TouchableOpacity>
           )}
           {isParticipant && (
             <View style={s.joinedBadge}>
-              <Text style={s.joinedText}>✓ You are participating</Text>
+              <Text style={s.joinedText}>✓ {t('tournaments.youParticipate')}</Text>
             </View>
           )}
         </View>
@@ -73,7 +75,7 @@ export default function TournamentScreen() {
           style={{ flex: 1 }}
           data={board ?? []}
           keyExtractor={r => String(r.user?.id ?? Math.random())}
-          ListEmptyComponent={<Text style={s.empty}>No results yet</Text>}
+          ListEmptyComponent={<Text style={s.empty}>{t('tournaments.noResults')}</Text>}
           renderItem={({ item: r, index }) => {
             const isMe = r.user?.id === user?.id
             return (
@@ -82,7 +84,7 @@ export default function TournamentScreen() {
                 <Text style={s.rowName}>{r.user?.full_name ?? '—'}</Text>
                 <View style={{ alignItems: 'flex-end', marginRight: 8 }}>
                   <Text style={s.score}>{r.score != null ? `${r.score.toFixed(1)} pts` : '—'}</Text>
-                  <Text style={s.segs}>{r.completed_segments ?? 0} segments</Text>
+                  <Text style={s.segs}>{r.completed_segments ?? 0} {t('tournaments.segments')}</Text>
                 </View>
                 {!isMe && r.user?.id && (
                   <TouchableOpacity
@@ -111,13 +113,14 @@ export default function TournamentScreen() {
 }
 
 function ReportModal({ target, tournamentSlug, onClose }) {
+  const { t } = useTranslation()
   const [reason, setReason] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(false)
 
   async function submit() {
-    if (reason.trim().length < 10) { setError('Please provide at least 10 characters'); return }
+    if (reason.trim().length < 10) { setError(t('report.tooShort')); return }
     setSubmitting(true)
     setError(null)
     try {
@@ -129,7 +132,7 @@ function ReportModal({ target, tournamentSlug, onClose }) {
       setSuccess(true)
       setTimeout(onClose, 1500)
     } catch (e) {
-      setError(e?.errors?.join(', ') || 'Could not submit report')
+      setError(e?.errors?.join(', ') || t('report.failed'))
     } finally {
       setSubmitting(false)
     }
@@ -142,19 +145,19 @@ function ReportModal({ target, tournamentSlug, onClose }) {
           {success ? (
             <View style={{ alignItems: 'center', paddingVertical: 16 }}>
               <Text style={{ fontSize: 40, marginBottom: 6 }}>✓</Text>
-              <Text style={{ color: '#4caf50', fontWeight: '700', fontSize: 16 }}>Report submitted</Text>
-              <Text style={{ color: '#888', fontSize: 13, marginTop: 6 }}>An admin will review it.</Text>
+              <Text style={{ color: '#4caf50', fontWeight: '700', fontSize: 16 }}>{t('report.submitted')}</Text>
+              <Text style={{ color: '#888', fontSize: 13, marginTop: 6 }}>{t('report.reviewNote')}</Text>
             </View>
           ) : (
             <>
-              <Text style={m.title}>Report cheating</Text>
+              <Text style={m.title}>{t('report.title')}</Text>
               <Text style={m.subtitle}>
-                Reporting <Text style={{ fontWeight: '700' }}>{target.full_name}</Text>. Describe what looks suspicious.
+                {t('report.subtitle', { name: target.full_name })}
               </Text>
               <TextInput
                 value={reason}
                 onChangeText={setReason}
-                placeholder="e.g. impossible pace, finished too fast for fitness..."
+                placeholder={t('report.placeholder')}
                 multiline
                 numberOfLines={5}
                 style={m.textarea}
@@ -163,10 +166,10 @@ function ReportModal({ target, tournamentSlug, onClose }) {
               {error && <Text style={m.error}>{error}</Text>}
               <View style={m.actions}>
                 <TouchableOpacity onPress={onClose} disabled={submitting} style={m.btnCancel}>
-                  <Text style={m.btnCancelText}>Cancel</Text>
+                  <Text style={m.btnCancelText}>{t('report.cancel')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={submit} disabled={submitting} style={m.btnSubmit}>
-                  <Text style={m.btnSubmitText}>{submitting ? '...' : 'Submit'}</Text>
+                  <Text style={m.btnSubmitText}>{submitting ? t('report.submitting') : t('report.submit')}</Text>
                 </TouchableOpacity>
               </View>
             </>

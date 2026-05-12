@@ -1,13 +1,13 @@
 {
   "nav": {
     "tournaments": "Tournaments",
-    "run": "Start Run",
     "profile": "Profile",
     "logout": "Logout",
-    "login": "Login"
+    "login": "Login",
+    "language": "Language"
   },
   "auth": {
-    "login": "Login",
+    "login": "Sign In",
     "register": "Register",
     "email": "Email",
     "password": "Password",
@@ -18,34 +18,62 @@
     "hasAccount": "Already have an account?",
     "gender": "Gender",
     "gender_male": "Male",
-    "gender_female": "Female"
+    "gender_female": "Female",
+    "createAccount": "Create Account"
   },
   "tournaments": {
     "title": "Tournaments",
     "active": "Active",
     "completed": "Completed",
-    "join": "Join",
+    "draft": "Draft",
+    "join": "Join Tournament",
+    "joined": "Joined",
     "leave": "Leave",
     "leaderboard": "Leaderboard",
     "participants": "{{count}} participants",
+    "participantsLabel": "Participants",
     "segments": "{{count}} segments",
-    "noTournaments": "No tournaments available"
-  },
-  "run": {
-    "title": "Start Run",
-    "start": "Start",
-    "stop": "Stop & Save",
-    "recording": "Recording...",
-    "distance": "Distance",
-    "duration": "Duration",
-    "gpsWaiting": "Waiting for GPS signal...",
-    "saved": "Run saved!"
+    "noTournaments": "No tournaments available",
+    "status": "Status",
+    "starts": "Starts",
+    "ends": "Ends",
+    "segmentsHeader": "Segments",
+    "noResults": "No results yet",
+    "runner": "Runner",
+    "score": "Score",
+    "seg": "Seg",
+    "youParticipate": "You are participating",
+    "loadFailed": "Failed to load tournament",
+    "notFound": "Tournament not found"
   },
   "profile": {
     "title": "Profile",
     "units": "Units",
     "km": "Kilometers",
     "miles": "Miles",
-    "save": "Save"
+    "save": "Save",
+    "saved": "Saved!",
+    "genderWarning": "Please set your gender — it's required for tournament scoring.",
+    "recentRuns": "Recent runs",
+    "noRuns": "No runs yet.",
+    "loading": "Loading...",
+    "showRoute": "Show route",
+    "hideRoute": "Hide route"
+  },
+  "report": {
+    "title": "Report cheating",
+    "subtitle": "Reporting {{name}}. Describe what makes their performance look suspicious.",
+    "placeholder": "e.g. impossible pace for segment X, finished too fast for their usual fitness...",
+    "cancel": "Cancel",
+    "submit": "Submit report",
+    "submitting": "Submitting...",
+    "tooShort": "Please provide at least 10 characters",
+    "failed": "Could not submit report",
+    "submitted": "Report submitted",
+    "reviewNote": "An admin will review it.",
+    "tooltip": "Report cheating"
+  },
+  "common": {
+    "loading": "Loading..."
   }
 }

@@ -1,6 +1,7 @@
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../contexts/AuthContext'
+import LanguageSwitcher from './LanguageSwitcher'
 
 export default function Navbar() {
   const { t } = useTranslation()
@@ -24,10 +25,14 @@ export default function Navbar() {
             <div className="sr-desktop-links">
               <NavLink to="/tournaments" className={({ isActive }) => isActive ? 'sr-link active' : 'sr-link'}>{t('nav.tournaments')}</NavLink>
               <NavLink to="/profile"     className={({ isActive }) => isActive ? 'sr-link active' : 'sr-link'}>{t('nav.profile')}</NavLink>
+              <LanguageSwitcher />
               <button onClick={handleLogout} className="sr-logout">{t('nav.logout')}</button>
             </div>
-            {/* mobile: logout only in top bar */}
-            <button onClick={handleLogout} className="sr-mobile-logout">{t('nav.logout')}</button>
+            {/* mobile: language + logout in top bar */}
+            <div className="sr-mobile-actions">
+              <LanguageSwitcher />
+              <button onClick={handleLogout} className="sr-mobile-logout">{t('nav.logout')}</button>
+            </div>
           </>
         )}
         {!user && (
