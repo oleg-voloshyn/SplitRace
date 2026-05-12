@@ -75,5 +75,26 @@
   },
   "common": {
     "loading": "Loading..."
+  },
+  "landing": {
+    "signIn": "Sign In",
+    "getStarted": "Get Started",
+    "heroTitle": "Run. Compete. Win.",
+    "heroSubtitle": "Join GPS-based running tournaments. Race against real people on real segments — your phone is your judge.",
+    "heroNote": "Free to start. No equipment beyond your phone needed.",
+    "f1Title": "Real Tournaments",
+    "f1Text": "Join scheduled tournaments with leaderboards. Multiple segments, gender-separated scoring, and bonus points for completing the full course.",
+    "f2Title": "Real-World Segments",
+    "f2Text": "Run along carefully picked GPS routes in your city. Each segment has a defined start and finish — beat your time, beat others.",
+    "f3Title": "Background GPS",
+    "f3Text": "Track your run with the app in your pocket. Keep your phone locked — we record the full route in the background.",
+    "howTitle": "How it works",
+    "step1Title": "Create your account",
+    "step1Text": "Sign up with email in seconds. Pick your gender — it's used to keep scoring fair.",
+    "step2Title": "Join a tournament",
+    "step2Text": "Browse active tournaments in your city. One tap to join — no entry fee.",
+    "step3Title": "Run the segments",
+    "step3Text": "Open the app, tap Start, and run. We match your GPS track to tournament segments automatically and update the leaderboard.",
+    "ctaTitle": "Ready to race?"
   }
 }

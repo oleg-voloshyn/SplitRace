@@ -1,7 +1,8 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import Navbar from './components/Navbar'
 import Login from './pages/Login'
+import Landing from './pages/Landing'
 import Tournaments from './pages/Tournaments'
 import Tournament from './pages/Tournament'
 import Profile from './pages/Profile'
@@ -13,21 +14,35 @@ function ProtectedRoute({ children }) {
   return user ? children : <Navigate to="/login" replace />
 }
 
+function RootRoute() {
+  const { user, loading } = useAuth()
+  if (loading) return null
+  return user ? <Navigate to="/tournaments" replace /> : <Landing />
+}
+
 function AppRoutes() {
+  const { pathname } = useLocation()
+  const isLanding = pathname === '/'
+
   return (
     <>
-      <Navbar />
-      <main className="sr-page-wrap">
+      {!isLanding && <Navbar />}
+      {isLanding ? (
         <Routes>
-          <Route path="/login"             element={<Login />} />
-          <Route path="/oauth/callback"    element={<AuthCallback />} />
-          <Route path="/tournaments"       element={<ProtectedRoute><Tournaments /></ProtectedRoute>} />
-          <Route path="/tournaments/:slug" element={<ProtectedRoute><Tournament /></ProtectedRoute>} />
-          <Route path="/profile"           element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-          <Route path="/"                  element={<Navigate to="/tournaments" replace />} />
-          <Route path="*"                  element={<Navigate to="/tournaments" replace />} />
+          <Route path="/" element={<RootRoute />} />
         </Routes>
-      </main>
+      ) : (
+        <main className="sr-page-wrap">
+          <Routes>
+            <Route path="/login"             element={<Login />} />
+            <Route path="/oauth/callback"    element={<AuthCallback />} />
+            <Route path="/tournaments"       element={<ProtectedRoute><Tournaments /></ProtectedRoute>} />
+            <Route path="/tournaments/:slug" element={<ProtectedRoute><Tournament /></ProtectedRoute>} />
+            <Route path="/profile"           element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+            <Route path="*"                  element={<Navigate to="/" replace />} />
+          </Routes>
+        </main>
+      )}
     </>
   )
 }
