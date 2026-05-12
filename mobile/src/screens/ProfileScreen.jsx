@@ -9,8 +9,12 @@ import { SUPPORTED_LANGS } from '../i18n'
 export default function ProfileScreen() {
   const { t, i18n } = useTranslation()
   const { user, setUser, logout } = useAuth()
-  const [form, setForm]     = useState({ first_name: user?.first_name || '', last_name: user?.last_name || '', gender: user?.gender || '' })
-  const [saved, setSaved]   = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [form, setForm]       = useState({
+    first_name: user?.first_name || '',
+    last_name:  user?.last_name  || '',
+    gender:     user?.gender     || '',
+  })
   const [activities, setActivities] = useState(null)
   const [expandedId, setExpandedId] = useState(null)
 
@@ -18,15 +22,27 @@ export default function ProfileScreen() {
     api.activities().then(setActivities).catch(() => setActivities([]))
   }, [])
 
+  function startEdit() {
+    setForm({
+      first_name: user?.first_name || '',
+      last_name:  user?.last_name  || '',
+      gender:     user?.gender     || '',
+    })
+    setEditing(true)
+  }
+
   async function handleSave() {
     try {
       const updated = await api.updateMe(form)
       setUser(updated)
-      setSaved(true)
-      setTimeout(() => setSaved(false), 2000)
+      setEditing(false)
     } catch {
       Alert.alert(t('common.error'), t('profile.saveError'))
     }
+  }
+
+  function cancelEdit() {
+    setEditing(false)
   }
 
   function confirmLogout() {
@@ -36,55 +52,113 @@ export default function ProfileScreen() {
     ])
   }
 
+  const initials = (user?.first_name?.[0] || user?.email?.[0] || '?').toUpperCase()
+  const fullName = [user?.first_name, user?.last_name].filter(Boolean).join(' ') || '—'
+
   return (
     <ScrollView style={s.scroll} contentContainerStyle={s.container}>
-      <Text style={s.email}>{user?.email}</Text>
+      {/* ── User card ─────────────────────────────────────────── */}
+      <View style={s.userCard}>
+        <View style={s.avatar}>
+          <Text style={s.avatarText}>{initials}</Text>
+        </View>
+        <Text style={s.userName}>{fullName}</Text>
+        <Text style={s.userEmail}>{user?.email}</Text>
+      </View>
 
-      {!user?.gender && (
+      {!user?.gender && !editing && (
         <View style={s.warning}>
           <Text style={s.warningText}>{t('profile.genderWarning')}</Text>
         </View>
       )}
 
-      <TextInput style={s.input} placeholder={t('auth.firstName')} value={form.first_name} onChangeText={v => setForm(f => ({ ...f, first_name: v }))} />
-      <TextInput style={s.input} placeholder={t('auth.lastName')}  value={form.last_name}  onChangeText={v => setForm(f => ({ ...f, last_name: v }))} />
+      {/* ── Info view / edit ─────────────────────────────────── */}
+      <View style={s.section}>
+        {!editing ? (
+          <>
+            <InfoRow label={t('auth.firstName')} value={user?.first_name || '—'} />
+            <InfoRow label={t('auth.lastName')}  value={user?.last_name  || '—'} />
+            <InfoRow
+              label={t('auth.gender')}
+              value={user?.gender ? t(`auth.gender_${user.gender}`) : '—'}
+            />
+            <TouchableOpacity style={s.editBtn} onPress={startEdit}>
+              <Text style={s.editBtnText}>✎  {t('profile.editInfo')}</Text>
+            </TouchableOpacity>
+          </>
+        ) : (
+          <>
+            <Text style={s.label}>{t('auth.firstName')}</Text>
+            <TextInput
+              style={s.input}
+              value={form.first_name}
+              onChangeText={v => setForm(f => ({ ...f, first_name: v }))}
+              placeholder={t('auth.firstName')}
+            />
 
-      <Text style={s.label}>{t('auth.gender')}</Text>
-      <View style={s.genderRow}>
-        {['male', 'female'].map(g => (
-          <TouchableOpacity key={g} style={[s.genderBtn, form.gender === g && s.genderBtnActive]} onPress={() => setForm(f => ({ ...f, gender: g }))}>
-            <Text style={[s.genderText, form.gender === g && s.genderTextActive]}>{t(`auth.gender_${g}`)}</Text>
-          </TouchableOpacity>
-        ))}
+            <Text style={s.label}>{t('auth.lastName')}</Text>
+            <TextInput
+              style={s.input}
+              value={form.last_name}
+              onChangeText={v => setForm(f => ({ ...f, last_name: v }))}
+              placeholder={t('auth.lastName')}
+            />
+
+            <Text style={s.label}>{t('auth.gender')}</Text>
+            <View style={s.genderRow}>
+              {['male', 'female'].map(g => {
+                const active = form.gender === g
+                return (
+                  <TouchableOpacity
+                    key={g}
+                    style={[s.genderBtn, active && s.genderBtnActive]}
+                    onPress={() => setForm(f => ({ ...f, gender: g }))}
+                  >
+                    <Text style={[s.genderText, active && s.genderTextActive]}>
+                      {active ? '✓ ' : ''}{t(`auth.gender_${g}`)}
+                    </Text>
+                  </TouchableOpacity>
+                )
+              })}
+            </View>
+
+            <View style={s.editActions}>
+              <TouchableOpacity style={s.cancelBtn} onPress={cancelEdit}>
+                <Text style={s.cancelBtnText}>{t('common.cancel')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={s.saveBtn} onPress={handleSave}>
+                <Text style={s.saveBtnText}>{t('profile.save')}</Text>
+              </TouchableOpacity>
+            </View>
+          </>
+        )}
       </View>
 
-      <TouchableOpacity style={s.saveBtn} onPress={handleSave}>
-        <Text style={s.saveBtnText}>{saved ? t('profile.saved') : t('profile.save')}</Text>
-      </TouchableOpacity>
-
-      {/* Language switcher */}
-      <Text style={s.label}>{t('profile.language')}</Text>
-      <View style={s.langRow}>
+      {/* ── Language ─────────────────────────────────────────── */}
+      <View style={s.section}>
+        <Text style={s.sectionTitle}>{t('profile.language')}</Text>
         {SUPPORTED_LANGS.map(l => {
           const active = i18n.language === l.code
           return (
             <TouchableOpacity
               key={l.code}
-              style={[s.langBtn, active && s.langBtnActive]}
+              style={[s.langRow, active && s.langRowActive]}
               onPress={() => i18n.changeLanguage(l.code)}
             >
-              <Text style={[s.langText, active && s.langTextActive]}>{l.label}</Text>
+              <Text style={[s.langLabel, active && s.langLabelActive]}>{l.label}</Text>
+              {active && <Text style={s.langCheck}>✓</Text>}
             </TouchableOpacity>
           )
         })}
       </View>
 
+      {/* ── Sign out ─────────────────────────────────────────── */}
       <TouchableOpacity style={s.logoutBtn} onPress={confirmLogout}>
         <Text style={s.logoutText}>{t('profile.signOut')}</Text>
       </TouchableOpacity>
 
-      {/* Recent runs */}
-      <Text style={s.section}>{t('profile.recentRuns')}</Text>
+      {/* ── Recent runs ──────────────────────────────────────── */}
+      <Text style={s.sectionHeader}>{t('profile.recentRuns')}</Text>
       {activities === null && <Text style={s.muted}>{t('common.loading')}</Text>}
       {activities?.length === 0 && <Text style={s.muted}>{t('profile.noRuns')}</Text>}
       {activities?.map(a => (
@@ -118,6 +192,15 @@ export default function ProfileScreen() {
   )
 }
 
+function InfoRow({ label, value }) {
+  return (
+    <View style={s.infoRow}>
+      <Text style={s.infoLabel}>{label}</Text>
+      <Text style={s.infoValue}>{value}</Text>
+    </View>
+  )
+}
+
 function fmtDate(iso) {
   if (!iso) return '—'
   return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
@@ -138,27 +221,53 @@ function fmtPace(secs, meters) {
 const s = StyleSheet.create({
   scroll:         { flex: 1, backgroundColor: '#f5f5f5' },
   container:      { padding: 16, paddingBottom: 40 },
-  email:          { color: '#888', fontSize: 13, marginBottom: 12 },
-  warning:        { backgroundColor: '#fff3cd', borderRadius: 8, padding: 10, marginBottom: 12 },
+
+  userCard:       { backgroundColor: '#fff', borderRadius: 12, alignItems: 'center', padding: 20, marginBottom: 16, borderWidth: 1, borderColor: '#eee' },
+  avatar:         { width: 72, height: 72, borderRadius: 36, backgroundColor: '#1a1a2e', alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+  avatarText:     { color: '#fff', fontSize: 28, fontWeight: '800' },
+  userName:       { fontSize: 18, fontWeight: '700', marginBottom: 2 },
+  userEmail:      { color: '#888', fontSize: 13 },
+
+  warning:        { backgroundColor: '#fff3cd', borderRadius: 8, padding: 12, marginBottom: 16 },
   warningText:    { color: '#856404', fontSize: 13 },
-  label:          { fontSize: 13, color: '#555', marginBottom: 6, marginTop: 4 },
-  input:          { backgroundColor: '#fff', borderRadius: 8, padding: 12, marginBottom: 10, fontSize: 15, borderWidth: 1, borderColor: '#e0e0e0' },
-  genderRow:      { flexDirection: 'row', gap: 10, marginBottom: 16 },
-  genderBtn:      { flex: 1, borderWidth: 1, borderColor: '#ddd', borderRadius: 8, paddingVertical: 10, alignItems: 'center', backgroundColor: '#fff' },
-  genderBtnActive:{ borderColor: '#1a1a2e', backgroundColor: '#1a1a2e' },
-  genderText:     { color: '#555' },
-  genderTextActive:{ color: '#fff', fontWeight: '600' },
-  saveBtn:        { backgroundColor: '#1a1a2e', borderRadius: 8, padding: 14, alignItems: 'center', marginBottom: 16 },
-  saveBtnText:    { color: '#fff', fontWeight: '700', fontSize: 15 },
-  langRow:        { flexDirection: 'row', gap: 10, marginBottom: 16 },
-  langBtn:        { flex: 1, borderWidth: 1, borderColor: '#ddd', borderRadius: 8, paddingVertical: 10, alignItems: 'center', backgroundColor: '#fff' },
-  langBtnActive:  { borderColor: '#e53935', backgroundColor: '#fff' },
-  langText:       { color: '#555', fontSize: 14 },
-  langTextActive: { color: '#e53935', fontWeight: '700' },
+
+  section:        { backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: '#eee' },
+  sectionTitle:   { fontSize: 12, color: '#888', textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: '700', marginBottom: 10 },
+  sectionHeader:  { fontSize: 16, fontWeight: '700', marginTop: 8, marginBottom: 10 },
+
+  infoRow:        { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
+  infoLabel:      { color: '#888', fontSize: 14 },
+  infoValue:      { fontSize: 15, fontWeight: '600', color: '#1a1a2e' },
+
+  editBtn:        { marginTop: 14, paddingVertical: 10, borderRadius: 8, borderWidth: 1, borderColor: '#1a1a2e', alignItems: 'center' },
+  editBtnText:    { color: '#1a1a2e', fontWeight: '700' },
+
+  label:          { fontSize: 13, color: '#555', marginBottom: 6, marginTop: 6 },
+  input:          { backgroundColor: '#fafafa', borderRadius: 8, padding: 12, marginBottom: 4, fontSize: 15, borderWidth: 1, borderColor: '#e0e0e0' },
+
+  genderRow:      { flexDirection: 'row', gap: 10, marginTop: 6, marginBottom: 6 },
+  genderBtn:      { flex: 1, borderWidth: 2, borderColor: '#e0e0e0', borderRadius: 8, paddingVertical: 12, alignItems: 'center', backgroundColor: '#fafafa' },
+  genderBtnActive:{ borderColor: '#e53935', backgroundColor: '#fff1f0' },
+  genderText:     { color: '#555', fontSize: 14, fontWeight: '500' },
+  genderTextActive:{ color: '#e53935', fontWeight: '700' },
+
+  editActions:    { flexDirection: 'row', gap: 10, marginTop: 16 },
+  cancelBtn:      { flex: 1, paddingVertical: 12, borderRadius: 8, borderWidth: 1, borderColor: '#ddd', alignItems: 'center', backgroundColor: '#fff' },
+  cancelBtnText:  { color: '#555', fontWeight: '600' },
+  saveBtn:        { flex: 1, paddingVertical: 12, borderRadius: 8, backgroundColor: '#1a1a2e', alignItems: 'center' },
+  saveBtnText:    { color: '#fff', fontWeight: '700' },
+
+  langRow:        { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 4, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
+  langRowActive:  {},
+  langLabel:      { color: '#555', fontSize: 15 },
+  langLabelActive:{ color: '#e53935', fontWeight: '700' },
+  langCheck:      { color: '#e53935', fontSize: 18, fontWeight: '800' },
+
   logoutBtn:      { borderRadius: 8, padding: 12, alignItems: 'center', marginBottom: 24 },
   logoutText:     { color: '#e53935', fontWeight: '600' },
-  section:        { fontSize: 16, fontWeight: '700', marginBottom: 10 },
+
   muted:          { color: '#888', textAlign: 'center', marginTop: 20 },
+
   runCard:        { backgroundColor: '#fff', borderRadius: 10, padding: 14, marginBottom: 8, borderWidth: 1, borderColor: '#eee' },
   runHeader:      { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
   runDate:        { fontWeight: '600', fontSize: 14 },

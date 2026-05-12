@@ -82,7 +82,8 @@
     "noRuns": "No runs yet",
     "showRoute": "Show route",
     "hideRoute": "Hide route",
-    "language": "Language"
+    "language": "Language",
+    "editInfo": "Edit info"
   },
   "report": {
     "title": "Report cheating",
