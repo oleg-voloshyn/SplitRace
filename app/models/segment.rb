@@ -5,6 +5,7 @@ class Segment < ApplicationRecord
   has_many :tournament_segments, dependent: :destroy
   has_many :tournaments, through: :tournament_segments
   has_many :segment_efforts, dependent: :destroy
+  has_many :tournament_events, dependent: :nullify
 
   validates :name, presence: true
   validates :distance_meters, numericality: { greater_than: 0 }, allow_nil: true

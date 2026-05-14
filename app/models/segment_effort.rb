@@ -2,6 +2,7 @@ class SegmentEffort < ApplicationRecord
   belongs_to :user
   belongs_to :segment
   belongs_to :activity
+  has_many :tournament_events, dependent: :nullify
 
   validates :elapsed_time_seconds, presence: true, numericality: { only_integer: true, greater_than: 0 }
   validates :started_at, presence: true

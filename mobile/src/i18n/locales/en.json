@@ -30,6 +30,7 @@
     "tournaments": "Tournaments",
     "run": "Run",
     "creator": "Create",
+    "notifications": "Alerts",
     "profile": "Profile"
   },
   "tournaments": {
@@ -50,7 +51,8 @@
     "segments": "segments",
     "couldNotJoin": "Could not join",
     "share": "Share tournament",
-    "shareText": "Join {{name}} on SplitRace"
+    "shareText": "Join {{name}} on SplitRace",
+    "feed": "News"
   },
   "run": {
     "ready": "Ready to run",
@@ -123,6 +125,11 @@
     "status_active": "Active",
     "status_rejected": "Rejected",
     "status_completed": "Completed"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "markAllRead": "Mark all read",
+    "empty": "No notifications yet"
   },
   "report": {
     "title": "Report cheating",

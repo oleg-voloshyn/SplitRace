@@ -3,6 +3,7 @@ module Api
     class TournamentsController < BaseController
       before_action :set_tournament, only: %i[
         show join leave leaderboard activate complete submit_for_review add_segment remove_segment
+        feed
       ]
       before_action :require_moderator!, only: %i[activate complete]
       before_action :require_tournament_owner!, only: %i[submit_for_review add_segment remove_segment]
@@ -98,6 +99,10 @@ module Api
         render json: scores.map.with_index(1) { |s, i| score_json(s, i) }
       end
 
+      def feed
+        render json: tournament_events_json(@tournament)
+      end
+
       def activate
         @tournament.activate!
         render json: tournament_json(@tournament)
@@ -182,9 +187,37 @@ module Api
               }
             }
           end
+          data[:feed] = tournament_events_json(tournament)
         end
 
         data
+      end
+
+      def tournament_events_json(tournament)
+        tournament.tournament_events
+                  .includes(:actor, :segment)
+                  .order(created_at: :desc)
+                  .limit(50)
+                  .map { |event| tournament_event_json(event) }
+      end
+
+      def tournament_event_json(event)
+        {
+          id: event.id,
+          event_type: event.event_type,
+          title: event.title,
+          body: event.body,
+          created_at: event.created_at,
+          actor: {
+            id: event.actor.id,
+            display_name: event.actor.display_name,
+            avatar_url: event.actor.profile_avatar_url
+          },
+          segment: event.segment && {
+            id: event.segment.id,
+            name: event.segment.name
+          }
+        }
       end
 
       def polyline_to_coords(polyline)

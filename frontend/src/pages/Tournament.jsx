@@ -72,6 +72,12 @@ function Tournament() {
 
       <div className="sr-tournament-detail">
         <div>
+          {tournament.feed?.length > 0 && (
+            <div className="sr-card" style={{ marginBottom: '1rem' }}>
+              <h3>{t('tournaments.feed')}</h3>
+              <TournamentFeed events={tournament.feed} />
+            </div>
+          )}
           {tournament.segments?.length > 0 && (
             <>
               <div className="sr-card" style={{ padding: 0, overflow: 'hidden', marginBottom: '1rem' }}>
@@ -159,6 +165,23 @@ function Tournament() {
       {reportTarget && (
         <ReportModal target={reportTarget} tournamentSlug={slug} onClose={() => setReportTarget(null)} />
       )}
+    </div>
+  );
+}
+
+function TournamentFeed({ events }) {
+  return (
+    <div className="sr-feed-list">
+      {events.map((event) => (
+        <div key={event.id} className="sr-feed-item">
+          <div className="sr-feed-dot" />
+          <div>
+            <strong>{event.title}</strong>
+            {event.body && <p style={{ color: '#666', marginTop: '0.2rem' }}>{event.body}</p>}
+            <small style={{ color: '#888' }}>{new Date(event.created_at).toLocaleString()}</small>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

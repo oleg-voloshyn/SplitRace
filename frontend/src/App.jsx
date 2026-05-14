@@ -5,6 +5,7 @@ import AuthCallback from './pages/AuthCallback';
 import Creator from './pages/Creator';
 import Landing from './pages/Landing';
 import Login from './pages/Login';
+import Notifications from './pages/Notifications';
 import Profile from './pages/Profile';
 import Tournament from './pages/Tournament';
 import Tournaments from './pages/Tournaments';
@@ -71,6 +72,14 @@ function AppRoutes() {
               element={
                 <ProtectedRoute>
                   <Creator />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/notifications"
+              element={
+                <ProtectedRoute>
+                  <Notifications />
                 </ProtectedRoute>
               }
             />

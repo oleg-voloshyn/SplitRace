@@ -1,5 +1,7 @@
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
+import { api } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
 import LanguageSwitcher from './LanguageSwitcher';
 
@@ -7,6 +9,18 @@ function Navbar() {
   const { t } = useTranslation();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (!user) {
+      return;
+    }
+
+    api
+      .notifications()
+      .then((data) => setUnreadCount(data.unread_count || 0))
+      .catch(() => setUnreadCount(0));
+  }, [user]);
 
   function handleLogout() {
     logout();
@@ -33,6 +47,14 @@ function Navbar() {
               </NavLink>
               <NavLink to="/creator" className={({ isActive }) => (isActive ? 'sr-link active' : 'sr-link')}>
                 {t('nav.creator')}
+              </NavLink>
+              <NavLink
+                to="/notifications"
+                className={({ isActive }) => (isActive ? 'sr-bell active' : 'sr-bell')}
+                aria-label={t('nav.notifications')}
+              >
+                <span>🔔</span>
+                {unreadCount > 0 && <span className="sr-bell-badge">{unreadCount}</span>}
               </NavLink>
               <LanguageSwitcher />
               <button onClick={handleLogout} className="sr-logout">
@@ -69,6 +91,13 @@ function Navbar() {
           <NavLink to="/creator" className={({ isActive }) => (isActive ? 'sr-tab active' : 'sr-tab')}>
             <span className="sr-tab-icon">＋</span>
             <span className="sr-tab-label">{t('nav.creator')}</span>
+          </NavLink>
+          <NavLink to="/notifications" className={({ isActive }) => (isActive ? 'sr-tab active' : 'sr-tab')}>
+            <span className="sr-tab-icon sr-tab-bell">
+              🔔
+              {unreadCount > 0 && <span className="sr-tab-badge">{unreadCount}</span>}
+            </span>
+            <span className="sr-tab-label">{t('nav.notifications')}</span>
           </NavLink>
         </nav>
       )}

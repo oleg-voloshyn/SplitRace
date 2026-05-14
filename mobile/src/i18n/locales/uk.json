@@ -30,6 +30,7 @@
     "tournaments": "Турніри",
     "run": "Пробіжка",
     "creator": "Створити",
+    "notifications": "Дзвінок",
     "profile": "Профіль"
   },
   "tournaments": {
@@ -50,7 +51,8 @@
     "segments": "сегментів",
     "couldNotJoin": "Не вдалося долучитися",
     "share": "Поділитися турніром",
-    "shareText": "Долучайся до {{name}} у SplitRace"
+    "shareText": "Долучайся до {{name}} у SplitRace",
+    "feed": "Новини"
   },
   "run": {
     "ready": "Готові до пробіжки",
@@ -123,6 +125,11 @@
     "status_active": "Активний",
     "status_rejected": "Відхилено",
     "status_completed": "Завершено"
+  },
+  "notifications": {
+    "title": "Сповіщення",
+    "markAllRead": "Позначити прочитаними",
+    "empty": "Сповіщень ще немає"
   },
   "report": {
     "title": "Поскаржитися на читерство",

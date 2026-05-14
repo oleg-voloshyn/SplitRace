@@ -6,6 +6,8 @@ class Tournament < ApplicationRecord
   has_many :tournament_segments, dependent: :destroy
   has_many :segments, through: :tournament_segments
   has_many :tournament_participants, dependent: :destroy
+  has_many :tournament_events, dependent: :destroy
+  has_many :notifications, dependent: :destroy
   has_many :users, through: :tournament_participants
   has_many :tournament_scores, dependent: :destroy
 

@@ -5,7 +5,8 @@
     "logout": "Вийти",
     "login": "Увійти",
     "language": "Мова",
-    "creator": "Створити"
+    "creator": "Створити",
+    "notifications": "Сповіщення"
   },
   "auth": {
     "login": "Увійти",
@@ -54,6 +55,7 @@
     "copyLink": "Копіювати лінк",
     "linkCopied": "Скопійовано",
     "shareText": "Долучайся до {{name}} у SplitRace"
+    ,"feed": "Новини"
   },
   "profile": {
     "title": "Профіль",

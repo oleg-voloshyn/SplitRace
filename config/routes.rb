@@ -14,6 +14,9 @@ Rails.application.routes.draw do
       # Current user
       get    'me',            to: 'users#me'
       patch  'me',            to: 'users#update_me'
+      get    'notifications', to: 'notifications#index'
+      patch  'notifications/:id/read', to: 'notifications#read', as: :read_notification
+      post   'notifications/read_all', to: 'notifications#read_all'
 
       # Segments
       resources :segments, only: %i[index show create]
@@ -28,6 +31,7 @@ Rails.application.routes.draw do
           post   :submit_for_review
           post   :add_segment
           delete 'segments/:segment_id', to: 'tournaments#remove_segment', as: :segment
+          get    :feed
           post   :join
           delete :leave
           get    :leaderboard

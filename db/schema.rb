@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_14_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_14_123000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "postgis"
@@ -47,6 +47,22 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_14_120000) do
     t.index ["reviewed_by_id"], name: "index_cheating_reports_on_reviewed_by_id"
     t.index ["status"], name: "index_cheating_reports_on_status"
     t.index ["tournament_id"], name: "index_cheating_reports_on_tournament_id"
+  end
+
+  create_table "notifications", force: :cascade do |t|
+    t.text "body"
+    t.datetime "created_at", null: false
+    t.string "notification_type", null: false
+    t.datetime "read_at"
+    t.string "title", null: false
+    t.bigint "tournament_event_id"
+    t.bigint "tournament_id"
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["tournament_event_id"], name: "index_notifications_on_tournament_event_id"
+    t.index ["tournament_id"], name: "index_notifications_on_tournament_id"
+    t.index ["user_id", "read_at", "created_at"], name: "index_notifications_on_user_id_and_read_at_and_created_at"
+    t.index ["user_id"], name: "index_notifications_on_user_id"
   end
 
   create_table "oauth_identities", force: :cascade do |t|
@@ -94,6 +110,24 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_14_120000) do
     t.datetime "updated_at", null: false
     t.index ["created_by_id"], name: "index_segments_on_created_by_id"
     t.index ["is_active"], name: "index_segments_on_is_active"
+  end
+
+  create_table "tournament_events", force: :cascade do |t|
+    t.bigint "actor_id", null: false
+    t.text "body"
+    t.datetime "created_at", null: false
+    t.string "event_type", null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.bigint "segment_effort_id"
+    t.bigint "segment_id"
+    t.string "title", null: false
+    t.bigint "tournament_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["actor_id"], name: "index_tournament_events_on_actor_id"
+    t.index ["segment_effort_id"], name: "index_tournament_events_on_segment_effort_id"
+    t.index ["segment_id"], name: "index_tournament_events_on_segment_id"
+    t.index ["tournament_id", "event_type", "segment_effort_id"], name: "idx_tournament_events_unique_segment_effort", unique: true, where: "(segment_effort_id IS NOT NULL)"
+    t.index ["tournament_id"], name: "index_tournament_events_on_tournament_id"
   end
 
   create_table "tournament_participants", force: :cascade do |t|
@@ -186,11 +220,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_14_120000) do
   add_foreign_key "cheating_reports", "users", column: "reported_user_id"
   add_foreign_key "cheating_reports", "users", column: "reporter_id"
   add_foreign_key "cheating_reports", "users", column: "reviewed_by_id"
+  add_foreign_key "notifications", "tournament_events"
+  add_foreign_key "notifications", "tournaments"
+  add_foreign_key "notifications", "users"
   add_foreign_key "oauth_identities", "users"
   add_foreign_key "segment_efforts", "activities"
   add_foreign_key "segment_efforts", "segments"
   add_foreign_key "segment_efforts", "users"
   add_foreign_key "segments", "users", column: "created_by_id"
+  add_foreign_key "tournament_events", "segment_efforts"
+  add_foreign_key "tournament_events", "segments"
+  add_foreign_key "tournament_events", "tournaments"
+  add_foreign_key "tournament_events", "users", column: "actor_id"
   add_foreign_key "tournament_participants", "tournaments"
   add_foreign_key "tournament_participants", "users"
   add_foreign_key "tournament_scores", "tournaments"

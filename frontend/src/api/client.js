@@ -39,6 +39,9 @@ const api = {
   // User
   me: () => request('/me'),
   updateMe: (params) => request('/me', { method: 'PATCH', body: JSON.stringify(params) }),
+  notifications: () => request('/notifications'),
+  readNotification: (id) => request(`/notifications/${id}/read`, { method: 'PATCH' }),
+  readAllNotifications: () => request('/notifications/read_all', { method: 'POST' }),
 
   // Segments
   segments: () => request('/segments'),
@@ -51,6 +54,7 @@ const api = {
   myTournaments: () => request('/tournaments/mine'),
   createTournament: (params) => request('/tournaments', { method: 'POST', body: JSON.stringify(params) }),
   tournament: (slug) => request(`/tournaments/${slug}`),
+  tournamentFeed: (slug) => request(`/tournaments/${slug}/feed`),
   addTournamentSegment: (slug, params) =>
     request(`/tournaments/${slug}/add_segment`, { method: 'POST', body: JSON.stringify(params) }),
   submitTournamentForReview: (slug) => request(`/tournaments/${slug}/submit_for_review`, { method: 'POST' }),

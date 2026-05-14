@@ -38,6 +38,7 @@ class SegmentMatcher
       effort = try_match(ts.segment)
       break unless effort
 
+      TournamentEventPublisher.segment_unlocked!(tournament:, segment_effort: effort)
       completed_ids.add(ts.segment_id)
     end
   end

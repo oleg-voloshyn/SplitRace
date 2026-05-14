@@ -1,11 +1,14 @@
+import { useEffect, useState } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { Text } from 'react-native';
+import { api } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
 import CreatorScreen from '../screens/CreatorScreen';
 import LoginScreen from '../screens/LoginScreen';
+import NotificationsScreen from '../screens/NotificationsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import RunTrackerScreen from '../screens/RunTrackerScreen';
 import TournamentScreen from '../screens/TournamentScreen';
@@ -35,12 +38,21 @@ function TournamentsStack() {
 }
 
 function TabIcon({ name, focused }) {
-  const icons = { Tournaments: '🏆', Run: '▶', Creator: '＋', Profile: '👤' };
+  const icons = { Tournaments: '🏆', Run: '▶', Creator: '＋', Notifications: '🔔', Profile: '👤' };
   return <Text style={{ fontSize: focused ? 22 : 18 }}>{icons[name]}</Text>;
 }
 
 function AppTabs() {
   const { t } = useTranslation();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    api
+      .notifications()
+      .then((data) => setUnreadCount(data.unread_count || 0))
+      .catch(() => setUnreadCount(0));
+  }, []);
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -67,6 +79,15 @@ function AppTabs() {
         name="Creator"
         component={CreatorScreen}
         options={{ title: t('nav.creator'), tabBarLabel: t('nav.creator') }}
+      />
+      <Tab.Screen
+        name="Notifications"
+        component={NotificationsScreen}
+        options={{
+          title: t('nav.notifications'),
+          tabBarLabel: t('nav.notifications'),
+          tabBarBadge: unreadCount > 0 ? unreadCount : undefined
+        }}
       />
       <Tab.Screen
         name="Profile"

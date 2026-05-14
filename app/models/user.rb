@@ -5,11 +5,13 @@ class User < ApplicationRecord
 
   has_many :oauth_identities, dependent: :destroy
   has_many :activities, dependent: :destroy
+  has_many :notifications, dependent: :destroy
   has_many :segment_efforts, dependent: :destroy
   has_many :tournament_participants, dependent: :destroy
   has_many :tournaments, through: :tournament_participants
   has_many :created_tournaments, class_name: 'Tournament', foreign_key: :created_by_id, inverse_of: :created_by, dependent: :nullify
   has_many :created_segments, class_name: 'Segment', foreign_key: :created_by_id, inverse_of: :created_by, dependent: :nullify
+  has_many :tournament_events, foreign_key: :actor_id, inverse_of: :actor, dependent: :nullify
   has_many :tournament_scores, dependent: :destroy
 
   ACCOUNT_TYPES = %w[user club].freeze

@@ -1,0 +1,101 @@
+require 'test_helper'
+
+class ApiNotificationsTest < ActionDispatch::IntegrationTest
+  test 'segment unlock creates tournament feed event and participant notifications' do
+    owner = create_user(email: 'owner@example.com')
+    runner = create_user(email: 'runner@example.com', first_name: 'Runner')
+    spectator = create_user(email: 'spectator@example.com')
+    tournament = create_tournament(owner)
+    segment = create_segment(owner, name: 'Opening Segment')
+    tournament.tournament_segments.create!(segment:, order_number: 1, is_rated: true)
+    tournament.tournament_participants.create!(user: runner)
+    tournament.tournament_participants.create!(user: spectator)
+    effort = create_effort(runner, segment)
+
+    assert_difference 'TournamentEvent.count', 1 do
+      assert_difference 'Notification.count', 2 do
+        TournamentEventPublisher.segment_unlocked!(tournament:, segment_effort: effort)
+      end
+    end
+
+    get feed_api_v1_tournament_path(tournament.slug), headers: auth_headers(runner)
+
+    assert_response :success
+    feed = response.parsed_body
+    assert_equal 'segment_unlocked', feed.first['event_type']
+    assert_includes feed.first['title'], 'Opening Segment'
+
+    get api_v1_notifications_path, headers: auth_headers(spectator)
+
+    assert_response :success
+    body = response.parsed_body
+    assert_equal 1, body['unread_count']
+    assert_includes body['notifications'].first['title'], 'Opening Segment'
+  end
+
+  private
+
+  def create_user(email:, first_name: 'Test', role: 'user')
+    User.create!(
+      email:,
+      password: 'password123',
+      password_confirmation: 'password123',
+      first_name:,
+      role:,
+      gender: 'other'
+    )
+  end
+
+  def create_tournament(owner)
+    Tournament.create!(
+      name: 'Feed Cup',
+      description: 'Feed test',
+      created_by: owner,
+      total_segments_count: 2,
+      rated_segments_count: 1,
+      city: 'Kyiv',
+      country: 'UA',
+      status: 'active'
+    )
+  end
+
+  def create_segment(owner, name:)
+    Segment.create!(
+      name:,
+      created_by: owner,
+      is_active: true,
+      city: 'Kyiv',
+      country: 'UA',
+      **segment_geometry
+    )
+  end
+
+  def create_effort(user, segment)
+    activity = user.activities.create!(
+      started_at: Time.current,
+      finished_at: 5.minutes.from_now,
+      distance_meters: 1_500,
+      elapsed_time_seconds: 300
+    )
+    SegmentEffort.create!(user:, segment:, activity:, elapsed_time_seconds: 300, started_at: Time.current)
+  end
+
+  def segment_geometry
+    factory = RGeo::Geographic.spherical_factory(srid: 4326)
+    points = [
+      factory.point(30.52, 50.45),
+      factory.point(30.53, 50.46)
+    ]
+
+    {
+      start_point: points.first,
+      end_point: points.last,
+      polyline: factory.multi_line_string([factory.line_string(points)]),
+      distance_meters: 1_500
+    }
+  end
+
+  def auth_headers(user)
+    { 'Authorization' => "Bearer #{JwtService.encode(user_id: user.id)}" }
+  end
+end

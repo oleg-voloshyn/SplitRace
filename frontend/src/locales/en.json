@@ -5,7 +5,8 @@
     "logout": "Logout",
     "login": "Login",
     "language": "Language",
-    "creator": "Create"
+    "creator": "Create",
+    "notifications": "Notifications"
   },
   "auth": {
     "login": "Sign In",
@@ -54,6 +55,7 @@
     "copyLink": "Copy link",
     "linkCopied": "Copied",
     "shareText": "Join {{name}} on SplitRace"
+    ,"feed": "News"
   },
   "profile": {
     "title": "Profile",

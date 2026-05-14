@@ -95,6 +95,18 @@ function TournamentScreen() {
           <TouchableOpacity style={s.shareBtn} onPress={shareTournament}>
             <Text style={s.shareBtnText}>{t('tournaments.share')}</Text>
           </TouchableOpacity>
+          {data.feed?.length > 0 && (
+            <View style={s.feedBox}>
+              <Text style={s.feedTitle}>{t('tournaments.feed')}</Text>
+              {data.feed.map((event) => (
+                <View key={event.id} style={s.feedItem}>
+                  <Text style={s.feedItemTitle}>{event.title}</Text>
+                  {event.body && <Text style={s.feedBody}>{event.body}</Text>}
+                  <Text style={s.feedMeta}>{new Date(event.created_at).toLocaleString()}</Text>
+                </View>
+              ))}
+            </View>
+          )}
           <Text style={s.meta}>{t('tournaments.participants', { count: data.participants_count ?? 0 })}</Text>
           {data.starts_at && (
             <Text style={s.meta}>
@@ -252,6 +264,12 @@ const s = StyleSheet.create({
     marginBottom: 12
   },
   shareBtnText: { color: '#1a1a2e', fontWeight: '700', fontSize: 14 },
+  feedBox: { backgroundColor: '#fff', borderRadius: 10, padding: 12, marginBottom: 12 },
+  feedTitle: { fontSize: 16, fontWeight: '700', marginBottom: 8 },
+  feedItem: { borderBottomWidth: 1, borderBottomColor: '#f0f0f0', paddingVertical: 8 },
+  feedItemTitle: { fontWeight: '700', color: '#1a1a2e' },
+  feedBody: { color: '#555', fontSize: 13, marginTop: 2 },
+  feedMeta: { color: '#888', fontSize: 11, marginTop: 4 },
   meta: { color: '#888', fontSize: 14, marginBottom: 4 },
   badge: { borderRadius: 4, paddingHorizontal: 8, paddingVertical: 3 },
   badgeText: { color: '#fff', fontSize: 11, fontWeight: '700' },
