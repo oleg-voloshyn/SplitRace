@@ -53,6 +53,7 @@
                     span.badge.bg-warning.text-dark Rated
                 td.text-end.pe-3
                   = button_to "Remove", remove_segment_admin_tournament_path(@tournament, segment_id: ts.segment_id),
+                      form: { data: { confirm_modal: "Remove #{ts.segment.name} from this tournament?", confirm_title: "Remove segment", confirm_text: "Remove" } },
                       class: "btn btn-sm btn-outline-danger"
             - if @tournament_segments.empty?
               tr

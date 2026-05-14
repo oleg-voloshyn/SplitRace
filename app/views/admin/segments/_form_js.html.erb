@@ -69,7 +69,17 @@
   });
 
   document.getElementById('clear-btn').addEventListener('click', function() {
-    if (confirm('Clear all waypoints?')) { waypoints = []; redraw(); save(); }
+    const clearWaypoints = function() { waypoints = []; redraw(); save(); };
+    if (window.SplitRaceAdminConfirm) {
+      window.SplitRaceAdminConfirm.show({
+        title: 'Clear route',
+        message: 'Clear all waypoints?',
+        confirmText: 'Clear',
+        onConfirm: clearWaypoints
+      });
+    } else if (confirm('Clear all waypoints?')) {
+      clearWaypoints();
+    }
   });
 
   function haversineTotal(pts) {

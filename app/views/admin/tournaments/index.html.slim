@@ -25,9 +25,8 @@
               = "#{t.starts_at&.strftime("%d %b %Y") || "—"} → #{t.ends_at&.strftime("%d %b %Y") || "—"}"
             td.text-end.pe-3
               = link_to "Manage", admin_tournament_path(t), class: "btn btn-sm btn-outline-secondary me-1"
-              - delete_confirm = "return confirm(#{("Delete #{t.name}?").to_json})"
               = button_to "Delete", admin_tournament_path(t), method: :delete,
-                  form: { onsubmit: delete_confirm },
+                  form: { data: { confirm_modal: "Delete #{t.name}? This cannot be undone.", confirm_title: "Delete tournament" } },
                   class: "btn btn-sm btn-outline-danger"
         - if @tournaments.empty?
           tr

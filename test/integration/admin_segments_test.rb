@@ -36,11 +36,12 @@ class AdminSegmentsTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "index renders delete form that submits delete with native confirmation" do
+  test "index renders delete form with confirmation modal wiring" do
     get admin_segments_path
 
     assert_response :success
-    assert_select "form[action='#{admin_segment_path(@segment)}'][method='post'][onsubmit*='confirm']"
+    assert_select "#confirm-modal"
+    assert_select "form[action='#{admin_segment_path(@segment)}'][method='post'][data-confirm-modal*='Delete #{@segment.name}']"
     assert_select "form[action='#{admin_segment_path(@segment)}'] input[name='_method'][value='delete']"
 
     assert_difference "Segment.count", -1 do

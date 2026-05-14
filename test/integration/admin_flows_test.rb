@@ -75,7 +75,8 @@ class AdminFlowsTest < ActionDispatch::IntegrationTest
 
     get admin_tournaments_path
     assert_response :success
-    assert_select "form[action='#{admin_tournament_path(tournament)}'][method='post'][onsubmit*='confirm']"
+    assert_select "#confirm-modal"
+    assert_select "form[action='#{admin_tournament_path(tournament)}'][method='post'][data-confirm-modal*='Delete #{tournament.name}']"
     assert_select "form[action='#{admin_tournament_path(tournament)}'] input[name='_method'][value='delete']"
 
     assert_difference "Tournament.count", -1 do
@@ -107,6 +108,10 @@ class AdminFlowsTest < ActionDispatch::IntegrationTest
     post remove_segment_admin_tournament_path(tournament, segment_id: segment_one.id)
     assert_redirected_to admin_tournament_path(tournament)
     assert_equal 1, tournament.tournament_segments.count
+
+    get admin_tournament_path(tournament)
+    assert_response :success
+    assert_select "form[action='#{remove_segment_admin_tournament_path(tournament, segment_id: segment_two.id)}'][data-confirm-modal*='Remove #{segment_two.name}']"
   end
 
   test "users can be listed and roles updated" do
