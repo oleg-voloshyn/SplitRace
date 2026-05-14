@@ -2,16 +2,29 @@
   h1 Tournaments
   = link_to "+ New Tournament", new_admin_tournament_path, class: "btn btn-danger"
 
+.card.mb-3
+  .card-body
+    = form_with url: admin_tournaments_path, method: :get, class: "row g-2 align-items-center" do |f|
+      .col
+        = f.search_field :q, value: @query, class: "form-control", placeholder: "Search by name, status, city, country, description"
+      .col-auto
+        = f.hidden_field :sort, value: @sort
+        = f.hidden_field :direction, value: @direction
+        = f.submit "Search", class: "btn btn-outline-secondary"
+      - if @query.present?
+        .col-auto
+          = link_to "Clear", admin_tournaments_path(sort: @sort, direction: @direction), class: "btn btn-link"
+
 .card
   .card-body.p-0
     table.table.table-hover.mb-0
       thead.table-light
         tr
-          th.ps-3 Name
-          th Status
-          th Segments
-          th Participants
-          th Dates
+          th.ps-3= admin_sort_link("Name", "name")
+          th= admin_sort_link("Status", "status")
+          th= admin_sort_link("Segments", "segments")
+          th= admin_sort_link("Participants", "participants")
+          th= admin_sort_link("Dates", "starts_at")
           th
       tbody
         - @tournaments.each do |t|
@@ -20,7 +33,7 @@
             td
               span class="badge badge-status-#{t.status}"= t.status
             td= t.total_segments_count
-            td= t.tournament_participants.count
+            td= t[:participants_count_value].to_i
             td.text-muted.small
               = "#{t.starts_at&.strftime("%d %b %Y") || "—"} → #{t.ends_at&.strftime("%d %b %Y") || "—"}"
             td.text-end.pe-3
@@ -31,5 +44,9 @@
         - if @tournaments.empty?
           tr
             td colspan="6" class="text-center text-muted py-4"
-              | No tournaments yet.
-              = link_to " Create one →", new_admin_tournament_path
+              - if @query.present?
+                | No tournaments match your search.
+              - else
+                | No tournaments yet.
+                = link_to " Create one →", new_admin_tournament_path
+  = admin_pagination

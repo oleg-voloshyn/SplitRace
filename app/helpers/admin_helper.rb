@@ -1,4 +1,19 @@
 module AdminHelper
+  def admin_sort_link(label, sort_key)
+    active = @sort == sort_key.to_s
+    next_direction = active && @direction == "asc" ? "desc" : "asc"
+    icon = active ? (@direction == "asc" ? " ↑" : " ↓") : ""
+    query = request.query_parameters.except("page").merge("sort" => sort_key, "direction" => next_direction)
+
+    link_to "#{label}#{icon}", query, class: "text-decoration-none text-reset"
+  end
+
+  def admin_pagination
+    return if @total_pages.to_i <= 1
+
+    render partial: "admin/shared/pagination"
+  end
+
   def segment_waypoints_json(segment)
     return "[]" unless segment.polyline
 

@@ -2,7 +2,29 @@ class Admin::TournamentsController < Admin::BaseController
   before_action :set_tournament, only: %i[show edit update destroy activate complete add_segment remove_segment]
 
   def index
-    @tournaments = Tournament.includes(:created_by).order(created_at: :desc)
+    @sort = params[:sort].presence_in(%w[name status segments participants starts_at created_at]) || "created_at"
+    @direction = sort_direction
+    @query = params[:q].to_s.strip
+
+    participants_count_sql = TournamentParticipant
+      .where("tournament_participants.tournament_id = tournaments.id")
+      .select("COUNT(*)")
+      .to_sql
+
+    scope = Tournament
+      .includes(:created_by)
+      .select("tournaments.*, (#{participants_count_sql}) AS participants_count_value")
+
+    if @query.present?
+      pattern = "%#{ActiveRecord::Base.sanitize_sql_like(@query)}%"
+      scope = scope.where(
+        "tournaments.name ILIKE :q OR tournaments.city ILIKE :q OR tournaments.country ILIKE :q OR tournaments.status ILIKE :q OR tournaments.description ILIKE :q",
+        q: pattern
+      )
+    end
+
+    scope = scope.order(tournament_sort_order(participants_count_sql))
+    @tournaments = paginate(scope)
   end
 
   def show
@@ -102,6 +124,19 @@ class Admin::TournamentsController < Admin::BaseController
 
   def set_tournament
     @tournament = Tournament.find_by!(slug: params[:id])
+  end
+
+  def tournament_sort_order(participants_count_sql)
+    column = case @sort
+             when "name" then "tournaments.name"
+             when "status" then "tournaments.status"
+             when "segments" then "tournaments.total_segments_count"
+             when "participants" then "(#{participants_count_sql})"
+             when "starts_at" then "tournaments.starts_at"
+             else "tournaments.created_at"
+             end
+
+    Arel.sql("#{column} #{@direction}, tournaments.id desc")
   end
 
   def tournament_params

@@ -85,6 +85,27 @@ class AdminFlowsTest < ActionDispatch::IntegrationTest
     assert_redirected_to admin_tournaments_path
   end
 
+  test "tournaments index supports search sorting and pagination" do
+    create_tournament(name: "Zulu Cup", city: "Lviv")
+    create_tournament(name: "Alpha Cup", city: "Kyiv")
+    26.times { |i| create_tournament(name: "Paged Tournament #{i}") }
+
+    get admin_tournaments_path(q: "Alpha", sort: "name", direction: "asc")
+    assert_response :success
+    assert_select "input[name='q'][value='Alpha']"
+    assert_includes table_first_column_texts, "Alpha Cup"
+    refute_includes table_first_column_texts, "Zulu Cup"
+
+    get admin_tournaments_path(sort: "name", direction: "asc")
+    assert_response :success
+    assert_equal "Alpha Cup", table_first_column_texts.first
+    assert_select ".pagination"
+
+    get admin_tournaments_path(page: 2, sort: "name", direction: "asc")
+    assert_response :success
+    assert_select ".page-item.active", text: "2"
+  end
+
   test "tournament segment management enforces configured limits and can remove segment" do
     tournament = create_tournament(name: "Limit Cup", total_segments_count: 2, rated_segments_count: 1)
     segment_one = create_segment(name: "Only Slot")
@@ -127,6 +148,27 @@ class AdminFlowsTest < ActionDispatch::IntegrationTest
     assert_equal "moderator", user.reload.role
   end
 
+  test "users index supports search sorting and pagination" do
+    create_user(email: "zulu@example.com", first_name: "Zulu")
+    create_user(email: "alpha@example.com", first_name: "Alpha")
+    26.times { |i| create_user(email: "paged-user-#{i}@example.com", first_name: "Paged#{i}") }
+
+    get admin_users_path(q: "alpha", sort: "email", direction: "asc")
+    assert_response :success
+    assert_select "input[name='q'][value='alpha']"
+    assert_select "td", text: "alpha@example.com"
+    assert_select "td", { text: "zulu@example.com", count: 0 }
+
+    get admin_users_path(sort: "email", direction: "asc")
+    assert_response :success
+    assert_equal "admin-flows@example.com", table_column_texts(2).first
+    assert_select ".pagination"
+
+    get admin_users_path(page: 2, sort: "email", direction: "asc")
+    assert_response :success
+    assert_select ".page-item.active", text: "2"
+  end
+
   test "activities index filter and show render route and matched efforts" do
     runner = create_user(email: "activity-runner@example.com", first_name: "Activity")
     segment = create_segment(name: "Matched Segment", distance_meters: 1_000)
@@ -159,6 +201,27 @@ class AdminFlowsTest < ActionDispatch::IntegrationTest
     assert_select "h1", /Activity by/
     assert_select "#activity-map"
     assert_select "td", text: segment.name
+  end
+
+  test "segments index supports search sorting and pagination" do
+    create_segment(name: "Zulu Segment", city: "Lviv")
+    create_segment(name: "Alpha Segment", city: "Kyiv")
+    26.times { |i| create_segment(name: "Paged Segment #{i}") }
+
+    get admin_segments_path(q: "Alpha", sort: "name", direction: "asc")
+    assert_response :success
+    assert_select "input[name='q'][value='Alpha']"
+    assert_includes table_first_column_texts, "Alpha Segment"
+    refute_includes table_first_column_texts, "Zulu Segment"
+
+    get admin_segments_path(sort: "name", direction: "asc")
+    assert_response :success
+    assert_equal "Alpha Segment", table_first_column_texts.first
+    assert_select ".pagination"
+
+    get admin_segments_path(page: 2, sort: "name", direction: "asc")
+    assert_response :success
+    assert_select ".page-item.active", text: "2"
   end
 
   test "cheating reports can be filtered reviewed and protected from invalid status" do
@@ -207,22 +270,22 @@ class AdminFlowsTest < ActionDispatch::IntegrationTest
     )
   end
 
-  def create_tournament(name:, total_segments_count: 2, rated_segments_count: 1)
+  def create_tournament(name:, total_segments_count: 2, rated_segments_count: 1, city: "Kyiv")
     Tournament.create!(
       name: name,
       description: "#{name} description",
       created_by: @admin,
       total_segments_count: total_segments_count,
       rated_segments_count: rated_segments_count,
-      city: "Kyiv",
+      city: city,
       country: "UA"
     )
   end
 
-  def create_segment(name:, distance_meters: 1_500)
+  def create_segment(name:, distance_meters: 1_500, city: "Kyiv")
     Segment.create!(
       name: name,
-      city: "Kyiv",
+      city: city,
       country: "UA",
       created_by: @admin,
       is_active: true,
@@ -243,5 +306,13 @@ class AdminFlowsTest < ActionDispatch::IntegrationTest
       polyline: factory.multi_line_string([factory.line_string(points)]),
       distance_meters: distance_meters
     }
+  end
+
+  def table_first_column_texts
+    css_select("tbody tr td:first-child").map { |node| node.text.squish }
+  end
+
+  def table_column_texts(position)
+    css_select("tbody tr td:nth-child(#{position})").map { |node| node.text.squish }
   end
 end

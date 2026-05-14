@@ -2,7 +2,21 @@ class Admin::SegmentsController < Admin::BaseController
   before_action :set_segment, only: %i[edit update destroy]
 
   def index
-    @segments = Segment.includes(:created_by).order(created_at: :desc)
+    @sort = params[:sort].presence_in(%w[name distance city active created_at]) || "created_at"
+    @direction = sort_direction
+    @query = params[:q].to_s.strip
+
+    scope = Segment.includes(:created_by)
+    if @query.present?
+      pattern = "%#{ActiveRecord::Base.sanitize_sql_like(@query)}%"
+      scope = scope.where(
+        "segments.name ILIKE :q OR segments.city ILIKE :q OR segments.country ILIKE :q OR segments.description ILIKE :q",
+        q: pattern
+      )
+    end
+
+    scope = scope.order(segment_sort_order)
+    @segments = paginate(scope)
   end
 
   def new
@@ -38,6 +52,18 @@ class Admin::SegmentsController < Admin::BaseController
 
   def set_segment
     @segment = Segment.find(params[:id])
+  end
+
+  def segment_sort_order
+    column = case @sort
+             when "name" then "segments.name"
+             when "distance" then "segments.distance_meters"
+             when "city" then "segments.city"
+             when "active" then "segments.is_active"
+             else "segments.created_at"
+             end
+
+    Arel.sql("#{column} #{@direction}, segments.id desc")
   end
 
   def segment_attrs
