@@ -1,13 +1,21 @@
 module AdminHelper
   def segment_waypoints_json(segment)
     return "[]" unless segment.polyline
-    line = segment.polyline.geometry_n(0)
-    (0...line.num_points).map { |i|
-      pt = line.point_n(i)
-      { lat: pt.latitude, lng: pt.longitude }
-    }.to_json
+
+    line = segment.polyline.respond_to?(:geometry_n) ? segment.polyline.geometry_n(0) : segment.polyline
+    points = line.respond_to?(:points) ? line.points : (0...line.num_points).map { |i| line.point_n(i) }
+
+    points.map { |pt| { lat: point_lat(pt), lng: point_lng(pt) } }.to_json
   rescue
     "[]"
+  end
+
+  def point_lat(point)
+    point.respond_to?(:lat) ? point.lat : point.latitude
+  end
+
+  def point_lng(point)
+    point.respond_to?(:lon) ? point.lon : point.longitude
   end
 
   def format_seconds(secs)

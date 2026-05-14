@@ -41,7 +41,7 @@
         | Distance:
         strong#segment-distance —
     #segment-map style="height: 420px; border-radius: 8px; border: 1px solid #dee2e6;"
-    = f.hidden_field :waypoints_json, id: "waypoints-json"
+    = f.hidden_field :waypoints_json, id: "waypoints-json", value: segment_waypoints_json(segment)
 
   .col-12
     = f.submit segment.new_record? ? "Create Segment" : "Update Segment", class: "btn btn-danger"
