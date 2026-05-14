@@ -17,7 +17,7 @@ module Api
 
       def user_params
         source = params[:user].presence || params
-        source.permit(:first_name, :last_name, :gender, :units, :locale, :country, :city)
+        source.permit(:first_name, :last_name, :gender, :units, :locale, :country, :city, :account_type, :club_name)
       end
     end
   end

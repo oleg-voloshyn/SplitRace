@@ -23,6 +23,8 @@ html lang="en"
       .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
       .page-header h1 { font-size: 1.5rem; font-weight: 700; margin: 0; }
       .badge-status-draft     { background: #e0e0e0; color: #555; }
+      .badge-status-pending_review { background: #fff3cd; color: #856404; }
+      .badge-status-rejected  { background: #f8d7da; color: #842029; }
       .badge-status-active    { background: #c8e6c9; color: #2e7d32; }
       .badge-status-completed { background: #bbdefb; color: #1565c0; }
       .sr-rich-text-editor { min-height: 120px; background: #fff; }
@@ -40,7 +42,11 @@ html lang="en"
         a href=admin_root_path Dashboard
         .nav-section Content
         a href=admin_segments_path Segments
-        a href=admin_tournaments_path Tournaments
+        a href=admin_tournaments_path
+          | Tournaments
+          - pending_tournaments = pending_tournament_review_count
+          - if pending_tournaments > 0
+            span.badge.bg-warning.text-dark.ms-2= pending_tournaments
         .nav-section System
         a href=admin_users_path Users
         a href=admin_activities_path Activities

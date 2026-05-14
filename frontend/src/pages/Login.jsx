@@ -10,7 +10,15 @@ function Login() {
   const location = useLocation();
   const returnTo = location.state?.from || '/tournaments';
   const [mode, setMode] = useState('login');
-  const [form, setForm] = useState({ email: '', password: '', first_name: '', last_name: '', gender: '' });
+  const [form, setForm] = useState({
+    email: '',
+    password: '',
+    first_name: '',
+    last_name: '',
+    gender: '',
+    account_type: 'user',
+    club_name: ''
+  });
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -41,6 +49,29 @@ function Login() {
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
         {mode === 'register' && (
           <>
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              {['user', 'club'].map((type) => (
+                <label key={type} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <input
+                    type="radio"
+                    name="account_type"
+                    value={type}
+                    checked={form.account_type === type}
+                    onChange={() => setForm({ ...form, account_type: type })}
+                  />
+                  {t(`auth.account_${type}`)}
+                </label>
+              ))}
+            </div>
+            {form.account_type === 'club' && (
+              <input
+                placeholder={t('auth.clubName')}
+                value={form.club_name}
+                onChange={(e) => setForm({ ...form, club_name: e.target.value })}
+                required
+                style={inputStyle}
+              />
+            )}
             <input
               placeholder={t('auth.firstName')}
               value={form.first_name}

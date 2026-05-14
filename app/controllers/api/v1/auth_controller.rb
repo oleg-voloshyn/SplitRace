@@ -24,7 +24,8 @@ module Api
       private
 
       def register_params
-        params.permit(:email, :password, :password_confirmation, :first_name, :last_name, :gender, :locale, :units)
+        params.permit(:email, :password, :password_confirmation, :first_name, :last_name, :gender, :locale, :units,
+                      :account_type, :club_name)
       end
 
       def user_json(user)
@@ -33,8 +34,11 @@ module Api
           email: user.email,
           first_name: user.first_name,
           last_name: user.last_name,
+          display_name: user.display_name,
           full_name: user.full_name,
           avatar_url: user.profile_avatar_url,
+          account_type: user.account_type,
+          club_name: user.club_name,
           gender: user.gender,
           role: user.role,
           units: user.units,

@@ -32,11 +32,15 @@
             td.ps-3.fw-semibold= link_to t.name, admin_tournament_path(t)
             td
               span class="badge badge-status-#{t.status}"= t.status
+              - if t.status == "pending_review"
+                span.badge.bg-warning.text-dark.ms-1 Review
             td= t.total_segments_count
             td= t[:participants_count_value].to_i
             td.text-muted.small
               = "#{t.starts_at&.strftime("%d %b %Y") || "—"} → #{t.ends_at&.strftime("%d %b %Y") || "—"}"
             td.text-end.pe-3
+              - if t.status == "pending_review"
+                = button_to "Approve", approve_admin_tournament_path(t), class: "btn btn-sm btn-success me-1"
               = link_to "Manage", admin_tournament_path(t), class: "btn btn-sm btn-outline-secondary me-1"
               = button_to "Delete", admin_tournament_path(t), method: :delete,
                   form: { data: { confirm_modal: "Delete #{t.name}? This cannot be undone.", confirm_title: "Delete tournament" } },

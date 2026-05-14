@@ -17,6 +17,10 @@
     "gender": "Gender",
     "gender_male": "Male",
     "gender_female": "Female",
+    "accountType": "Account type",
+    "account_user": "Runner",
+    "account_club": "Running club",
+    "clubName": "Club name",
     "createAccount": "Create Account",
     "selectGender": "Please select gender",
     "somethingWrong": "Something went wrong",
@@ -25,6 +29,7 @@
   "nav": {
     "tournaments": "Tournaments",
     "run": "Run",
+    "creator": "Create",
     "profile": "Profile"
   },
   "tournaments": {
@@ -91,6 +96,33 @@
     "hideRoute": "Hide route",
     "language": "Language",
     "editInfo": "Edit info"
+  },
+  "creator": {
+    "title": "Create",
+    "newSegment": "New segment",
+    "newTournament": "New tournament",
+    "segmentName": "Segment name",
+    "tournamentName": "Tournament name",
+    "city": "City",
+    "country": "Country",
+    "totalSegments": "Total",
+    "ratedSegments": "Rated",
+    "createSegment": "Create segment",
+    "createTournament": "Create tournament",
+    "segmentCreated": "Segment created",
+    "tournamentCreated": "Tournament created",
+    "submitted": "Sent for admin review",
+    "failed": "Something went wrong",
+    "myTournaments": "My tournaments",
+    "segments": "segments",
+    "addSegment": "Add segment",
+    "noSegments": "Create a segment first",
+    "submitReview": "Submit",
+    "status_draft": "Draft",
+    "status_pending_review": "Waiting for review",
+    "status_active": "Active",
+    "status_rejected": "Rejected",
+    "status_completed": "Completed"
   },
   "report": {
     "title": "Report cheating",

@@ -31,6 +31,9 @@ function Navbar() {
               <NavLink to="/profile" className={({ isActive }) => (isActive ? 'sr-link active' : 'sr-link')}>
                 {t('nav.profile')}
               </NavLink>
+              <NavLink to="/creator" className={({ isActive }) => (isActive ? 'sr-link active' : 'sr-link')}>
+                {t('nav.creator')}
+              </NavLink>
               <LanguageSwitcher />
               <button onClick={handleLogout} className="sr-logout">
                 {t('nav.logout')}
@@ -62,6 +65,10 @@ function Navbar() {
           <NavLink to="/profile" className={({ isActive }) => (isActive ? 'sr-tab active' : 'sr-tab')}>
             <span className="sr-tab-icon">👤</span>
             <span className="sr-tab-label">{t('nav.profile')}</span>
+          </NavLink>
+          <NavLink to="/creator" className={({ isActive }) => (isActive ? 'sr-tab active' : 'sr-tab')}>
+            <span className="sr-tab-icon">＋</span>
+            <span className="sr-tab-label">{t('nav.creator')}</span>
           </NavLink>
         </nav>
       )}

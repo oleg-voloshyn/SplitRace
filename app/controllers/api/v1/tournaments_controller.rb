@@ -1,8 +1,11 @@
 module Api
   module V1
     class TournamentsController < BaseController
-      before_action :set_tournament, only: %i[show join leave leaderboard activate complete]
-      before_action :require_moderator!, only: %i[create activate complete]
+      before_action :set_tournament, only: %i[
+        show join leave leaderboard activate complete submit_for_review add_segment remove_segment
+      ]
+      before_action :require_moderator!, only: %i[activate complete]
+      before_action :require_tournament_owner!, only: %i[submit_for_review add_segment remove_segment]
 
       def index
         tournaments = Tournament.visible.order(starts_at: :desc)
@@ -13,6 +16,11 @@ module Api
         render json: tournament_json(@tournament, detailed: true)
       end
 
+      def mine
+        tournaments = current_user.created_tournaments.order(created_at: :desc)
+        render json: tournaments.map { |t| tournament_json(t, owned: true) }
+      end
+
       def create
         tournament = Tournament.new(tournament_params.merge(created_by: current_user))
         if tournament.save
@@ -20,6 +28,46 @@ module Api
         else
           render json: { errors: tournament.errors.full_messages }, status: :unprocessable_content
         end
+      end
+
+      def add_segment
+        segment = current_user.created_segments.active.find(params[:segment_id])
+        position = requested_segment_position
+        is_rated = params[:is_rated] != '0'
+
+        if @tournament.tournament_segments.count >= @tournament.total_segments_count
+          return render json: { error: 'No segment slots left' }, status: :unprocessable_content
+        end
+
+        if is_rated && @tournament.tournament_segments.where(is_rated: true).count >= @tournament.rated_segments_count
+          return render json: { error: 'No rated segment slots left' }, status: :unprocessable_content
+        end
+
+        TournamentSegment.transaction do
+          @tournament.tournament_segments
+                     .where(order_number: position..)
+                     .order(order_number: :desc)
+                     .each { |ts| ts.update!(order_number: ts.order_number + 1) }
+
+          @tournament.tournament_segments.create!(segment:, order_number: position, is_rated:)
+        end
+
+        render json: tournament_json(@tournament.reload, detailed: true, owned: true)
+      rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique => e
+        render json: { errors: [e.message] }, status: :unprocessable_content
+      end
+
+      def remove_segment
+        @tournament.tournament_segments.find_by!(segment_id: params[:segment_id]).destroy
+        normalize_segment_order!
+        render json: tournament_json(@tournament.reload, detailed: true, owned: true)
+      end
+
+      def submit_for_review
+        return render json: { error: 'Tournament is not ready for review' }, status: :unprocessable_content unless @tournament.ready_for_review?
+
+        @tournament.submit_for_review!
+        render json: tournament_json(@tournament, owned: true)
       end
 
       def join
@@ -70,13 +118,30 @@ module Api
         end
       end
 
+      def require_tournament_owner!
+        render json: { error: 'Forbidden' }, status: :forbidden unless @tournament.created_by_id == current_user.id
+      end
+
       def tournament_params
         params.permit(:name, :description, :starts_at, :ends_at,
                       :total_segments_count, :rated_segments_count, :max_participants,
                       :city, :country)
       end
 
-      def tournament_json(tournament, detailed: false)
+      def requested_segment_position
+        actual_total = @tournament.tournament_segments.count
+        position = params[:order_number].to_i
+        position = actual_total + 1 if position <= 0
+        position.clamp(1, actual_total + 1)
+      end
+
+      def normalize_segment_order!
+        @tournament.tournament_segments.order(:order_number, :id).each.with_index(1) do |ts, position|
+          ts.update!(order_number: position) unless ts.order_number == position
+        end
+      end
+
+      def tournament_json(tournament, detailed: false, owned: false)
         data = {
           id: tournament.id,
           name: tournament.name,
@@ -90,14 +155,22 @@ module Api
           participants_count: tournament.tournament_participants.count,
           city: tournament.city,
           country: tournament.country,
+          review_note: tournament.review_note,
+          submitted_for_review_at: tournament.submitted_for_review_at,
+          created_by: {
+            id: tournament.created_by.id,
+            display_name: tournament.created_by.display_name,
+            account_type: tournament.created_by.account_type
+          },
+          is_owner: tournament.created_by_id == current_user.id,
           is_participating: tournament.participating?(current_user)
         }
 
-        if detailed
+        if detailed || owned
           data[:segments] = tournament.tournament_segments.includes(:segment).order(:order_number).map do |ts|
             {
               order_number: ts.order_number,
-              # is_rated intentionally hidden from players — it's part of the Golden Fever mechanic
+              is_rated: owned ? ts.is_rated : nil,
               segment: {
                 id: ts.segment.id,
                 name: ts.segment.name,

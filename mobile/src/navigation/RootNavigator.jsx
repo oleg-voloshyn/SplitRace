@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { Text } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
+import CreatorScreen from '../screens/CreatorScreen';
 import LoginScreen from '../screens/LoginScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import RunTrackerScreen from '../screens/RunTrackerScreen';
@@ -34,7 +35,7 @@ function TournamentsStack() {
 }
 
 function TabIcon({ name, focused }) {
-  const icons = { Tournaments: '🏆', Run: '▶', Profile: '👤' };
+  const icons = { Tournaments: '🏆', Run: '▶', Creator: '＋', Profile: '👤' };
   return <Text style={{ fontSize: focused ? 22 : 18 }}>{icons[name]}</Text>;
 }
 
@@ -61,6 +62,11 @@ function AppTabs() {
         name="Run"
         component={RunTrackerScreen}
         options={{ title: t('nav.run'), tabBarLabel: t('nav.run') }}
+      />
+      <Tab.Screen
+        name="Creator"
+        component={CreatorScreen}
+        options={{ title: t('nav.creator'), tabBarLabel: t('nav.creator') }}
       />
       <Tab.Screen
         name="Profile"

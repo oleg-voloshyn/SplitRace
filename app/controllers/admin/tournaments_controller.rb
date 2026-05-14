@@ -1,6 +1,6 @@
 module Admin
   class TournamentsController < Admin::BaseController
-    before_action :set_tournament, only: %i[show edit update destroy activate complete add_segment remove_segment]
+    before_action :set_tournament, only: %i[show edit update destroy activate approve reject complete add_segment remove_segment]
 
     def index
       @sort = params[:sort].presence_in(%w[name status segments participants starts_at created_at]) || 'created_at'
@@ -30,7 +30,10 @@ module Admin
 
     def show
       @tournament_segments = @tournament.tournament_segments.includes(:segment).order(:order_number)
-      @available_segments  = Segment.active.where.not(id: @tournament.segment_ids).order(:name)
+      @available_segments  = Segment.active
+                                    .where(created_by: @tournament.created_by)
+                                    .where.not(id: @tournament.segment_ids)
+                                    .order(:name)
     end
 
     def new
@@ -81,6 +84,20 @@ module Admin
       redirect_to admin_tournament_path(@tournament), alert: e.message
     end
 
+    def approve
+      @tournament.approve!(@current_admin)
+      redirect_to admin_tournament_path(@tournament), notice: 'Tournament approved and activated.'
+    rescue => e
+      redirect_to admin_tournament_path(@tournament), alert: e.message
+    end
+
+    def reject
+      @tournament.reject!(@current_admin, params[:review_note])
+      redirect_to admin_tournament_path(@tournament), notice: 'Tournament rejected.'
+    rescue => e
+      redirect_to admin_tournament_path(@tournament), alert: e.message
+    end
+
     def complete
       @tournament.complete!
       redirect_to admin_tournament_path(@tournament), notice: 'Tournament completed and scores finalized.'
@@ -89,7 +106,7 @@ module Admin
     end
 
     def add_segment
-      segment  = Segment.find(params[:segment_id])
+      segment  = Segment.active.where(created_by: @tournament.created_by).find(params[:segment_id])
       is_rated = params[:is_rated] != '0'
 
       actual_total = @tournament.tournament_segments.count

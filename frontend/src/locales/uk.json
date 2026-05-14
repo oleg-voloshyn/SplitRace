@@ -4,7 +4,8 @@
     "profile": "Профіль",
     "logout": "Вийти",
     "login": "Увійти",
-    "language": "Мова"
+    "language": "Мова",
+    "creator": "Створити"
   },
   "auth": {
     "login": "Увійти",
@@ -19,6 +20,9 @@
     "gender": "Стать",
     "gender_male": "Чоловіча",
     "gender_female": "Жіноча",
+    "account_user": "Бігун",
+    "account_club": "Біговий клуб",
+    "clubName": "Назва клубу",
     "createAccount": "Створити акаунт"
   },
   "tournaments": {
@@ -86,6 +90,35 @@
   },
   "common": {
     "loading": "Завантаження..."
+  },
+  "creator": {
+    "title": "Створення",
+    "newSegment": "Новий сегмент",
+    "newTournament": "Новий турнір",
+    "segmentName": "Назва сегмента",
+    "tournamentName": "Назва турніру",
+    "description": "Опис",
+    "city": "Місто",
+    "country": "Країна",
+    "createSegment": "Створити сегмент",
+    "createTournament": "Створити турнір",
+    "segmentCreated": "Сегмент створено",
+    "tournamentCreated": "Турнір створено",
+    "segmentAdded": "Сегмент додано",
+    "submitted": "Відправлено адміну на перевірку",
+    "failed": "Щось пішло не так",
+    "myTournaments": "Мої турніри",
+    "noTournaments": "Турнірів ще немає",
+    "segments": "сегментів",
+    "selectSegment": "Оберіть свій сегмент",
+    "rated": "Рейтинговий",
+    "add": "Додати",
+    "submitReview": "Відправити на апрув",
+    "status_draft": "Чернетка",
+    "status_pending_review": "Очікує перевірки адміном",
+    "status_active": "Активний",
+    "status_rejected": "Відхилено",
+    "status_completed": "Завершено"
   },
   "landing": {
     "signIn": "Увійти",

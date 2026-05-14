@@ -17,7 +17,15 @@ function LoginScreen() {
   const { t, i18n } = useTranslation();
   const { login, register } = useAuth();
   const [mode, setMode] = useState('login');
-  const [form, setForm] = useState({ email: '', password: '', first_name: '', last_name: '', gender: '' });
+  const [form, setForm] = useState({
+    email: '',
+    password: '',
+    first_name: '',
+    last_name: '',
+    gender: '',
+    account_type: 'user',
+    club_name: ''
+  });
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -85,6 +93,28 @@ function LoginScreen() {
 
           {mode === 'register' && (
             <>
+              <Text style={s.label}>{t('auth.accountType')}</Text>
+              <View style={s.genderRow}>
+                {['user', 'club'].map((type) => (
+                  <TouchableOpacity
+                    key={type}
+                    style={[s.genderBtn, form.account_type === type && s.genderBtnActive]}
+                    onPress={() => set('account_type')(type)}
+                  >
+                    <Text style={[s.genderText, form.account_type === type && s.genderTextActive]}>
+                      {t(`auth.account_${type}`)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              {form.account_type === 'club' && (
+                <TextInput
+                  style={s.input}
+                  placeholder={t('auth.clubName')}
+                  value={form.club_name}
+                  onChangeText={set('club_name')}
+                />
+              )}
               <TextInput
                 style={s.input}
                 placeholder={t('auth.firstName')}

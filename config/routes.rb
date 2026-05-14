@@ -16,11 +16,18 @@ Rails.application.routes.draw do
       patch  'me',            to: 'users#update_me'
 
       # Segments
-      resources :segments, only: %i[index show]
+      resources :segments, only: %i[index show create]
 
       # Tournaments
       resources :tournaments, only: %i[index show create], param: :id do
+        collection do
+          get :mine
+        end
+
         member do
+          post   :submit_for_review
+          post   :add_segment
+          delete 'segments/:segment_id', to: 'tournaments#remove_segment', as: :segment
           post   :join
           delete :leave
           get    :leaderboard
@@ -48,6 +55,8 @@ Rails.application.routes.draw do
     resources :tournaments, only: %i[index new create show edit update destroy] do
       member do
         post :activate
+        post :approve
+        post :reject
         post :complete
         post :add_segment
         post 'segments/:segment_id/remove', to: 'tournaments#remove_segment', as: :remove_segment

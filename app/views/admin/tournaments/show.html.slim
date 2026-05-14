@@ -5,7 +5,13 @@
   h1= @tournament.name
   .d-flex.gap-2
     = link_to "Edit", edit_admin_tournament_path(@tournament), class: "btn btn-outline-secondary"
-    - if @tournament.status == "draft"
+    - if @tournament.status == "pending_review"
+      = button_to "Approve", approve_admin_tournament_path(@tournament), class: "btn btn-success"
+      = button_to "Reject", reject_admin_tournament_path(@tournament),
+          params: { review_note: "Rejected by admin" },
+          form: { data: { confirm_modal: "Reject #{@tournament.name}?", confirm_title: "Reject tournament", confirm_text: "Reject" } },
+          class: "btn btn-outline-danger"
+    - elsif @tournament.status == "draft"
       = button_to "→ Activate", activate_admin_tournament_path(@tournament), class: "btn btn-success"
     - elsif @tournament.status == "active"
       = button_to "✓ Complete", complete_admin_tournament_path(@tournament), class: "btn btn-primary"
@@ -14,6 +20,7 @@
   .col-auto
     span class="badge badge-status-#{@tournament.status} fs-6"= @tournament.status.upcase
   .col-auto.text-muted Golden Fever
+  .col-auto.text-muted= "Creator: #{@tournament.created_by.display_name}"
   - if @tournament.starts_at
     .col-auto.text-muted
       = "#{@tournament.starts_at.strftime("%d %b %Y")} → #{@tournament.ends_at&.strftime("%d %b %Y") || "?"}"

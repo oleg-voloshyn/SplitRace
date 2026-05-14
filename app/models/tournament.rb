@@ -2,13 +2,14 @@ class Tournament < ApplicationRecord
   include SanitizesRichTextDescription
 
   belongs_to :created_by, class_name: 'User'
+  belongs_to :reviewed_by, class_name: 'User', optional: true
   has_many :tournament_segments, dependent: :destroy
   has_many :segments, through: :tournament_segments
   has_many :tournament_participants, dependent: :destroy
   has_many :users, through: :tournament_participants
   has_many :tournament_scores, dependent: :destroy
 
-  STATUSES       = %w[draft active completed].freeze
+  STATUSES       = %w[draft pending_review active rejected completed].freeze
   SCORING_TYPES  = %w[golden_fever].freeze
 
   validates :name, presence: true
@@ -23,9 +24,20 @@ class Tournament < ApplicationRecord
 
   scope :active,    -> { where(status: 'active') }
   scope :completed, -> { where(status: 'completed') }
-  scope :visible,   -> { where(status: %w[active completed]) }
+  scope :pending_review, -> { where(status: 'pending_review') }
+  scope :visible, -> { where(status: %w[active completed]) }
 
-  def activate!   = update!(status: 'active')
+  def submit_for_review! = update!(status: 'pending_review', submitted_for_review_at: Time.current, review_note: nil)
+
+  def approve!(admin)
+    update!(status: 'active', reviewed_by: admin, reviewed_at: Time.current, review_note: nil)
+  end
+
+  def reject!(admin, note = nil)
+    update!(status: 'rejected', reviewed_by: admin, reviewed_at: Time.current, review_note: note)
+  end
+
+  def activate!   = approve!(reviewed_by)
   def complete!   = update!(status: 'completed').tap { recalculate_scores! }
 
   def participant_for(user) = tournament_participants.find_by(user:)
@@ -35,6 +47,11 @@ class Tournament < ApplicationRecord
 
   def recalculate_scores!
     TournamentScore.recalculate_all(self)
+  end
+
+  def ready_for_review?
+    tournament_segments.count == total_segments_count &&
+      tournament_segments.where(is_rated: true).count == rated_segments_count
   end
 
   private

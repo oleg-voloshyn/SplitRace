@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_11_102958) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_14_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "postgis"
@@ -145,20 +145,27 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_11_102958) do
     t.integer "max_participants"
     t.string "name", null: false
     t.integer "rated_segments_count", default: 1, null: false
+    t.text "review_note"
+    t.datetime "reviewed_at"
+    t.bigint "reviewed_by_id"
     t.string "scoring_type", default: "golden_fever", null: false
     t.string "slug", null: false
     t.datetime "starts_at"
     t.string "status", default: "draft", null: false
+    t.datetime "submitted_for_review_at"
     t.integer "total_segments_count", default: 1, null: false
     t.datetime "updated_at", null: false
     t.index ["created_by_id"], name: "index_tournaments_on_created_by_id"
+    t.index ["reviewed_by_id"], name: "index_tournaments_on_reviewed_by_id"
     t.index ["slug"], name: "index_tournaments_on_slug", unique: true
     t.index ["status"], name: "index_tournaments_on_status"
   end
 
   create_table "users", force: :cascade do |t|
+    t.string "account_type", default: "user", null: false
     t.string "avatar_url"
     t.string "city"
+    t.string "club_name"
     t.string "country"
     t.datetime "created_at", null: false
     t.string "email", null: false
@@ -170,6 +177,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_11_102958) do
     t.string "role", default: "user", null: false
     t.string "units", default: "km", null: false
     t.datetime "updated_at", null: false
+    t.index ["account_type"], name: "index_users_on_account_type"
     t.index ["email"], name: "index_users_on_email", unique: true
   end
 
@@ -190,4 +198,5 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_11_102958) do
   add_foreign_key "tournament_segments", "segments"
   add_foreign_key "tournament_segments", "tournaments"
   add_foreign_key "tournaments", "users", column: "created_by_id"
+  add_foreign_key "tournaments", "users", column: "reviewed_by_id"
 end

@@ -2,6 +2,7 @@ import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-route
 import Navbar from './components/Navbar';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import AuthCallback from './pages/AuthCallback';
+import Creator from './pages/Creator';
 import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Profile from './pages/Profile';
@@ -62,6 +63,14 @@ function AppRoutes() {
               element={
                 <ProtectedRoute>
                   <Profile />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/creator"
+              element={
+                <ProtectedRoute>
+                  <Creator />
                 </ProtectedRoute>
               }
             />

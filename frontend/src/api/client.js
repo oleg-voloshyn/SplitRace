@@ -43,10 +43,17 @@ const api = {
   // Segments
   segments: () => request('/segments'),
   segment: (id) => request(`/segments/${id}`),
+  mySegments: () => request('/segments?mine=1'),
+  createSegment: (params) => request('/segments', { method: 'POST', body: JSON.stringify(params) }),
 
   // Tournaments
   tournaments: () => request('/tournaments'),
+  myTournaments: () => request('/tournaments/mine'),
+  createTournament: (params) => request('/tournaments', { method: 'POST', body: JSON.stringify(params) }),
   tournament: (slug) => request(`/tournaments/${slug}`),
+  addTournamentSegment: (slug, params) =>
+    request(`/tournaments/${slug}/add_segment`, { method: 'POST', body: JSON.stringify(params) }),
+  submitTournamentForReview: (slug) => request(`/tournaments/${slug}/submit_for_review`, { method: 'POST' }),
   joinTournament: (slug) => request(`/tournaments/${slug}/join`, { method: 'POST' }),
   leaveTournament: (slug) => request(`/tournaments/${slug}/leave`, { method: 'DELETE' }),
   leaderboard: (slug, gender) => request(`/tournaments/${slug}/leaderboard${gender ? `?gender=${gender}` : ''}`),

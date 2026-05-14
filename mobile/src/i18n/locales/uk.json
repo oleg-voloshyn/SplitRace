@@ -17,6 +17,10 @@
     "gender": "Стать",
     "gender_male": "Чоловіча",
     "gender_female": "Жіноча",
+    "accountType": "Тип акаунта",
+    "account_user": "Бігун",
+    "account_club": "Біговий клуб",
+    "clubName": "Назва клубу",
     "createAccount": "Створити акаунт",
     "selectGender": "Будь ласка, оберіть стать",
     "somethingWrong": "Щось пішло не так",
@@ -25,6 +29,7 @@
   "nav": {
     "tournaments": "Турніри",
     "run": "Пробіжка",
+    "creator": "Створити",
     "profile": "Профіль"
   },
   "tournaments": {
@@ -91,6 +96,33 @@
     "hideRoute": "Сховати маршрут",
     "language": "Мова",
     "editInfo": "Редагувати"
+  },
+  "creator": {
+    "title": "Створити",
+    "newSegment": "Новий сегмент",
+    "newTournament": "Новий турнір",
+    "segmentName": "Назва сегмента",
+    "tournamentName": "Назва турніру",
+    "city": "Місто",
+    "country": "Країна",
+    "totalSegments": "Усього",
+    "ratedSegments": "Рейтингових",
+    "createSegment": "Створити сегмент",
+    "createTournament": "Створити турнір",
+    "segmentCreated": "Сегмент створено",
+    "tournamentCreated": "Турнір створено",
+    "submitted": "Відправлено на перевірку адміну",
+    "failed": "Щось пішло не так",
+    "myTournaments": "Мої турніри",
+    "segments": "сегментів",
+    "addSegment": "Додати сегмент",
+    "noSegments": "Спочатку створіть сегмент",
+    "submitReview": "На апрув",
+    "status_draft": "Чернетка",
+    "status_pending_review": "Очікує перевірки",
+    "status_active": "Активний",
+    "status_rejected": "Відхилено",
+    "status_completed": "Завершено"
   },
   "report": {
     "title": "Поскаржитися на читерство",

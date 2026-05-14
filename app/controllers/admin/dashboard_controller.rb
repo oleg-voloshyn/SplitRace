@@ -5,6 +5,7 @@ module Admin
         users: User.count,
         segments: Segment.count,
         tournaments: Tournament.count,
+        pending_tournament_reviews: Tournament.pending_review.count,
         activities: Activity.count
       }
       @recent_tournaments = Tournament.order(created_at: :desc).limit(5)

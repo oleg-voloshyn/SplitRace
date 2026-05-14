@@ -4,7 +4,8 @@
     "profile": "Profile",
     "logout": "Logout",
     "login": "Login",
-    "language": "Language"
+    "language": "Language",
+    "creator": "Create"
   },
   "auth": {
     "login": "Sign In",
@@ -19,6 +20,9 @@
     "gender": "Gender",
     "gender_male": "Male",
     "gender_female": "Female",
+    "account_user": "Runner",
+    "account_club": "Running club",
+    "clubName": "Club name",
     "createAccount": "Create Account"
   },
   "tournaments": {
@@ -86,6 +90,35 @@
   },
   "common": {
     "loading": "Loading..."
+  },
+  "creator": {
+    "title": "Create",
+    "newSegment": "New segment",
+    "newTournament": "New tournament",
+    "segmentName": "Segment name",
+    "tournamentName": "Tournament name",
+    "description": "Description",
+    "city": "City",
+    "country": "Country",
+    "createSegment": "Create segment",
+    "createTournament": "Create tournament",
+    "segmentCreated": "Segment created",
+    "tournamentCreated": "Tournament created",
+    "segmentAdded": "Segment added",
+    "submitted": "Sent for admin review",
+    "failed": "Something went wrong",
+    "myTournaments": "My tournaments",
+    "noTournaments": "No tournaments yet",
+    "segments": "segments",
+    "selectSegment": "Select your segment",
+    "rated": "Rated",
+    "add": "Add",
+    "submitReview": "Submit for review",
+    "status_draft": "Draft",
+    "status_pending_review": "Waiting for admin review",
+    "status_active": "Active",
+    "status_rejected": "Rejected",
+    "status_completed": "Completed"
   },
   "landing": {
     "signIn": "Sign In",
