@@ -71,12 +71,22 @@
         - if slots_left <= 0
           p.text-success.mb-0= "✓ All #{@tournament.total_segments_count} segments added."
         - elsif @available_segments.any?
-          = form_with url: add_segment_admin_tournament_path(@tournament), method: :post do |f|
+          = form_with url: add_segment_admin_tournament_path(@tournament), method: :post, data: { segment_picker_form: true } do |f|
             .mb-2
-              = f.select :segment_id,
-                  @available_segments.map { |s| ["#{s.name} (#{s.distance_meters ? (s.distance_meters/1000.0).round(2).to_s + ' km' : '?'})", s.id] },
-                  { prompt: "Select segment..." },
-                  class: "form-select"
+              = f.label :segment_id, "Segment", class: "form-label"
+              input.form-control.mb-2 type="search" placeholder="Search segment..." autocomplete="off" data-segment-picker-search=true
+              .list-group style="max-height: 260px; overflow: auto;" data-segment-picker-options=true
+                - @available_segments.each do |segment|
+                  - distance_label = segment.distance_meters ? "#{(segment.distance_meters / 1000.0).round(2)} km" : "?"
+                  label.list-group-item.list-group-item-action.d-flex.align-items-start.gap-2 data-segment-picker-option=true data-segment-search="#{segment.name} #{segment.city} #{segment.country}"
+                    = f.radio_button :segment_id, segment.id, class: "form-check-input mt-1", required: true, data: { segment_picker_radio: true }
+                    span
+                      strong.d-block= segment.name
+                      small.text-muted
+                        = distance_label
+                        - if segment.city.present? || segment.country.present?
+                          = " · #{[segment.city, segment.country].compact_blank.join(', ')}"
+              p.text-muted.small.mb-0.d-none data-segment-picker-empty=true No available segments match your search.
             .mb-2
               = f.label :order_number, "Position", class: "form-label"
               = f.select :order_number,
@@ -88,7 +98,42 @@
               = f.check_box :is_rated, { class: "form-check-input", checked: rated_slots_left > 0 }, "1", "0"
               = f.label :is_rated, "Rated segment#{rated_slots_left > 0 ? " (#{rated_slots_left} left)" : " (limit reached)"}", class: "form-check-label"
             p.text-muted.small.mb-2= "#{slots_left} slot#{slots_left == 1 ? "" : "s"} remaining"
-            = f.submit "Add →", class: "btn btn-danger w-100"
+            = f.submit "Add →", class: "btn btn-danger w-100", data: { segment_picker_submit: true }, disabled: true
         - else
           p.text-muted.mb-2 All active segments are already in this tournament.
           = link_to "Create new segment", new_admin_segment_path, class: "btn btn-outline-secondary btn-sm"
+
+javascript:
+  document.querySelectorAll('[data-segment-picker-form]').forEach(function(form) {
+    const search = form.querySelector('[data-segment-picker-search]');
+    const options = Array.from(form.querySelectorAll('[data-segment-picker-option]'));
+    const empty = form.querySelector('[data-segment-picker-empty]');
+    const submit = form.querySelector('[data-segment-picker-submit]');
+
+    function normalize(value) {
+      return (value || '').toString().trim().toLowerCase();
+    }
+
+    function refreshOptions() {
+      const query = normalize(search?.value);
+      let visibleCount = 0;
+
+      options.forEach(function(option) {
+        const matches = !query || normalize(option.dataset.segmentSearch).includes(query);
+        option.classList.toggle('d-none', !matches);
+        if (matches) visibleCount += 1;
+      });
+
+      empty?.classList.toggle('d-none', visibleCount > 0);
+    }
+
+    function refreshSubmit() {
+      if (!submit) return;
+      submit.disabled = !form.querySelector('[data-segment-picker-radio]:checked');
+    }
+
+    search?.addEventListener('input', refreshOptions);
+    form.addEventListener('change', refreshSubmit);
+    refreshOptions();
+    refreshSubmit();
+  });

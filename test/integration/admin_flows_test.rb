@@ -177,6 +177,24 @@ class AdminFlowsTest < ActionDispatch::IntegrationTest
     assert_select "form[action='#{remove_segment_admin_tournament_path(tournament, segment_id: segment_two.id)}'][data-confirm-modal*='Remove #{segment_two.name}']"
   end
 
+  test "tournament add segment picker is searchable and excludes selected segments" do
+    tournament = create_tournament(name: "Picker Cup", total_segments_count: 3, rated_segments_count: 1)
+    selected_segment = create_segment(name: "Already Added")
+    available_segment = create_segment(name: "Searchable Segment", city: "Lviv")
+
+    post add_segment_admin_tournament_path(tournament), params: { segment_id: selected_segment.id, is_rated: "1" }
+    assert_redirected_to admin_tournament_path(tournament)
+
+    get admin_tournament_path(tournament)
+
+    assert_response :success
+    assert_select "input[type='search'][data-segment-picker-search][placeholder='Search segment...']"
+    assert_select "[data-segment-picker-options] [data-segment-picker-option]", text: /Searchable Segment/
+    assert_select "[data-segment-picker-options] [data-segment-picker-option]", text: /Lviv/
+    assert_select "[data-segment-picker-options] [data-segment-picker-option]", { text: /Already Added/, count: 0 }
+    assert_select "input[type='radio'][name='segment_id'][value='#{available_segment.id}']"
+  end
+
   test "tournament segments can be inserted at a selected rating position" do
     tournament = create_tournament(name: "Position Cup", total_segments_count: 4, rated_segments_count: 3)
     segment_one = create_segment(name: "First Rated")
