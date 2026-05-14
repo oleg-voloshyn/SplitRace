@@ -44,7 +44,12 @@
     "seg": "Seg",
     "youParticipate": "You are participating",
     "loadFailed": "Failed to load tournament",
-    "notFound": "Tournament not found"
+    "notFound": "Tournament not found",
+    "shareTournament": "Share tournament",
+    "share": "Share",
+    "copyLink": "Copy link",
+    "linkCopied": "Copied",
+    "shareText": "Join {{name}} on SplitRace"
   },
   "profile": {
     "title": "Profile",

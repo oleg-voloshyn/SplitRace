@@ -43,7 +43,9 @@
     "ends": "Ends",
     "noResults": "No results yet",
     "segments": "segments",
-    "couldNotJoin": "Could not join"
+    "couldNotJoin": "Could not join",
+    "share": "Share tournament",
+    "shareText": "Join {{name}} on SplitRace"
   },
   "run": {
     "ready": "Ready to run",

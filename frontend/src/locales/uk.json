@@ -44,7 +44,12 @@
     "seg": "Сег",
     "youParticipate": "Ви берете участь",
     "loadFailed": "Не вдалося завантажити турнір",
-    "notFound": "Турнір не знайдено"
+    "notFound": "Турнір не знайдено",
+    "shareTournament": "Поділитися турніром",
+    "share": "Поділитися",
+    "copyLink": "Копіювати лінк",
+    "linkCopied": "Скопійовано",
+    "shareText": "Долучайся до {{name}} у SplitRace"
   },
   "profile": {
     "title": "Профіль",

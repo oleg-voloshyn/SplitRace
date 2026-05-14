@@ -132,6 +132,55 @@ p  { margin: 0; }
 .sr-stat-pill .label { font-size: 0.7rem; color: #888; text-transform: uppercase; letter-spacing: 0.05em; }
 .sr-stat-pill .value { font-size: 1rem; font-weight: 700; margin-top: 2px; }
 
+.sr-share-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  background: #fff;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+}
+.sr-share-link {
+  min-width: 0;
+  background: #f8f9fa;
+  border: 1px solid #edf0f2;
+  border-radius: 6px;
+  padding: 0.55rem 0.65rem;
+  color: #555;
+  font-size: 0.85rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sr-share-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.sr-share-btn,
+.sr-share-icon {
+  border: 1px solid #d8dde2;
+  border-radius: 5px;
+  background: #fff;
+  color: #1a1a2e;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1;
+  padding: 0.5rem 0.65rem;
+  text-decoration: none;
+}
+.sr-share-btn-primary {
+  background: #1a1a2e;
+  border-color: #1a1a2e;
+  color: #fff;
+}
+.sr-share-icon:hover,
+.sr-share-btn:hover { border-color: #adb5bd; }
+
 .sr-rich-description {
   color: #666;
   line-height: 1.55;

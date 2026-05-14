@@ -10,8 +10,9 @@ import AuthCallback from './pages/AuthCallback'
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
+  const location = useLocation()
   if (loading) return <div style={{ padding: '2rem', textAlign: 'center' }}>Loading...</div>
-  return user ? children : <Navigate to="/login" replace />
+  return user ? children : <Navigate to="/login" replace state={{ from: location.pathname }} />
 }
 
 function RootRoute() {

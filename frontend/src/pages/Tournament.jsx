@@ -5,6 +5,7 @@ import { api } from '../api/client'
 import { useAuth } from '../contexts/AuthContext'
 import MapView from '../components/MapView'
 import RichDescription from '../components/RichDescription'
+import TournamentShare from '../components/TournamentShare'
 
 export default function Tournament() {
   const { slug } = useParams()
@@ -40,6 +41,7 @@ export default function Tournament() {
     <div>
       <h2>{tournament.name}</h2>
       <RichDescription html={tournament.description} style={{ marginBottom: '1rem' }} />
+      <TournamentShare tournament={tournament} />
 
       <div className="sr-stats-row">
         <Stat label={t('tournaments.status')}       value={t(`tournaments.${tournament.status}`)} />

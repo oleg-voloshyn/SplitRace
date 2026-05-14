@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../contexts/AuthContext'
 
@@ -7,6 +7,8 @@ export default function Login() {
   const { t } = useTranslation()
   const { login, register } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+  const returnTo = location.state?.from || '/tournaments'
   const [mode, setMode]     = useState('login')
   const [form, setForm]     = useState({ email: '', password: '', first_name: '', last_name: '', gender: '' })
   const [error, setError]   = useState(null)
@@ -22,7 +24,7 @@ export default function Login() {
       } else {
         await register(form)
       }
-      navigate('/tournaments')
+      navigate(returnTo, { replace: true })
     } catch (err) {
       setError(err.errors?.join(', ') || 'Something went wrong')
     } finally {

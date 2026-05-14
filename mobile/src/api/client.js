@@ -1,6 +1,7 @@
 import * as SecureStore from 'expo-secure-store'
 
-const BASE_URL = 'https://splitrace.onrender.com/api/v1'
+export const WEB_URL = 'https://splitrace.onrender.com'
+const BASE_URL = `${WEB_URL}/api/v1`
 
 async function getToken() {
   return SecureStore.getItemAsync('auth_token')

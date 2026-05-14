@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Modal, TextInput } from 'react-native'
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Modal, TextInput, Share } from 'react-native'
 import { useRoute } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
-import { api } from '../api/client'
+import { api, WEB_URL } from '../api/client'
 import { useAuth } from '../contexts/AuthContext'
 import RichDescription from '../components/RichDescription'
 
@@ -34,6 +34,15 @@ export default function TournamentScreen() {
     }
   }
 
+  async function shareTournament() {
+    const url = `${WEB_URL}/tournaments/${data.slug}`
+    await Share.share({
+      title: data.name,
+      message: `${t('tournaments.shareText', { name: data.name })}\n${url}`,
+      url,
+    })
+  }
+
   if (!data) return <View style={s.center}><ActivityIndicator color="#e53935" /></View>
 
   const isParticipant = data.is_participating
@@ -56,6 +65,9 @@ export default function TournamentScreen() {
             <Text style={s.badgeText}>{t(`tournaments.${data.status}`).toUpperCase()}</Text>
           </View>
           <RichDescription html={data.description} style={s.desc} />
+          <TouchableOpacity style={s.shareBtn} onPress={shareTournament}>
+            <Text style={s.shareBtnText}>{t('tournaments.share')}</Text>
+          </TouchableOpacity>
           <Text style={s.meta}>{t('tournaments.participants', { count: data.participants_count ?? 0 })}</Text>
           {data.starts_at && <Text style={s.meta}>{t('tournaments.starts')}: {new Date(data.starts_at).toLocaleDateString()}</Text>}
           {data.ends_at   && <Text style={s.meta}>{t('tournaments.ends')}: {new Date(data.ends_at).toLocaleDateString()}</Text>}
@@ -195,6 +207,8 @@ const s = StyleSheet.create({
   tabTextActive:{ color: '#e53935', fontWeight: '600' },
   info:         { padding: 16 },
   desc:         { marginBottom: 12 },
+  shareBtn:     { alignSelf: 'flex-start', borderWidth: 1, borderColor: '#ddd', borderRadius: 8, paddingVertical: 9, paddingHorizontal: 12, backgroundColor: '#fff', marginBottom: 12 },
+  shareBtnText: { color: '#1a1a2e', fontWeight: '700', fontSize: 14 },
   meta:         { color: '#888', fontSize: 14, marginBottom: 4 },
   badge:        { borderRadius: 4, paddingHorizontal: 8, paddingVertical: 3 },
   badgeText:    { color: '#fff', fontSize: 11, fontWeight: '700' },
