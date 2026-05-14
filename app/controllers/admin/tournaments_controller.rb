@@ -105,8 +105,8 @@ class Admin::TournamentsController < Admin::BaseController
         alert: "Cannot add more rated segments: tournament declared #{@tournament.rated_segments_count} rated."
     end
 
-    order = actual_total + 1
-    @tournament.tournament_segments.create!(segment: segment, order_number: order, is_rated: is_rated)
+    position = requested_segment_position(actual_total)
+    insert_segment_at!(segment, position, is_rated)
     redirect_to admin_tournament_path(@tournament), notice: "#{segment.name} added."
   rescue ActiveRecord::RecordNotUnique
     redirect_to admin_tournament_path(@tournament), alert: "Segment already in tournament."
@@ -117,6 +117,7 @@ class Admin::TournamentsController < Admin::BaseController
   def remove_segment
     ts = @tournament.tournament_segments.find_by!(segment_id: params[:segment_id])
     ts.destroy
+    normalize_segment_order!
     redirect_to admin_tournament_path(@tournament), notice: "Segment removed."
   end
 
@@ -124,6 +125,33 @@ class Admin::TournamentsController < Admin::BaseController
 
   def set_tournament
     @tournament = Tournament.find_by!(slug: params[:id])
+  end
+
+  def requested_segment_position(actual_total)
+    position = params[:order_number].to_i
+    position = actual_total + 1 if position <= 0
+    position.clamp(1, actual_total + 1)
+  end
+
+  def insert_segment_at!(segment, position, is_rated)
+    TournamentSegment.transaction do
+      @tournament.tournament_segments
+        .where("order_number >= ?", position)
+        .order(order_number: :desc)
+        .each { |ts| ts.update!(order_number: ts.order_number + 1) }
+
+      @tournament.tournament_segments.create!(
+        segment: segment,
+        order_number: position,
+        is_rated: is_rated
+      )
+    end
+  end
+
+  def normalize_segment_order!
+    @tournament.tournament_segments.order(:order_number, :id).each.with_index(1) do |ts, position|
+      ts.update!(order_number: position) unless ts.order_number == position
+    end
   end
 
   def tournament_sort_order(participants_count_sql)

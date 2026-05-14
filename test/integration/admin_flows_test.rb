@@ -135,6 +135,34 @@ class AdminFlowsTest < ActionDispatch::IntegrationTest
     assert_select "form[action='#{remove_segment_admin_tournament_path(tournament, segment_id: segment_two.id)}'][data-confirm-modal*='Remove #{segment_two.name}']"
   end
 
+  test "tournament segments can be inserted at a selected rating position" do
+    tournament = create_tournament(name: "Position Cup", total_segments_count: 4, rated_segments_count: 3)
+    segment_one = create_segment(name: "First Rated")
+    segment_two = create_segment(name: "Second Rated")
+    segment_three = create_segment(name: "Inserted Rated")
+    create_segment(name: "Available Later")
+
+    post add_segment_admin_tournament_path(tournament), params: { segment_id: segment_one.id, is_rated: "1", order_number: 1 }
+    assert_redirected_to admin_tournament_path(tournament)
+    post add_segment_admin_tournament_path(tournament), params: { segment_id: segment_two.id, is_rated: "1", order_number: 2 }
+    assert_redirected_to admin_tournament_path(tournament)
+
+    post add_segment_admin_tournament_path(tournament), params: { segment_id: segment_three.id, is_rated: "1", order_number: 2 }
+    assert_redirected_to admin_tournament_path(tournament)
+
+    ordered_names = tournament.tournament_segments.includes(:segment).order(:order_number).map { |ts| ts.segment.name }
+    assert_equal ["First Rated", "Inserted Rated", "Second Rated"], ordered_names
+    assert_equal [1, 2, 3], tournament.tournament_segments.order(:order_number).pluck(:order_number)
+
+    get admin_tournament_path(tournament)
+    assert_response :success
+    assert_select "select[name='order_number'] option[value='4']", text: "#4"
+
+    post remove_segment_admin_tournament_path(tournament, segment_id: segment_one.id)
+    assert_redirected_to admin_tournament_path(tournament)
+    assert_equal [1, 2], tournament.tournament_segments.order(:order_number).pluck(:order_number)
+  end
+
   test "users can be listed and roles updated" do
     user = create_user(email: "runner@example.com", role: "user", first_name: "Runner")
 

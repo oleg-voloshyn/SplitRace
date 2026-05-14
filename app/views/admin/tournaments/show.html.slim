@@ -77,6 +77,13 @@
                   @available_segments.map { |s| ["#{s.name} (#{s.distance_meters ? (s.distance_meters/1000.0).round(2).to_s + ' km' : '?'})", s.id] },
                   { prompt: "Select segment..." },
                   class: "form-select"
+            .mb-2
+              = f.label :order_number, "Position", class: "form-label"
+              = f.select :order_number,
+                  (1..(actual_total + 1)).map { |position| ["##{position}", position] },
+                  { selected: actual_total + 1 },
+                  class: "form-select"
+              .form-text Rated segments follow this position order for scoring.
             .mb-3.form-check
               = f.check_box :is_rated, { class: "form-check-input", checked: rated_slots_left > 0 }, "1", "0"
               = f.label :is_rated, "Rated segment#{rated_slots_left > 0 ? " (#{rated_slots_left} left)" : " (limit reached)"}", class: "form-check-label"
