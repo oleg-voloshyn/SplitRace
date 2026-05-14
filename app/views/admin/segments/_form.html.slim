@@ -5,17 +5,11 @@
         - segment.errors.full_messages.each do |m|
           div= m
 
-  .col-md-6
+  .col-md-12
     = f.label :name, "Name", class: "form-label"
     = f.text_field :name, class: "form-control", placeholder: "e.g. Shevchenko Park Sprint"
-
-  .col-md-3
-    = f.label :city, "City", class: "form-label"
-    = f.text_field :city, class: "form-control"
-
-  .col-md-3
-    = f.label :country, "Country", class: "form-label"
-    = f.text_field :country, class: "form-control", placeholder: "UA / US / DE..."
+    = f.hidden_field :city, id: "segment-city"
+    = f.hidden_field :country, id: "segment-country"
 
   .col-12
     = f.label :description, "Description", class: "form-label"
@@ -40,6 +34,9 @@
       span.ms-3.text-muted
         | Distance:
         strong#segment-distance —
+      span.ms-3.text-muted
+        | Location:
+        strong#segment-location= [segment.city, segment.country].compact.join(", ").presence || "—"
     #segment-map style="height: 420px; border-radius: 8px; border: 1px solid #dee2e6;"
     = f.hidden_field :waypoints_json, id: "waypoints-json", value: segment_waypoints_json(segment)
 

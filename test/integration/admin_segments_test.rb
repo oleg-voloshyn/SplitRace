@@ -25,6 +25,11 @@ class AdminSegmentsTest < ActionDispatch::IntegrationTest
     get edit_admin_segment_path(@segment)
 
     assert_response :success
+    assert_select "input[type='text'][name='segment[city]']", false
+    assert_select "input[type='text'][name='segment[country]']", false
+    assert_select "input[type='hidden'][name='segment[city]']"
+    assert_select "input[type='hidden'][name='segment[country]']"
+    assert_select "#segment-location"
     assert_select "input#waypoints-json" do |inputs|
       points = JSON.parse(inputs.first["value"])
 
@@ -34,6 +39,29 @@ class AdminSegmentsTest < ActionDispatch::IntegrationTest
       assert_in_delta 50.46, points.last["lat"]
       assert_in_delta 30.53, points.last["lng"]
     end
+  end
+
+  test "create accepts automatically detected city and country" do
+    assert_difference "Segment.count", 1 do
+      post admin_segments_path, params: {
+        segment: {
+          name: "Auto Located Segment",
+          description: "Detected from route",
+          city: "Kyiv",
+          country: "UA",
+          is_active: "1",
+          waypoints_json: [
+            { lat: 50.45, lng: 30.52 },
+            { lat: 50.46, lng: 30.53 }
+          ].to_json
+        }
+      }
+    end
+
+    segment = Segment.find_by!(name: "Auto Located Segment")
+    assert_equal "Kyiv", segment.city
+    assert_equal "UA", segment.country
+    assert_redirected_to admin_segments_path
   end
 
   test "index renders delete form with confirmation modal wiring" do
