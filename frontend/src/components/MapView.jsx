@@ -26,7 +26,7 @@ function FitBounds({ positions }) {
   const map = useMap()
   useEffect(() => {
     if (positions?.length > 1) map.fitBounds(positions, { padding: [30, 30] })
-  }, [positions])
+  }, [map, positions])
   return null
 }
 

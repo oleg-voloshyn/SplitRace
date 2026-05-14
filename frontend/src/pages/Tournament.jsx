@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useReducer, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api/client'
@@ -9,26 +9,26 @@ export default function Tournament() {
   const { slug } = useParams()
   const { t } = useTranslation()
   const { user } = useAuth()
-  const [tournament, setTournament] = useState(null)
-  const [leaderboard, setLeaderboard] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError]     = useState(null)
+  const [{ tournament, leaderboard, loading, error }, dispatchLoad] = useReducer(loadReducer, initialLoadState)
   const [reportTarget, setReportTarget] = useState(null) // {user_id, full_name}
 
   useEffect(() => {
-    setLoading(true)
-    setError(null)
+    let cancelled = false
+    dispatchLoad({ type: 'loading' })
+
     api.tournament(slug)
-      .then(t => {
-        setTournament(t)
-        return api.leaderboard(slug).catch(() => [])
+      .then(async tournament => {
+        const leaderboard = await api.leaderboard(slug).catch(() => [])
+        if (!cancelled) dispatchLoad({ type: 'loaded', tournament, leaderboard: leaderboard || [] })
       })
-      .then(lb => setLeaderboard(lb || []))
       .catch(e => {
         const msg = e?.errors?.filter(Boolean).join(', ') || `Failed to load tournament (HTTP ${e?.status || '?'})`
-        setError(msg)
+        if (!cancelled) dispatchLoad({ type: 'error', error: msg })
       })
-      .finally(() => setLoading(false))
+
+    return () => {
+      cancelled = true
+    }
   }, [slug])
 
   if (loading) return <p>{t('common.loading')}</p>
@@ -125,6 +125,26 @@ export default function Tournament() {
   )
 }
 
+const initialLoadState = {
+  tournament: null,
+  leaderboard: [],
+  loading: true,
+  error: null,
+}
+
+function loadReducer(state, action) {
+  switch (action.type) {
+    case 'loading':
+      return { ...state, loading: true, error: null }
+    case 'loaded':
+      return { tournament: action.tournament, leaderboard: action.leaderboard, loading: false, error: null }
+    case 'error':
+      return { ...state, loading: false, error: action.error }
+    default:
+      return state
+  }
+}
+
 function ReportModal({ target, tournamentSlug, onClose }) {
   const { t } = useTranslation()
   const [reason, setReason] = useState('')
@@ -192,11 +212,5 @@ function Stat({ label, value }) {
   )
 }
 
-function formatTime(secs) {
-  if (!secs) return '—'
-  const h = Math.floor(secs / 3600), m = Math.floor((secs % 3600) / 60), s = secs % 60
-  return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`
-}
-const pad = n => String(n).padStart(2, '0')
 const thStyle = { padding: '0.5rem', textAlign: 'left', fontWeight: '600', fontSize: '0.85rem' }
 const tdStyle = { padding: '0.5rem', fontSize: '0.9rem' }

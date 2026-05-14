@@ -19,7 +19,7 @@ export default function AuthCallback() {
     loginWithToken(token)
       .then(() => navigate('/tournaments'))
       .catch(() => navigate('/login?error=oauth_failed'))
-  }, [])
+  }, [loginWithToken, navigate, params])
 
   return <div style={{ padding: '2rem', textAlign: 'center' }}>Signing in...</div>
 }

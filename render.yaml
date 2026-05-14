@@ -17,7 +17,7 @@ services:
       - key: RAILS_SERVE_STATIC_FILES
         value: "true"
       - key: NODE_VERSION
-        value: "20"
+        value: "22"
       - key: RAILS_MASTER_KEY
         sync: false
       - key: DATABASE_URL

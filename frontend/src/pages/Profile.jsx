@@ -121,7 +121,7 @@ function FitBounds({ points }) {
     if (points.length > 1) {
       map.fitBounds(points.map(p => [p.lat, p.lng]), { padding: [12, 12] })
     }
-  }, [map])
+  }, [map, points])
   return null
 }
 
@@ -171,4 +171,3 @@ function fmtPace(secs, meters) {
 const pad = n => String(n).padStart(2, '0')
 
 const inputStyle = { padding: '0.6rem', border: '1px solid #ccc', borderRadius: '4px', fontSize: '1rem' }
-const cardStyle  = { background: '#f8f9fa', border: '1px solid #e9ecef', borderRadius: '8px', padding: '0.75rem 1rem' }

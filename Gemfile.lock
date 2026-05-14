@@ -1,7 +1,7 @@
 GEM
   remote: https://rubygems.org/
   specs:
-    action_text-trix (2.1.18)
+    action_text-trix (2.1.19)
       railties
     actioncable (8.1.3)
       actionpack (= 8.1.3)
@@ -83,7 +83,7 @@ GEM
     bcrypt (3.1.22)
     bigdecimal (4.1.2)
     bindata (2.5.1)
-    bootsnap (1.24.3)
+    bootsnap (1.24.4)
       msgpack (~> 1.2)
     builder (3.3.0)
     concurrent-ruby (1.3.6)
@@ -128,7 +128,7 @@ GEM
       bindata
       faraday (~> 2.0)
       faraday-follow_redirects
-    jwt (2.10.2)
+    jwt (3.2.0)
       base64
     logger (1.7.0)
     loofah (2.25.1)
@@ -222,8 +222,9 @@ GEM
       nio4r (~> 2.0)
     racc (1.8.1)
     rack (3.2.6)
-    rack-cors (2.0.2)
-      rack (>= 2.0.0)
+    rack-cors (3.0.0)
+      logger
+      rack (>= 3.0.14)
     rack-protection (4.2.1)
       base64 (>= 0.1.0)
       logger (>= 1.6.0)
@@ -281,16 +282,16 @@ GEM
       activerecord (>= 8.1, < 8.2)
       rgeo (>= 3.0)
     securerandom (0.4.1)
-    sidekiq (7.3.9)
-      base64
-      connection_pool (>= 2.3.0)
-      logger
-      rack (>= 2.2.4)
-      redis-client (>= 0.22.2)
+    sidekiq (8.1.5)
+      connection_pool (>= 3.0.0)
+      json (>= 2.16.0)
+      logger (>= 1.7.0)
+      rack (>= 3.2.0)
+      redis-client (>= 0.29.0)
     slim (5.2.1)
       temple (~> 0.10.0)
       tilt (>= 2.1.0)
-    slim-rails (3.7.0)
+    slim-rails (4.0.0)
       actionpack (>= 3.1)
       railties (>= 3.1)
       slim (>= 3.0, < 6.0, != 5.0.0)
@@ -332,7 +333,7 @@ DEPENDENCIES
   bootsnap
   debug
   dotenv-rails (~> 3.1)
-  jwt (~> 2.9)
+  jwt (~> 3.2)
   multi_json (~> 1.15)
   omniauth (~> 2.1)
   omniauth-apple (~> 1.0)
@@ -340,12 +341,12 @@ DEPENDENCIES
   omniauth-strava (~> 1.0)
   pg (~> 1.1)
   puma (>= 5.0)
-  rack-cors (~> 2.0)
+  rack-cors (~> 3.0)
   rails (~> 8.1)
   redis (~> 5.0)
   rgeo (~> 3.0)
-  sidekiq (~> 7.3)
-  slim-rails (~> 3.6)
+  sidekiq (~> 8.1)
+  slim-rails (~> 4.0)
   tzinfo-data
 
 RUBY VERSION

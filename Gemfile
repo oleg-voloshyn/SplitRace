@@ -10,7 +10,7 @@ gem "tzinfo-data", platforms: %i[ windows jruby ]
 
 # Auth
 gem "bcrypt", "~> 3.1"
-gem "jwt", "~> 2.9"
+gem "jwt", "~> 3.2"
 
 # OmniAuth providers
 gem "omniauth", "~> 2.1"
@@ -25,14 +25,14 @@ gem "rgeo", "~> 3.0"
 gem "activerecord-postgis-adapter", "~> 11.0"
 
 # Background jobs
-gem "sidekiq", "~> 7.3"
+gem "sidekiq", "~> 8.1"
 gem "redis", "~> 5.0"
 
 # CORS
-gem "rack-cors", "~> 2.0"
+gem "rack-cors", "~> 3.0"
 
 # Admin views
-gem "slim-rails", "~> 3.6"
+gem "slim-rails", "~> 4.0"
 
 group :development, :test do
   gem "debug", platforms: %i[ mri windows ]
