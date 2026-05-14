@@ -3,5 +3,5 @@
   "auth": { "login": "Iniciar sesión", "register": "Registrarse", "email": "Correo", "password": "Contraseña", "firstName": "Nombre", "lastName": "Apellido", "orContinueWith": "O continuar con", "noAccount": "¿No tienes cuenta?", "hasAccount": "¿Ya tienes cuenta?" , "gender": "Género", "gender_male": "Hombre", "gender_female": "Mujer"},
   "tournaments": { "title": "Torneos", "active": "Activo", "completed": "Completado", "join": "Unirse", "leave": "Salir", "leaderboard": "Clasificación", "participants": "{{count}} participantes", "segments": "{{count}} segmentos", "noTournaments": "No hay torneos disponibles" },
   "run": { "title": "Iniciar Carrera", "start": "Iniciar", "stop": "Detener y Guardar", "recording": "Grabando...", "distance": "Distancia", "duration": "Duración", "gpsWaiting": "Esperando señal GPS...", "saved": "¡Carrera guardada!" },
-  "profile": { "title": "Perfil", "units": "Unidades", "km": "Kilómetros", "miles": "Millas", "save": "Guardar" }
+  "profile": { "title": "Perfil", "units": "Unidades", "km": "Kilómetros", "miles": "Millas", "save": "Guardar", "saving": "Guardando...", "cancel": "Cancelar", "editInfo": "Editar perfil", "saveError": "No se pudo guardar el perfil", "country": "País", "city": "Ciudad" }
 }

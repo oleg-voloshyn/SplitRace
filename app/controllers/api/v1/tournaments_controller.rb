@@ -128,7 +128,7 @@ module Api
       def score_json(score, rank)
         {
           rank:,
-          user: { id: score.user.id, full_name: score.user.full_name, avatar_url: score.user.avatar_url },
+          user: { id: score.user.id, full_name: score.user.full_name, avatar_url: score.user.profile_avatar_url },
           total_time_seconds: score.total_time_seconds,
           completed_segments: score.completed_segments_count,
           score: score.score

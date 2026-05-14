@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { api } from '../api/client';
 import LeafletMap from '../components/LeafletMap';
 import { useAuth } from '../contexts/AuthContext';
@@ -13,7 +13,10 @@ function ProfileScreen() {
   const [form, setForm] = useState({
     first_name: user?.first_name || '',
     last_name: user?.last_name || '',
-    gender: user?.gender || ''
+    gender: user?.gender || '',
+    units: user?.units || 'km',
+    country: user?.country || '',
+    city: user?.city || ''
   });
   const [activities, setActivities] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
@@ -29,7 +32,10 @@ function ProfileScreen() {
     setForm({
       first_name: user?.first_name || '',
       last_name: user?.last_name || '',
-      gender: user?.gender || ''
+      gender: user?.gender || '',
+      units: user?.units || 'km',
+      country: user?.country || '',
+      city: user?.city || ''
     });
     setEditing(true);
   }
@@ -62,9 +68,13 @@ function ProfileScreen() {
     <ScrollView style={s.scroll} contentContainerStyle={s.container}>
       {/* ── User card ─────────────────────────────────────────── */}
       <View style={s.userCard}>
-        <View style={s.avatar}>
-          <Text style={s.avatarText}>{initials}</Text>
-        </View>
+        {user?.avatar_url ? (
+          <Image source={{ uri: user.avatar_url }} style={s.avatarImage} />
+        ) : (
+          <View style={s.avatar}>
+            <Text style={s.avatarText}>{initials}</Text>
+          </View>
+        )}
         <Text style={s.userName}>{fullName}</Text>
         <Text style={s.userEmail}>{user?.email}</Text>
       </View>
@@ -82,6 +92,12 @@ function ProfileScreen() {
             <InfoRow label={t('auth.firstName')} value={user?.first_name || '—'} />
             <InfoRow label={t('auth.lastName')} value={user?.last_name || '—'} />
             <InfoRow label={t('auth.gender')} value={user?.gender ? t(`auth.gender_${user.gender}`) : '—'} />
+            <InfoRow
+              label={t('profile.units')}
+              value={user?.units === 'miles' ? t('profile.miles') : t('profile.km')}
+            />
+            <InfoRow label={t('profile.country')} value={user?.country || '—'} />
+            <InfoRow label={t('profile.city')} value={user?.city || '—'} />
             <TouchableOpacity style={s.editBtn} onPress={startEdit}>
               <Text style={s.editBtnText}>✎ {t('profile.editInfo')}</Text>
             </TouchableOpacity>
@@ -122,6 +138,38 @@ function ProfileScreen() {
                 );
               })}
             </View>
+
+            <Text style={s.label}>{t('profile.units')}</Text>
+            <View style={s.genderRow}>
+              {['km', 'miles'].map((units) => {
+                const active = form.units === units;
+                return (
+                  <TouchableOpacity
+                    key={units}
+                    style={[s.genderBtn, active && s.genderBtnActive]}
+                    onPress={() => setForm((f) => ({ ...f, units }))}
+                  >
+                    <Text style={[s.genderText, active && s.genderTextActive]}>{t(`profile.${units}`)}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <Text style={s.label}>{t('profile.country')}</Text>
+            <TextInput
+              style={s.input}
+              value={form.country}
+              onChangeText={(v) => setForm((f) => ({ ...f, country: v }))}
+              placeholder={t('profile.country')}
+            />
+
+            <Text style={s.label}>{t('profile.city')}</Text>
+            <TextInput
+              style={s.input}
+              value={form.city}
+              onChangeText={(v) => setForm((f) => ({ ...f, city: v }))}
+              placeholder={t('profile.city')}
+            />
 
             <View style={s.editActions}>
               <TouchableOpacity style={s.cancelBtn} onPress={cancelEdit}>
@@ -260,6 +308,7 @@ const s = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 12
   },
+  avatarImage: { width: 72, height: 72, borderRadius: 36, marginBottom: 12, backgroundColor: '#f0f0f0' },
   avatarText: { color: '#fff', fontSize: 28, fontWeight: '800' },
   userName: { fontSize: 18, fontWeight: '700', marginBottom: 2 },
   userEmail: { color: '#888', fontSize: 13 },

@@ -1,3 +1,5 @@
+require 'digest/md5'
+
 class User < ApplicationRecord
   has_secure_password validations: false
 
@@ -27,11 +29,20 @@ class User < ApplicationRecord
   def moderator? = %w[moderator admin].include?(role)
   def full_name  = "#{first_name} #{last_name}".strip.presence || email
 
+  def profile_avatar_url(size: 160)
+    avatar_url.presence || gravatar_avatar_url(size:)
+  end
+
   def oauth_identity_for(provider)
     oauth_identities.find_by(provider: provider.to_s)
   end
 
   private
+
+  def gravatar_avatar_url(size:)
+    hash = Digest::MD5.hexdigest(email.to_s.strip.downcase)
+    "https://www.gravatar.com/avatar/#{hash}?s=#{size}&d=mp"
+  end
 
   def password_or_oauth_required
     return if password_digest.present? || oauth_identities.any?

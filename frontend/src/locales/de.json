@@ -43,6 +43,12 @@
     "units": "Einheiten",
     "km": "Kilometer",
     "miles": "Meilen",
-    "save": "Speichern"
+    "save": "Speichern",
+    "saving": "Speichern...",
+    "cancel": "Abbrechen",
+    "editInfo": "Profil bearbeiten",
+    "saveError": "Profil konnte nicht gespeichert werden",
+    "country": "Land",
+    "city": "Stadt"
   }
 }

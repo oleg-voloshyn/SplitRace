@@ -6,14 +6,12 @@ import { useAuth } from '../contexts/AuthContext';
 
 function Profile() {
   const { t } = useTranslation();
-  const { user } = useAuth();
-  const [form, setForm] = useState({
-    first_name: user?.first_name || '',
-    last_name: user?.last_name || '',
-    units: user?.units || 'km',
-    gender: user?.gender || ''
-  });
+  const { user, setUser } = useAuth();
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState(() => profileFormFromUser(user));
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState(null);
   const [activities, setActivities] = useState(null);
   const [expanded, setExpanded] = useState(null);
 
@@ -26,10 +24,29 @@ function Profile() {
 
   async function handleSave(e) {
     e.preventDefault();
-    await api.updateMe(form);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    setSaving(true);
+    setSaveError(null);
+    try {
+      const updated = await api.updateMe(form);
+      setUser(updated);
+      setForm(profileFormFromUser(updated));
+      setEditing(false);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (error) {
+      setSaveError(error?.errors?.join(', ') || t('profile.saveError'));
+    } finally {
+      setSaving(false);
+    }
   }
+
+  function startEdit() {
+    setForm(profileFormFromUser(user));
+    setSaveError(null);
+    setEditing(true);
+  }
+
+  const fullName = [user?.first_name, user?.last_name].filter(Boolean).join(' ') || user?.email || '—';
 
   return (
     <div>
@@ -37,7 +54,19 @@ function Profile() {
 
       <div className="sr-profile-grid">
         <div className="sr-card">
-          <p style={{ color: '#888', marginBottom: '0.75rem', fontSize: '0.9rem' }}>{user?.email}</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+            <img
+              src={user?.avatar_url}
+              alt=""
+              width="72"
+              height="72"
+              style={{ borderRadius: '50%', background: '#f0f0f0', objectFit: 'cover', flex: '0 0 auto' }}
+            />
+            <div>
+              <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{fullName}</h3>
+              <p style={{ color: '#888', margin: '0.25rem 0 0', fontSize: '0.9rem' }}>{user?.email}</p>
+            </div>
+          </div>
 
           {!user?.gender && (
             <div
@@ -55,64 +84,92 @@ function Profile() {
             </div>
           )}
 
-          <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            <input
-              placeholder={t('auth.firstName')}
-              value={form.first_name}
-              onChange={(e) => setForm({ ...form, first_name: e.target.value })}
-              style={inputStyle}
-            />
-            <input
-              placeholder={t('auth.lastName')}
-              value={form.last_name}
-              onChange={(e) => setForm({ ...form, last_name: e.target.value })}
-              style={inputStyle}
-            />
+          {!editing ? (
+            <div>
+              <ProfileRow label={t('auth.firstName')} value={user?.first_name || '—'} />
+              <ProfileRow label={t('auth.lastName')} value={user?.last_name || '—'} />
+              <ProfileRow label={t('auth.gender')} value={user?.gender ? t(`auth.gender_${user.gender}`) : '—'} />
+              <ProfileRow
+                label={t('profile.units')}
+                value={user?.units === 'miles' ? t('profile.miles') : t('profile.km')}
+              />
+              <ProfileRow label={t('profile.country')} value={user?.country || '—'} />
+              <ProfileRow label={t('profile.city')} value={user?.city || '—'} />
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-              <span style={{ fontSize: '0.85rem', color: '#555' }}>{t('auth.gender')}</span>
-              <div style={{ display: 'flex', gap: '1.5rem' }}>
-                {['male', 'female'].map((g) => (
-                  <label key={g} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer' }}>
-                    <input
-                      type="radio"
-                      name="gender"
-                      value={g}
-                      checked={form.gender === g}
-                      onChange={() => setForm({ ...form, gender: g })}
-                    />
-                    {t(`auth.gender_${g}`)}
-                  </label>
-                ))}
-              </div>
+              <button type="button" onClick={startEdit} style={primaryButtonStyle}>
+                {saved ? `✓ ${t('profile.saved')}` : t('profile.editInfo')}
+              </button>
             </div>
-
-            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              {t('profile.units')}:
-              <select
-                value={form.units}
-                onChange={(e) => setForm({ ...form, units: e.target.value })}
+          ) : (
+            <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <input
+                placeholder={t('auth.firstName')}
+                value={form.first_name}
+                onChange={(e) => setForm({ ...form, first_name: e.target.value })}
                 style={inputStyle}
-              >
-                <option value="km">{t('profile.km')}</option>
-                <option value="miles">{t('profile.miles')}</option>
-              </select>
-            </label>
-            <button
-              type="submit"
-              style={{
-                background: '#1a1a2e',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '4px',
-                padding: '0.6rem',
-                cursor: 'pointer',
-                fontWeight: 600
-              }}
-            >
-              {saved ? `✓ ${t('profile.saved')}` : t('profile.save')}
-            </button>
-          </form>
+              />
+              <input
+                placeholder={t('auth.lastName')}
+                value={form.last_name}
+                onChange={(e) => setForm({ ...form, last_name: e.target.value })}
+                style={inputStyle}
+              />
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                <span style={{ fontSize: '0.85rem', color: '#555' }}>{t('auth.gender')}</span>
+                <div style={{ display: 'flex', gap: '1.5rem' }}>
+                  {['male', 'female'].map((g) => (
+                    <label key={g} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer' }}>
+                      <input
+                        type="radio"
+                        name="gender"
+                        value={g}
+                        checked={form.gender === g}
+                        onChange={() => setForm({ ...form, gender: g })}
+                      />
+                      {t(`auth.gender_${g}`)}
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                {t('profile.units')}:
+                <select
+                  value={form.units}
+                  onChange={(e) => setForm({ ...form, units: e.target.value })}
+                  style={inputStyle}
+                >
+                  <option value="km">{t('profile.km')}</option>
+                  <option value="miles">{t('profile.miles')}</option>
+                </select>
+              </label>
+
+              <input
+                placeholder={t('profile.country')}
+                value={form.country}
+                onChange={(e) => setForm({ ...form, country: e.target.value })}
+                style={inputStyle}
+              />
+              <input
+                placeholder={t('profile.city')}
+                value={form.city}
+                onChange={(e) => setForm({ ...form, city: e.target.value })}
+                style={inputStyle}
+              />
+
+              {saveError && <p style={{ color: '#c62828', margin: 0, fontSize: '0.85rem' }}>{saveError}</p>}
+
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <button type="button" onClick={() => setEditing(false)} style={secondaryButtonStyle}>
+                  {t('profile.cancel')}
+                </button>
+                <button type="submit" disabled={saving} style={primaryButtonStyle}>
+                  {saving ? t('profile.saving') : t('profile.save')}
+                </button>
+              </div>
+            </form>
+          )}
         </div>
 
         <div>
@@ -175,6 +232,34 @@ function Profile() {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function profileFormFromUser(user) {
+  return {
+    first_name: user?.first_name || '',
+    last_name: user?.last_name || '',
+    units: user?.units || 'km',
+    gender: user?.gender || '',
+    country: user?.country || '',
+    city: user?.city || ''
+  };
+}
+
+function ProfileRow({ label, value }) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        gap: '1rem',
+        padding: '0.65rem 0',
+        borderBottom: '1px solid #f0f0f0'
+      }}
+    >
+      <span style={{ color: '#777', fontSize: '0.9rem' }}>{label}</span>
+      <strong style={{ textAlign: 'right', fontSize: '0.95rem' }}>{value}</strong>
     </div>
   );
 }
@@ -257,5 +342,25 @@ function fmtPace(secs, meters) {
 const pad = (n) => String(n).padStart(2, '0');
 
 const inputStyle = { padding: '0.6rem', border: '1px solid #ccc', borderRadius: '4px', fontSize: '1rem' };
+const primaryButtonStyle = {
+  background: '#1a1a2e',
+  color: '#fff',
+  border: 'none',
+  borderRadius: '4px',
+  padding: '0.6rem',
+  cursor: 'pointer',
+  fontWeight: 600,
+  width: '100%'
+};
+const secondaryButtonStyle = {
+  background: '#fff',
+  color: '#1a1a2e',
+  border: '1px solid #1a1a2e',
+  borderRadius: '4px',
+  padding: '0.6rem',
+  cursor: 'pointer',
+  fontWeight: 600,
+  width: '100%'
+};
 
 export default Profile;
