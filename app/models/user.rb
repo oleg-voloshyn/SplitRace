@@ -6,7 +6,7 @@ class User < ApplicationRecord
   has_many :segment_efforts, dependent: :destroy
   has_many :tournament_participants, dependent: :destroy
   has_many :tournaments, through: :tournament_participants
-  has_many :created_tournaments, class_name: "Tournament", foreign_key: :created_by_id, dependent: :nullify
+  has_many :created_tournaments, class_name: 'Tournament', foreign_key: :created_by_id, inverse_of: :created_by, dependent: :nullify
   has_many :tournament_scores, dependent: :destroy
 
   GENDERS = %w[male female other].freeze
@@ -23,7 +23,7 @@ class User < ApplicationRecord
 
   before_save { email.downcase! }
 
-  def admin?     = role == "admin"
+  def admin?     = role == 'admin'
   def moderator? = %w[moderator admin].include?(role)
   def full_name  = "#{first_name} #{last_name}".strip.presence || email
 
@@ -35,6 +35,7 @@ class User < ApplicationRecord
 
   def password_or_oauth_required
     return if password_digest.present? || oauth_identities.any?
-    errors.add(:base, "must have a password or OAuth connection")
+
+    errors.add(:base, 'must have a password or OAuth connection')
   end
 end

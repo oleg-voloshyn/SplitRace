@@ -9,7 +9,7 @@ module Api
         if current_user.update(user_params)
           render json: user_json(current_user)
         else
-          render json: { errors: current_user.errors.full_messages }, status: :unprocessable_entity
+          render json: { errors: current_user.errors.full_messages }, status: :unprocessable_content
         end
       end
 

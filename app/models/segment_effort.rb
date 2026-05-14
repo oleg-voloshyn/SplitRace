@@ -12,14 +12,18 @@ class SegmentEffort < ApplicationRecord
     hours   = elapsed_time_seconds / 3600
     minutes = (elapsed_time_seconds % 3600) / 60
     seconds = elapsed_time_seconds % 60
-    return format("%02d:%02d:%02d", hours, minutes, seconds) if hours > 0
-    format("%02d:%02d", minutes, seconds)
+    if hours.positive?
+      return format('%<hours>02d:%<minutes>02d:%<seconds>02d', hours:, minutes:, seconds:)
+    end
+
+    format('%<minutes>02d:%<seconds>02d', minutes:, seconds:)
   end
 
   private
 
   def calculate_pace
     return unless elapsed_time_seconds && segment&.distance_meters&.positive?
+
     self.pace_per_km = (elapsed_time_seconds / 60.0) / (segment.distance_meters / 1000.0)
   end
 end

@@ -1,41 +1,56 @@
-import { useEffect, useReducer, useState } from 'react'
-import { useParams } from 'react-router-dom'
-import { useTranslation } from 'react-i18next'
-import { api } from '../api/client'
-import { useAuth } from '../contexts/AuthContext'
-import MapView from '../components/MapView'
-import RichDescription from '../components/RichDescription'
-import TournamentShare from '../components/TournamentShare'
+import { useEffect, useReducer, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useParams } from 'react-router-dom';
+import { api } from '../api/client';
+import MapView from '../components/MapView';
+import RichDescription from '../components/RichDescription';
+import TournamentShare from '../components/TournamentShare';
+import { useAuth } from '../contexts/AuthContext';
 
-export default function Tournament() {
-  const { slug } = useParams()
-  const { t } = useTranslation()
-  const { user } = useAuth()
-  const [{ tournament, leaderboard, loading, error }, dispatchLoad] = useReducer(loadReducer, initialLoadState)
-  const [reportTarget, setReportTarget] = useState(null) // {user_id, full_name}
+function Tournament() {
+  const { slug } = useParams();
+  const { t } = useTranslation();
+  const { user } = useAuth();
+  const [{ tournament, leaderboard, loading, error }, dispatchLoad] = useReducer(loadReducer, initialLoadState);
+  const [reportTarget, setReportTarget] = useState(null); // {user_id, full_name}
 
   useEffect(() => {
-    let cancelled = false
-    dispatchLoad({ type: 'loading' })
+    let cancelled = false;
+    dispatchLoad({ type: 'loading' });
 
-    api.tournament(slug)
-      .then(async tournament => {
-        const leaderboard = await api.leaderboard(slug).catch(() => [])
-        if (!cancelled) dispatchLoad({ type: 'loaded', tournament, leaderboard: leaderboard || [] })
+    api
+      .tournament(slug)
+      .then(async (tournament) => {
+        const leaderboard = await api.leaderboard(slug).catch(() => []);
+        if (!cancelled) {
+          dispatchLoad({ type: 'loaded', tournament, leaderboard: leaderboard || [] });
+        }
       })
-      .catch(e => {
-        const msg = e?.errors?.filter(Boolean).join(', ') || `Failed to load tournament (HTTP ${e?.status || '?'})`
-        if (!cancelled) dispatchLoad({ type: 'error', error: msg })
-      })
+      .catch((e) => {
+        const msg = e?.errors?.filter(Boolean).join(', ') || `Failed to load tournament (HTTP ${e?.status || '?'})`;
+        if (!cancelled) {
+          dispatchLoad({ type: 'error', error: msg });
+        }
+      });
 
     return () => {
-      cancelled = true
-    }
-  }, [slug])
+      cancelled = true;
+    };
+  }, [slug]);
 
-  if (loading) return <p>{t('common.loading')}</p>
-  if (error)   return <div style={{ padding: '1rem', background: '#fee', border: '1px solid #f99', borderRadius: 6, color: '#c33' }}>{error}</div>
-  if (!tournament) return <p>{t('tournaments.notFound')}</p>
+  if (loading) {
+    return <p>{t('common.loading')}</p>;
+  }
+  if (error) {
+    return (
+      <div style={{ padding: '1rem', background: '#fee', border: '1px solid #f99', borderRadius: 6, color: '#c33' }}>
+        {error}
+      </div>
+    );
+  }
+  if (!tournament) {
+    return <p>{t('tournaments.notFound')}</p>;
+  }
 
   return (
     <div>
@@ -44,11 +59,15 @@ export default function Tournament() {
       <TournamentShare tournament={tournament} />
 
       <div className="sr-stats-row">
-        <Stat label={t('tournaments.status')}       value={t(`tournaments.${tournament.status}`)} />
+        <Stat label={t('tournaments.status')} value={t(`tournaments.${tournament.status}`)} />
         <Stat label={t('tournaments.participantsLabel')} value={tournament.participants_count} />
         <Stat label={t('tournaments.segmentsHeader')} value={tournament.total_segments_count} />
-        {tournament.starts_at && <Stat label={t('tournaments.starts')} value={new Date(tournament.starts_at).toLocaleDateString()} />}
-        {tournament.ends_at   && <Stat label={t('tournaments.ends')}   value={new Date(tournament.ends_at).toLocaleDateString()} />}
+        {tournament.starts_at && (
+          <Stat label={t('tournaments.starts')} value={new Date(tournament.starts_at).toLocaleDateString()} />
+        )}
+        {tournament.ends_at && (
+          <Stat label={t('tournaments.ends')} value={new Date(tournament.ends_at).toLocaleDateString()} />
+        )}
       </div>
 
       <div className="sr-tournament-detail">
@@ -56,16 +75,27 @@ export default function Tournament() {
           {tournament.segments?.length > 0 && (
             <>
               <div className="sr-card" style={{ padding: 0, overflow: 'hidden', marginBottom: '1rem' }}>
-                <MapView segments={tournament.segments.map(ts => ts.segment)} height="420px" />
+                <MapView segments={tournament.segments.map((ts) => ts.segment)} height="420px" />
               </div>
               <div className="sr-card">
                 <h3>{t('tournaments.segmentsHeader')}</h3>
-                {tournament.segments.map(ts => (
-                  <div key={ts.segment.id} style={{ padding: '0.6rem 0', borderBottom: '1px solid #f0f0f0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                {tournament.segments.map((ts) => (
+                  <div
+                    key={ts.segment.id}
+                    style={{
+                      padding: '0.6rem 0',
+                      borderBottom: '1px solid #f0f0f0',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem'
+                    }}
+                  >
                     <strong style={{ color: '#888', minWidth: 24 }}>#{ts.order_number}</strong>
                     <span style={{ flex: 1 }}>{ts.segment.name}</span>
                     {ts.segment.distance_meters && (
-                      <span style={{ color: '#888', fontSize: '0.85rem' }}>{(ts.segment.distance_meters / 1000).toFixed(2)} km</span>
+                      <span style={{ color: '#888', fontSize: '0.85rem' }}>
+                        {(ts.segment.distance_meters / 1000).toFixed(2)} km
+                      </span>
                     )}
                   </div>
                 ))}
@@ -95,14 +125,23 @@ export default function Tournament() {
                     <tr key={entry.user.id} style={{ borderBottom: '1px solid #f0f0f0' }}>
                       <td style={{ ...tdStyle, color: '#888', fontWeight: 600 }}>{i + 1}</td>
                       <td style={tdStyle}>{entry.user.full_name}</td>
-                      <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600 }}>{entry.score?.toFixed(1) ?? '—'}</td>
+                      <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600 }}>
+                        {entry.score?.toFixed(1) ?? '—'}
+                      </td>
                       <td style={{ ...tdStyle, textAlign: 'right', color: '#888' }}>{entry.completed_segments}</td>
                       <td style={{ ...tdStyle, textAlign: 'right' }}>
                         {entry.user.id !== user?.id && (
                           <button
                             onClick={() => setReportTarget({ user_id: entry.user.id, full_name: entry.user.full_name })}
                             title={t('report.tooltip')}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#999', fontSize: '0.85rem', padding: '0.2rem 0.4rem' }}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              cursor: 'pointer',
+                              color: '#999',
+                              fontSize: '0.85rem',
+                              padding: '0.2rem 0.4rem'
+                            }}
                           >
                             ⚐
                           </button>
@@ -118,61 +157,75 @@ export default function Tournament() {
       </div>
 
       {reportTarget && (
-        <ReportModal
-          target={reportTarget}
-          tournamentSlug={slug}
-          onClose={() => setReportTarget(null)}
-        />
+        <ReportModal target={reportTarget} tournamentSlug={slug} onClose={() => setReportTarget(null)} />
       )}
     </div>
-  )
+  );
 }
 
 const initialLoadState = {
   tournament: null,
   leaderboard: [],
   loading: true,
-  error: null,
-}
+  error: null
+};
 
 function loadReducer(state, action) {
   switch (action.type) {
     case 'loading':
-      return { ...state, loading: true, error: null }
+      return { ...state, loading: true, error: null };
     case 'loaded':
-      return { tournament: action.tournament, leaderboard: action.leaderboard, loading: false, error: null }
+      return { tournament: action.tournament, leaderboard: action.leaderboard, loading: false, error: null };
     case 'error':
-      return { ...state, loading: false, error: action.error }
+      return { ...state, loading: false, error: action.error };
     default:
-      return state
+      return state;
   }
 }
 
 function ReportModal({ target, tournamentSlug, onClose }) {
-  const { t } = useTranslation()
-  const [reason, setReason] = useState('')
-  const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState(null)
-  const [success, setSuccess] = useState(false)
+  const { t } = useTranslation();
+  const [reason, setReason] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(false);
 
   async function submit() {
-    if (reason.trim().length < 10) { setError(t('report.tooShort')); return }
-    setSubmitting(true)
-    setError(null)
+    if (reason.trim().length < 10) {
+      setError(t('report.tooShort'));
+      return;
+    }
+    setSubmitting(true);
+    setError(null);
     try {
-      await api.reportCheating({ reported_user_id: target.user_id, tournament_slug: tournamentSlug, reason })
-      setSuccess(true)
-      setTimeout(onClose, 1500)
+      await api.reportCheating({ reported_user_id: target.user_id, tournament_slug: tournamentSlug, reason });
+      setSuccess(true);
+      setTimeout(onClose, 1500);
     } catch (e) {
-      setError(e?.errors?.join(', ') || t('report.failed'))
+      setError(e?.errors?.join(', ') || t('report.failed'));
     } finally {
-      setSubmitting(false)
+      setSubmitting(false);
     }
   }
 
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', zIndex: 1000 }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 10, padding: '1.5rem', maxWidth: 480, width: '100%' }}>
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(0,0,0,0.5)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '1rem',
+        zIndex: 1000
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{ background: '#fff', borderRadius: 10, padding: '1.5rem', maxWidth: 480, width: '100%' }}
+      >
         {success ? (
           <div style={{ textAlign: 'center', padding: '1rem 0' }}>
             <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>✓</div>
@@ -187,15 +240,47 @@ function ReportModal({ target, tournamentSlug, onClose }) {
             </p>
             <textarea
               value={reason}
-              onChange={e => setReason(e.target.value)}
+              onChange={(e) => setReason(e.target.value)}
               placeholder={t('report.placeholder')}
               rows={5}
-              style={{ width: '100%', padding: '0.6rem', border: '1px solid #ccc', borderRadius: 6, fontFamily: 'inherit', fontSize: '0.9rem', resize: 'vertical' }}
+              style={{
+                width: '100%',
+                padding: '0.6rem',
+                border: '1px solid #ccc',
+                borderRadius: 6,
+                fontFamily: 'inherit',
+                fontSize: '0.9rem',
+                resize: 'vertical'
+              }}
             />
             {error && <p style={{ color: '#e53935', fontSize: '0.85rem', marginTop: '0.5rem' }}>{error}</p>}
             <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', justifyContent: 'flex-end' }}>
-              <button onClick={onClose} disabled={submitting} style={{ background: 'none', border: '1px solid #ccc', borderRadius: 4, padding: '0.5rem 1rem', cursor: 'pointer' }}>{t('report.cancel')}</button>
-              <button onClick={submit} disabled={submitting} style={{ background: '#e53935', color: '#fff', border: 'none', borderRadius: 4, padding: '0.5rem 1rem', cursor: 'pointer', fontWeight: 600 }}>
+              <button
+                onClick={onClose}
+                disabled={submitting}
+                style={{
+                  background: 'none',
+                  border: '1px solid #ccc',
+                  borderRadius: 4,
+                  padding: '0.5rem 1rem',
+                  cursor: 'pointer'
+                }}
+              >
+                {t('report.cancel')}
+              </button>
+              <button
+                onClick={submit}
+                disabled={submitting}
+                style={{
+                  background: '#e53935',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: 4,
+                  padding: '0.5rem 1rem',
+                  cursor: 'pointer',
+                  fontWeight: 600
+                }}
+              >
                 {submitting ? t('report.submitting') : t('report.submit')}
               </button>
             </div>
@@ -203,7 +288,7 @@ function ReportModal({ target, tournamentSlug, onClose }) {
         )}
       </div>
     </div>
-  )
+  );
 }
 
 function Stat({ label, value }) {
@@ -212,8 +297,10 @@ function Stat({ label, value }) {
       <div className="label">{label}</div>
       <div className="value">{value}</div>
     </div>
-  )
+  );
 }
 
-const thStyle = { padding: '0.5rem', textAlign: 'left', fontWeight: '600', fontSize: '0.85rem' }
-const tdStyle = { padding: '0.5rem', fontSize: '0.9rem' }
+const thStyle = { padding: '0.5rem', textAlign: 'left', fontWeight: '600', fontSize: '0.85rem' };
+const tdStyle = { padding: '0.5rem', fontSize: '0.9rem' };
+
+export default Tournament;

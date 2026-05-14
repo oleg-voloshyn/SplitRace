@@ -1,12 +1,12 @@
-import { Link } from 'react-router-dom'
-import { useTranslation } from 'react-i18next'
-import LanguageSwitcher from '../components/LanguageSwitcher'
+import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
+import LanguageSwitcher from '../components/LanguageSwitcher';
 
 // Latest Android APK — update on each EAS build
-const ANDROID_APK_URL = 'https://expo.dev/artifacts/eas/sK8v3JbKbgsxPmHnzHX5tL.apk'
+const ANDROID_APK_URL = 'https://expo.dev/artifacts/eas/sK8v3JbKbgsxPmHnzHX5tL.apk';
 
-export default function Landing() {
-  const { t } = useTranslation()
+function Landing() {
+  const { t } = useTranslation();
 
   return (
     <div className="sr-landing">
@@ -15,7 +15,9 @@ export default function Landing() {
         <div className="sr-landing-brand">SplitRace</div>
         <div className="sr-landing-actions">
           <LanguageSwitcher />
-          <Link to="/login" className="sr-landing-signin">{t('landing.signIn')}</Link>
+          <Link to="/login" className="sr-landing-signin">
+            {t('landing.signIn')}
+          </Link>
         </div>
       </header>
 
@@ -24,7 +26,9 @@ export default function Landing() {
         <h1 className="sr-hero-title">{t('landing.heroTitle')}</h1>
         <p className="sr-hero-subtitle">{t('landing.heroSubtitle')}</p>
         <div className="sr-hero-buttons">
-          <Link to="/login" className="sr-hero-cta">{t('landing.getStarted')} →</Link>
+          <Link to="/login" className="sr-hero-cta">
+            {t('landing.getStarted')} →
+          </Link>
           <a href={ANDROID_APK_URL} className="sr-hero-cta-alt" target="_blank" rel="noopener noreferrer">
             <span style={{ fontSize: '1.1rem' }}>⬇</span> {t('landing.downloadAndroid')}
           </a>
@@ -36,7 +40,7 @@ export default function Landing() {
       <section className="sr-features">
         <Feature icon="🏆" title={t('landing.f1Title')} text={t('landing.f1Text')} />
         <Feature icon="📍" title={t('landing.f2Title')} text={t('landing.f2Text')} />
-        <Feature icon="▶"  title={t('landing.f3Title')} text={t('landing.f3Text')} />
+        <Feature icon="▶" title={t('landing.f3Title')} text={t('landing.f3Text')} />
       </section>
 
       {/* How it works */}
@@ -52,14 +56,16 @@ export default function Landing() {
       {/* Final CTA */}
       <section className="sr-cta-final">
         <h2 className="sr-section-title">{t('landing.ctaTitle')}</h2>
-        <Link to="/login" className="sr-hero-cta">{t('landing.getStarted')} →</Link>
+        <Link to="/login" className="sr-hero-cta">
+          {t('landing.getStarted')} →
+        </Link>
       </section>
 
       <footer className="sr-landing-footer">
         <span>© {new Date().getFullYear()} SplitRace</span>
       </footer>
     </div>
-  )
+  );
 }
 
 function Feature({ icon, title, text }) {
@@ -69,7 +75,7 @@ function Feature({ icon, title, text }) {
       <h3 className="sr-feature-title">{title}</h3>
       <p className="sr-feature-text">{text}</p>
     </div>
-  )
+  );
 }
 
 function Step({ n, title, text }) {
@@ -81,5 +87,7 @@ function Step({ n, title, text }) {
         <p className="sr-step-text">{text}</p>
       </div>
     </div>
-  )
+  );
 }
+
+export default Landing;

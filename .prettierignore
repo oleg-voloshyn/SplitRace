@@ -1,0 +1,9 @@
+build
+coverage
+dist
+node_modules
+public/app/assets
+tmp
+log
+storage
+*.mjml

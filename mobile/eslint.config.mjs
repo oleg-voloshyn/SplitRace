@@ -3,7 +3,6 @@ import eslintPluginImport from 'eslint-plugin-import';
 import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended';
 import eslintPluginReact from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
-import reactRefresh from 'eslint-plugin-react-refresh';
 import eslintPluginSimpleImportSort from 'eslint-plugin-simple-import-sort';
 import { defineConfig, globalIgnores } from 'eslint/config';
 import globals from 'globals';
@@ -17,12 +16,12 @@ export default defineConfig([
       react: eslintPluginReact,
       import: eslintPluginImport,
       'simple-import-sort': eslintPluginSimpleImportSort,
-      'react-hooks': reactHooks,
-      'react-refresh': reactRefresh
+      'react-hooks': reactHooks
     },
     languageOptions: {
       globals: {
-        ...globals.browser
+        ...globals.browser,
+        ...globals.node
       },
       parserOptions: {
         ecmaVersion: 2022,
@@ -35,7 +34,6 @@ export default defineConfig([
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
-      'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
       'no-var': 'error',
       'prefer-const': 'error',
       'prefer-arrow-callback': 'error',

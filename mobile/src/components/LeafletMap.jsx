@@ -1,23 +1,25 @@
-import { useMemo, useRef, useEffect } from 'react'
-import { View, StyleSheet } from 'react-native'
-import { WebView } from 'react-native-webview'
+import { useEffect, useMemo, useRef } from 'react';
+import { StyleSheet, View } from 'react-native';
+import { WebView } from 'react-native-webview';
 
 /**
  * Leaflet (OpenStreetMap) map via WebView — no Google Maps API key needed.
  * Pass `points: [{lat, lng}, ...]`. The map auto-fits the route and follows the latest point if `follow=true`.
  */
-export default function LeafletMap({ points = [], follow = false, style }) {
-  const webRef = useRef(null)
+function LeafletMap({ points = [], follow = false, style }) {
+  const webRef = useRef(null);
 
   // Build initial HTML once — never re-create the WebView while running
-  const html = useMemo(() => buildHtml(points, follow), [])
+  const html = useMemo(() => buildHtml(points, follow), []);
 
   // Stream new points to the WebView via postMessage
   useEffect(() => {
-    if (!webRef.current || points.length === 0) return
-    const js = `window.SR && window.SR.update(${JSON.stringify(points)}, ${follow ? 'true' : 'false'}); true;`
-    webRef.current.injectJavaScript(js)
-  }, [points, follow])
+    if (!webRef.current || points.length === 0) {
+      return;
+    }
+    const js = `window.SR && window.SR.update(${JSON.stringify(points)}, ${follow ? 'true' : 'false'}); true;`;
+    webRef.current.injectJavaScript(js);
+  }, [points, follow]);
 
   return (
     <View style={[s.wrap, style]}>
@@ -35,11 +37,11 @@ export default function LeafletMap({ points = [], follow = false, style }) {
         androidLayerType="hardware"
       />
     </View>
-  )
+  );
 }
 
 function buildHtml(initialPoints, initialFollow) {
-  const initJson = JSON.stringify(initialPoints || [])
+  const initJson = JSON.stringify(initialPoints || []);
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -85,10 +87,12 @@ function buildHtml(initialPoints, initialFollow) {
     if (initial.length) render(initial, ${initialFollow ? 'true' : 'false'});
   </script>
 </body>
-</html>`
+</html>`;
 }
 
 const s = StyleSheet.create({
   wrap: { flex: 1, backgroundColor: '#1a1a2e' },
-  web:  { flex: 1, backgroundColor: 'transparent' },
-})
+  web: { flex: 1, backgroundColor: 'transparent' }
+});
+
+export default LeafletMap;

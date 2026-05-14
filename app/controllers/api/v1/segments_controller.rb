@@ -15,13 +15,13 @@ module Api
 
       def segment_json(segment, detailed: false)
         data = {
-          id:               segment.id,
-          name:             segment.name,
-          description:      segment.description_html,
-          distance_meters:  segment.distance_meters,
-          elevation_gain:   segment.elevation_gain,
-          city:             segment.city,
-          country:          segment.country
+          id: segment.id,
+          name: segment.name,
+          description: segment.description_html,
+          distance_meters: segment.distance_meters,
+          elevation_gain: segment.elevation_gain,
+          city: segment.city,
+          country: segment.country
         }
 
         if detailed
@@ -36,25 +36,28 @@ module Api
 
       def point_coords(point)
         return nil unless point
+
         { lat: point.lat, lng: point.lon }
       end
 
       def polyline_coords(line)
         return [] unless line
+
         lines = line.respond_to?(:geometries) ? line.geometries : [line]
         lines.flat_map { |geometry| geometry.points.map { |pt| { lat: pt.lat, lng: pt.lon } } }
-      rescue StandardError => e
+      rescue => e
         Rails.logger.warn "[segments#polyline_coords] #{e.class}: #{e.message}"
         []
       end
 
       def best_effort_json(effort)
         return nil unless effort
+
         {
           elapsed_time_seconds: effort.elapsed_time_seconds,
-          formatted_time:       effort.formatted_time,
-          pace_per_km:          effort.pace_per_km,
-          started_at:           effort.started_at
+          formatted_time: effort.formatted_time,
+          pace_per_km: effort.pace_per_km,
+          started_at: effort.started_at
         }
       end
     end

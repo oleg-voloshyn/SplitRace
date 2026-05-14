@@ -1,5 +1,7 @@
-export default function RichDescription({ html, className = '', style = {} }) {
-  if (!html) return null
+function RichDescription({ html, className = '', style = {} }) {
+  if (!html) {
+    return null;
+  }
 
   return (
     <div
@@ -7,5 +9,7 @@ export default function RichDescription({ html, className = '', style = {} }) {
       style={style}
       dangerouslySetInnerHTML={{ __html: html }}
     />
-  )
+  );
 }
+
+export default RichDescription;

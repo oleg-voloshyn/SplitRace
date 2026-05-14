@@ -108,11 +108,11 @@ class AdminFlowsTest < ActionDispatch::IntegrationTest
     tournament = Tournament.find_by!(name: "Rich Text Cup")
     assert_includes tournament.description, "<strong>Bold intro</strong>"
     assert_includes tournament.description, "<li>Safe list item</li>"
-    refute_includes tournament.description, "<script"
-    refute_includes tournament.description, "window.evil"
-    refute_includes tournament.description, "<iframe"
-    refute_includes tournament.description, "javascript:"
-    refute_includes tournament.description, "onclick"
+    assert_not_includes tournament.description, "<script"
+    assert_not_includes tournament.description, "window.evil"
+    assert_not_includes tournament.description, "<iframe"
+    assert_not_includes tournament.description, "javascript:"
+    assert_not_includes tournament.description, "onclick"
 
     get admin_tournament_path(tournament)
     assert_response :success
@@ -122,9 +122,9 @@ class AdminFlowsTest < ActionDispatch::IntegrationTest
 
     get api_v1_tournament_path(tournament.slug), headers: api_headers
     assert_response :success
-    body = JSON.parse(response.body)
+    body = response.parsed_body
     assert_includes body["description"], "<strong>Bold intro</strong>"
-    refute_includes body["description"], "javascript:"
+    assert_not_includes body["description"], "javascript:"
   end
 
   test "tournaments index supports search sorting and pagination" do
@@ -136,7 +136,7 @@ class AdminFlowsTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "input[name='q'][value='Alpha']"
     assert_includes table_first_column_texts, "Alpha Cup"
-    refute_includes table_first_column_texts, "Zulu Cup"
+    assert_not_includes table_first_column_texts, "Zulu Cup"
 
     get admin_tournaments_path(sort: "name", direction: "asc")
     assert_response :success
@@ -255,7 +255,7 @@ class AdminFlowsTest < ActionDispatch::IntegrationTest
     )
     activity.segment_efforts.create!(
       user: runner,
-      segment: segment,
+      segment:,
       elapsed_time_seconds: 300,
       started_at: activity.started_at
     )
@@ -282,7 +282,7 @@ class AdminFlowsTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "input[name='q'][value='Alpha']"
     assert_includes table_first_column_texts, "Alpha Segment"
-    refute_includes table_first_column_texts, "Zulu Segment"
+    assert_not_includes table_first_column_texts, "Zulu Segment"
 
     get admin_segments_path(sort: "name", direction: "asc")
     assert_response :success
@@ -299,9 +299,9 @@ class AdminFlowsTest < ActionDispatch::IntegrationTest
     reported = create_user(email: "reported@example.com", first_name: "Reported")
     tournament = create_tournament(name: "Reports Cup")
     report = CheatingReport.create!(
-      reporter: reporter,
+      reporter:,
       reported_user: reported,
-      tournament: tournament,
+      tournament:,
       reason: "Suspicious segment effort with impossible pace."
     )
 
@@ -329,11 +329,11 @@ class AdminFlowsTest < ActionDispatch::IntegrationTest
 
   def create_user(email:, role: "user", first_name: "Test", last_name: "User")
     User.create!(
-      email: email,
+      email:,
       password: "password123",
-      role: role,
-      first_name: first_name,
-      last_name: last_name,
+      role:,
+      first_name:,
+      last_name:,
       locale: "en",
       units: "km",
       gender: "other"
@@ -342,24 +342,24 @@ class AdminFlowsTest < ActionDispatch::IntegrationTest
 
   def create_tournament(name:, total_segments_count: 2, rated_segments_count: 1, city: "Kyiv")
     Tournament.create!(
-      name: name,
+      name:,
       description: "#{name} description",
       created_by: @admin,
-      total_segments_count: total_segments_count,
-      rated_segments_count: rated_segments_count,
-      city: city,
+      total_segments_count:,
+      rated_segments_count:,
+      city:,
       country: "UA"
     )
   end
 
   def create_segment(name:, distance_meters: 1_500, city: "Kyiv")
     Segment.create!(
-      name: name,
-      city: city,
+      name:,
+      city:,
       country: "UA",
       created_by: @admin,
       is_active: true,
-      **segment_geometry(distance_meters: distance_meters)
+      **segment_geometry(distance_meters:)
     )
   end
 
@@ -374,7 +374,7 @@ class AdminFlowsTest < ActionDispatch::IntegrationTest
       start_point: points.first,
       end_point: points.last,
       polyline: factory.multi_line_string([factory.line_string(points)]),
-      distance_meters: distance_meters
+      distance_meters:
     }
   end
 

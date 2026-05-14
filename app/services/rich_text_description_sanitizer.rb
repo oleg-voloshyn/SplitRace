@@ -9,11 +9,13 @@ class RichTextDescriptionSanitizer
     embed iframe math object script style svg
   ].freeze
 
+  SANITIZER = Rails::HTML5::SafeListSanitizer.new
+
   def self.sanitize(html)
     return nil if html.nil?
 
     fragment = html_fragment(html.to_s)
-    fragment.css(DANGEROUS_ELEMENTS.join(",")).remove
+    fragment.css(DANGEROUS_ELEMENTS.join(',')).remove
 
     sanitizer.sanitize(
       fragment.to_html,
@@ -23,7 +25,7 @@ class RichTextDescriptionSanitizer
   end
 
   def self.sanitizer
-    @sanitizer ||= Rails::HTML5::SafeListSanitizer.new
+    SANITIZER
   end
 
   def self.html_fragment(html)

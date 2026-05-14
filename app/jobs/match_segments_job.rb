@@ -7,7 +7,7 @@ class MatchSegmentsJob < ApplicationJob
 
     SegmentMatcher.new(activity).call
 
-    activity.user.tournaments.where(status: "active").each do |tournament|
+    activity.user.tournaments.where(status: 'active').find_each do |tournament|
       TournamentScore.recalculate_all(tournament)
     end
   end

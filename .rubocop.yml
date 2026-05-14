@@ -1,0 +1,231 @@
+plugins:
+  - rubocop-performance
+  - rubocop-rails
+  - rubocop-rspec
+  - rubocop-thread_safety
+
+AllCops:
+  Exclude:
+    - "db/schema.rb"
+    - "bin/**/*"
+    - "node_modules/**/*"
+    - "frontend/node_modules/**/*"
+    - "frontend/dist/**/*"
+    - "mobile/node_modules/**/*"
+    - "mobile/dist/**/*"
+    - "public/app/assets/**/*"
+    - "tmp/**/*"
+    - "log/**/*"
+    - "storage/**/*"
+    - "vendor/**/*"
+    - "*.md"
+  NewCops: enable
+  TargetRubyVersion: 4.0
+  SuggestExtensions: false
+
+Layout/LineLength:
+  Max: 300
+  Exclude:
+    - "config/**/*"
+
+Metrics/AbcSize:
+  Enabled: false
+
+Metrics/BlockLength:
+  Max: 300
+  AllowedMethods:
+    - class_methods
+    - constraints
+
+Metrics/ClassLength:
+  Max: 450
+
+Metrics/CyclomaticComplexity:
+  Max: 50
+
+Metrics/MethodLength:
+  Enabled: true
+  CountComments: false
+  Max: 50
+  AllowedMethods:
+    - build
+  Exclude:
+    - "app/models/tournament_score.rb"
+
+Metrics/ModuleLength:
+  Max: 350
+
+Metrics/PerceivedComplexity:
+  Max: 50
+
+Naming/BlockForwarding:
+  Enabled: false
+
+Naming/InclusiveLanguage:
+  Enabled: false
+
+Naming/MethodParameterName:
+  AllowedNames:
+    - id
+    - e
+
+Naming/VariableNumber:
+  Enabled: false
+
+Rails:
+  Enabled: true
+
+Rails/Date:
+  Enabled: true
+  EnforcedStyle: flexible
+
+Rails/ApplicationController:
+  Exclude:
+    - "app/controllers/admin/base_controller.rb"
+    - "app/controllers/admin/sessions_controller.rb"
+
+Rails/EnvironmentVariableAccess:
+  Enabled: true
+  AllowReads: true
+
+Rails/HelperInstanceVariable:
+  Enabled: false
+
+Rails/I18nLocaleTexts:
+  Enabled: false
+
+Rails/Output:
+  Exclude:
+    - "db/seeds/**/*"
+
+Rails/RakeEnvironment:
+  Enabled: false
+
+Rails/ReflectionClassName:
+  Enabled: false
+
+Rails/SchemaComment:
+  Enabled: false
+
+Rails/ShortI18n:
+  Enabled: false
+  EnforcedStyle: aggressive
+
+Rails/StrongParametersExpect:
+  Enabled: false
+
+Rails/SkipsModelValidations:
+  AllowedMethods:
+    - decrement!
+    - increment!
+    - touch
+    - update_all
+    - update_columns
+
+Rails/TableNameAssignment:
+  Enabled: false
+
+Rails/UnknownEnv:
+  Environments:
+    - production
+    - staging
+    - development
+    - test
+    - performance
+
+Rails/WhereEquals:
+  Enabled: false
+
+Rails/WhereExists:
+  Enabled: false
+
+Rails/WhereMissing:
+  Enabled: false
+
+RSpec/AnyInstance:
+  Enabled: false
+
+RSpec/BeforeAfterAll:
+  Enabled: false
+
+RSpec/ExampleLength:
+  Enabled: true
+  Max: 30
+
+RSpec/MultipleExpectations:
+  Enabled: false
+
+RSpec/MultipleMemoizedHelpers:
+  Enabled: false
+  AllowSubject: true
+
+RSpec/NestedGroups:
+  Max: 4
+
+Style/Alias:
+  EnforcedStyle: prefer_alias_method
+
+Style/Documentation:
+  Enabled: false
+
+Style/ExplicitBlockArgument:
+  Enabled: false
+
+Style/FrozenStringLiteralComment:
+  Enabled: false
+
+Style/GuardClause:
+  Enabled: false
+
+Style/HashAsLastArrayItem:
+  Enabled: true
+  EnforcedStyle: braces
+
+Style/HashSyntax:
+  EnforcedStyle: ruby19
+  EnforcedShorthandSyntax: always
+
+Style/IfUnlessModifier:
+  Enabled: false
+
+Style/ItBlockParameter:
+  EnforcedStyle: only_numbered_parameters
+
+Style/Lambda:
+  EnforcedStyle: literal
+
+Style/MultilineBlockChain:
+  Enabled: false
+
+Style/MultilineTernaryOperator:
+  Enabled: false
+
+Style/NestedTernaryOperator:
+  Enabled: false
+
+Style/NumberedParameters:
+  Enabled: false
+
+Style/NumberedParametersLimit:
+  Enabled: false
+
+Style/RedundantFetchBlock:
+  Enabled: false
+
+Style/RescueStandardError:
+  EnforcedStyle: implicit
+
+Style/SafeNavigationChainLength:
+  Enabled: false
+
+Style/StringLiterals:
+  EnforcedStyle: single_quotes
+  Exclude:
+    - "test/**/*"
+    - "db/**/*"
+
+Style/SwapValues:
+  Enabled: false
+
+Style/SymbolArray:
+  Enabled: false

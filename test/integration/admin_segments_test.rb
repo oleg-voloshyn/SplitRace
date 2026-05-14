@@ -61,15 +61,15 @@ class AdminSegmentsTest < ActionDispatch::IntegrationTest
 
     segment = Segment.find_by!(name: "Rich Segment")
     assert_includes segment.description, "<strong>Safe</strong>"
-    refute_includes segment.description, "<script"
-    refute_includes segment.description, "javascript:"
-    refute_includes segment.description, "onclick"
+    assert_not_includes segment.description, "<script"
+    assert_not_includes segment.description, "javascript:"
+    assert_not_includes segment.description, "onclick"
 
     get api_v1_segment_path(segment), headers: api_headers
     assert_response :success
-    body = JSON.parse(response.body)
+    body = response.parsed_body
     assert_includes body["description"], "<strong>Safe</strong>"
-    refute_includes body["description"], "javascript:"
+    assert_not_includes body["description"], "javascript:"
   end
 
   test "create accepts automatically detected city and country" do

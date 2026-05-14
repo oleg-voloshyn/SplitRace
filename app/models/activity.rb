@@ -10,7 +10,7 @@ class Activity < ApplicationRecord
 
   def duration
     return nil unless started_at && finished_at
+
     finished_at - started_at
   end
-
 end

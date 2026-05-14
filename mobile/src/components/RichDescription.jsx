@@ -1,8 +1,10 @@
-import { View } from 'react-native'
-import { WebView } from 'react-native-webview'
+import { View } from 'react-native';
+import { WebView } from 'react-native-webview';
 
-export default function RichDescription({ html, style }) {
-  if (!html) return null
+function RichDescription({ html, style }) {
+  if (!html) {
+    return null;
+  }
 
   const document = `
 <!doctype html>
@@ -25,7 +27,7 @@ export default function RichDescription({ html, style }) {
     </style>
   </head>
   <body>${html}</body>
-</html>`
+</html>`;
 
   return (
     <View style={style}>
@@ -33,10 +35,12 @@ export default function RichDescription({ html, style }) {
         source={{ html: document, baseUrl: 'about:blank' }}
         javaScriptEnabled={false}
         originWhitelist={['about:blank']}
-        onShouldStartLoadWithRequest={request => request.url === 'about:blank'}
+        onShouldStartLoadWithRequest={(request) => request.url === 'about:blank'}
         scrollEnabled={false}
         style={{ height: 140, backgroundColor: 'transparent' }}
       />
     </View>
-  )
+  );
 }
+
+export default RichDescription;

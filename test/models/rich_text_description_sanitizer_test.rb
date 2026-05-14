@@ -15,11 +15,11 @@ class RichTextDescriptionSanitizerTest < ActiveSupport::TestCase
     assert_includes sanitized, "<strong>Safe</strong>"
     assert_includes sanitized, "<em>text</em>"
     assert_includes sanitized, ">bad link</a>"
-    refute_includes sanitized, "<script"
-    refute_includes sanitized, "alert(\"xss\")"
-    refute_includes sanitized, "<img"
-    refute_includes sanitized, "<iframe"
-    refute_includes sanitized, "javascript:"
-    refute_includes sanitized, "onclick"
+    assert_not_includes sanitized, "<script"
+    assert_not_includes sanitized, "alert(\"xss\")"
+    assert_not_includes sanitized, "<img"
+    assert_not_includes sanitized, "<iframe"
+    assert_not_includes sanitized, "javascript:"
+    assert_not_includes sanitized, "onclick"
   end
 end
