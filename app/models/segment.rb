@@ -1,4 +1,6 @@
 class Segment < ApplicationRecord
+  include SanitizesRichTextDescription
+
   belongs_to :created_by, class_name: "User"
   has_many :tournament_segments, dependent: :destroy
   has_many :tournaments, through: :tournament_segments

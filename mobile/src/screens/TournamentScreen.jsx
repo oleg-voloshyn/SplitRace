@@ -4,6 +4,7 @@ import { useRoute } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api/client'
 import { useAuth } from '../contexts/AuthContext'
+import RichDescription from '../components/RichDescription'
 
 export default function TournamentScreen() {
   const { t } = useTranslation()
@@ -54,7 +55,7 @@ export default function TournamentScreen() {
           <View style={[s.badge, { backgroundColor: badgeColor(data.status), alignSelf: 'flex-start', marginBottom: 12 }]}>
             <Text style={s.badgeText}>{t(`tournaments.${data.status}`).toUpperCase()}</Text>
           </View>
-          {data.description ? <Text style={s.desc}>{data.description}</Text> : null}
+          <RichDescription html={data.description} style={s.desc} />
           <Text style={s.meta}>{t('tournaments.participants', { count: data.participants_count ?? 0 })}</Text>
           {data.starts_at && <Text style={s.meta}>{t('tournaments.starts')}: {new Date(data.starts_at).toLocaleDateString()}</Text>}
           {data.ends_at   && <Text style={s.meta}>{t('tournaments.ends')}: {new Date(data.ends_at).toLocaleDateString()}</Text>}
@@ -193,7 +194,7 @@ const s = StyleSheet.create({
   tabText:      { color: '#888', fontSize: 14 },
   tabTextActive:{ color: '#e53935', fontWeight: '600' },
   info:         { padding: 16 },
-  desc:         { color: '#444', marginBottom: 12, lineHeight: 20 },
+  desc:         { marginBottom: 12 },
   meta:         { color: '#888', fontSize: 14, marginBottom: 4 },
   badge:        { borderRadius: 4, paddingHorizontal: 8, paddingVertical: 3 },
   badgeText:    { color: '#fff', fontSize: 11, fontWeight: '700' },

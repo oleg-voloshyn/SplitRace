@@ -19,7 +19,7 @@
 
   .col-12
     = f.label :description, class: "form-label"
-    = f.text_area :description, class: "form-control", rows: 2
+    = rich_text_description_editor(f)
 
   .col-md-6
     = f.label :total_segments_count, "Total segments (all shown to players)", class: "form-label"

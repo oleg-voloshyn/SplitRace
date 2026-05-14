@@ -2,7 +2,7 @@ module Api
   module V1
     class TournamentsController < BaseController
       before_action :set_tournament, only: %i[show join leave leaderboard activate complete]
-      before_action :require_moderator!, only: %i[create update activate complete]
+      before_action :require_moderator!, only: %i[create activate complete]
 
       def index
         tournaments = Tournament.visible.order(starts_at: :desc)
@@ -77,7 +77,7 @@ module Api
           id:                     tournament.id,
           name:                   tournament.name,
           slug:                   tournament.slug,
-          description:            tournament.description,
+          description:            tournament.description_html,
           status:                 tournament.status,
           starts_at:              tournament.starts_at,
           ends_at:                tournament.ends_at,
@@ -97,6 +97,7 @@ module Api
               segment: {
                 id:              ts.segment.id,
                 name:            ts.segment.name,
+                description:     ts.segment.description_html,
                 distance_meters: ts.segment.distance_meters,
                 start_point:     ts.segment.start_point ? { lat: ts.segment.start_point.lat, lng: ts.segment.start_point.lon } : nil,
                 end_point:       ts.segment.end_point   ? { lat: ts.segment.end_point.lat,   lng: ts.segment.end_point.lon   } : nil,

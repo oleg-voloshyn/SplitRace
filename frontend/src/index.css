@@ -132,6 +132,41 @@ p  { margin: 0; }
 .sr-stat-pill .label { font-size: 0.7rem; color: #888; text-transform: uppercase; letter-spacing: 0.05em; }
 .sr-stat-pill .value { font-size: 1rem; font-weight: 700; margin-top: 2px; }
 
+.sr-rich-description {
+  color: #666;
+  line-height: 1.55;
+}
+.sr-rich-description > :first-child { margin-top: 0; }
+.sr-rich-description > :last-child { margin-bottom: 0; }
+.sr-rich-description p,
+.sr-rich-description ul,
+.sr-rich-description ol,
+.sr-rich-description h1,
+.sr-rich-description h2,
+.sr-rich-description h3,
+.sr-rich-description h4,
+.sr-rich-description blockquote,
+.sr-rich-description pre { margin: 0 0 0.75rem; }
+.sr-rich-description h1,
+.sr-rich-description h2 { font-size: 1.1rem; }
+.sr-rich-description h3,
+.sr-rich-description h4 { font-size: 1rem; }
+.sr-rich-description ul,
+.sr-rich-description ol { padding-left: 1.25rem; }
+.sr-rich-description blockquote {
+  border-left: 3px solid #dee2e6;
+  padding-left: 0.75rem;
+  color: #555;
+}
+.sr-rich-description code,
+.sr-rich-description pre {
+  background: #f1f3f5;
+  border-radius: 4px;
+}
+.sr-rich-description code { padding: 0.1rem 0.25rem; }
+.sr-rich-description pre { padding: 0.65rem; overflow-x: auto; }
+.sr-rich-description a { color: #e53935; }
+
 /* Tablet / desktop */
 @media (min-width: 720px) {
   .sr-grid-tournaments { grid-template-columns: repeat(2, 1fr); gap: 1.25rem; }

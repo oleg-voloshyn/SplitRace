@@ -17,7 +17,7 @@ module Api
         data = {
           id:               segment.id,
           name:             segment.name,
-          description:      segment.description,
+          description:      segment.description_html,
           distance_meters:  segment.distance_meters,
           elevation_gain:   segment.elevation_gain,
           city:             segment.city,
@@ -41,7 +41,11 @@ module Api
 
       def polyline_coords(line)
         return [] unless line
-        line.points.map { |pt| { lat: pt.lat, lng: pt.lon } }
+        lines = line.respond_to?(:geometries) ? line.geometries : [line]
+        lines.flat_map { |geometry| geometry.points.map { |pt| { lat: pt.lat, lng: pt.lon } } }
+      rescue StandardError => e
+        Rails.logger.warn "[segments#polyline_coords] #{e.class}: #{e.message}"
+        []
       end
 
       def best_effort_json(effort)

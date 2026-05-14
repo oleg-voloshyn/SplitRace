@@ -1,4 +1,21 @@
 module AdminHelper
+  def rich_text_description_editor(form, attribute = :description)
+    input_id = "#{form.object_name}_#{attribute}".tr("][", "_").delete_suffix("_")
+
+    safe_join([
+      form.hidden_field(attribute, id: input_id),
+      content_tag("trix-editor", "", input: input_id, class: "trix-content sr-rich-text-editor")
+    ])
+  end
+
+  def rich_text_description_html(record)
+    sanitize(
+      record.description_html,
+      tags: RichTextDescriptionSanitizer::ALLOWED_TAGS,
+      attributes: RichTextDescriptionSanitizer::ALLOWED_ATTRIBUTES
+    )
+  end
+
   def admin_sort_link(label, sort_key)
     active = @sort == sort_key.to_s
     next_direction = active && @direction == "asc" ? "desc" : "asc"

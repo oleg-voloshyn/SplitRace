@@ -26,7 +26,7 @@
         = "#{actual_total}/#{@tournament.total_segments_count} total · #{actual_rated}/#{@tournament.rated_segments_count} rated"
 
 - if @tournament.description.present?
-  p.text-muted.mb-4= @tournament.description
+  .sr-rich-text-content.mb-4= rich_text_description_html(@tournament)
 
 .row.g-3
   .col-md-7

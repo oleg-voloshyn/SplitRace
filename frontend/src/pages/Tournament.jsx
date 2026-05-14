@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { api } from '../api/client'
 import { useAuth } from '../contexts/AuthContext'
 import MapView from '../components/MapView'
+import RichDescription from '../components/RichDescription'
 
 export default function Tournament() {
   const { slug } = useParams()
@@ -38,7 +39,7 @@ export default function Tournament() {
   return (
     <div>
       <h2>{tournament.name}</h2>
-      {tournament.description && <p style={{ color: '#666', marginBottom: '1rem' }}>{tournament.description}</p>}
+      <RichDescription html={tournament.description} style={{ marginBottom: '1rem' }} />
 
       <div className="sr-stats-row">
         <Stat label={t('tournaments.status')}       value={t(`tournaments.${tournament.status}`)} />

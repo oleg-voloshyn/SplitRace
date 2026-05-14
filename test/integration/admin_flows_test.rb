@@ -85,6 +85,48 @@ class AdminFlowsTest < ActionDispatch::IntegrationTest
     assert_redirected_to admin_tournaments_path
   end
 
+  test "tournament descriptions support safe rich text and strip unsafe html" do
+    unsafe_description = <<~HTML
+      <div><strong>Bold intro</strong></div>
+      <ul><li>Safe list item</li></ul>
+      <script>window.evil = true</script>
+      <a href="javascript:alert(1)" onclick="alert(2)">unsafe link</a>
+      <iframe src="https://evil.example"></iframe>
+    HTML
+
+    post admin_tournaments_path, params: {
+      tournament: {
+        name: "Rich Text Cup",
+        description: unsafe_description,
+        total_segments_count: 2,
+        rated_segments_count: 1,
+        city: "Kyiv",
+        country: "UA"
+      }
+    }
+
+    tournament = Tournament.find_by!(name: "Rich Text Cup")
+    assert_includes tournament.description, "<strong>Bold intro</strong>"
+    assert_includes tournament.description, "<li>Safe list item</li>"
+    refute_includes tournament.description, "<script"
+    refute_includes tournament.description, "window.evil"
+    refute_includes tournament.description, "<iframe"
+    refute_includes tournament.description, "javascript:"
+    refute_includes tournament.description, "onclick"
+
+    get admin_tournament_path(tournament)
+    assert_response :success
+    assert_select ".sr-rich-text-content strong", text: "Bold intro"
+    assert_select ".sr-rich-text-content script", count: 0
+    assert_select ".sr-rich-text-content iframe", count: 0
+
+    get api_v1_tournament_path(tournament.slug), headers: api_headers
+    assert_response :success
+    body = JSON.parse(response.body)
+    assert_includes body["description"], "<strong>Bold intro</strong>"
+    refute_includes body["description"], "javascript:"
+  end
+
   test "tournaments index supports search sorting and pagination" do
     create_tournament(name: "Zulu Cup", city: "Lviv")
     create_tournament(name: "Alpha Cup", city: "Kyiv")
@@ -342,5 +384,9 @@ class AdminFlowsTest < ActionDispatch::IntegrationTest
 
   def table_column_texts(position)
     css_select("tbody tr td:nth-child(#{position})").map { |node| node.text.squish }
+  end
+
+  def api_headers
+    { "Authorization" => "Bearer #{JwtService.encode(user_id: @admin.id)}" }
   end
 end

@@ -30,6 +30,7 @@ class AdminSegmentsTest < ActionDispatch::IntegrationTest
     assert_select "input[type='hidden'][name='segment[city]']"
     assert_select "input[type='hidden'][name='segment[country]']"
     assert_select "#segment-location"
+    assert_select "trix-editor[input='segment_description']"
     assert_select "input#waypoints-json" do |inputs|
       points = JSON.parse(inputs.first["value"])
 
@@ -39,6 +40,36 @@ class AdminSegmentsTest < ActionDispatch::IntegrationTest
       assert_in_delta 50.46, points.last["lat"]
       assert_in_delta 30.53, points.last["lng"]
     end
+  end
+
+  test "segment descriptions support safe rich text and strip unsafe html" do
+    assert_difference "Segment.count", 1 do
+      post admin_segments_path, params: {
+        segment: {
+          name: "Rich Segment",
+          description: "<p><strong>Safe</strong></p><script>alert(1)</script><a href='javascript:alert(1)' onclick='x()'>bad</a>",
+          city: "Kyiv",
+          country: "UA",
+          is_active: "1",
+          waypoints_json: [
+            { lat: 50.45, lng: 30.52 },
+            { lat: 50.46, lng: 30.53 }
+          ].to_json
+        }
+      }
+    end
+
+    segment = Segment.find_by!(name: "Rich Segment")
+    assert_includes segment.description, "<strong>Safe</strong>"
+    refute_includes segment.description, "<script"
+    refute_includes segment.description, "javascript:"
+    refute_includes segment.description, "onclick"
+
+    get api_v1_segment_path(segment), headers: api_headers
+    assert_response :success
+    body = JSON.parse(response.body)
+    assert_includes body["description"], "<strong>Safe</strong>"
+    refute_includes body["description"], "javascript:"
   end
 
   test "create accepts automatically detected city and country" do
@@ -93,5 +124,9 @@ class AdminSegmentsTest < ActionDispatch::IntegrationTest
       polyline: factory.multi_line_string([factory.line_string(points)]),
       distance_meters: 1_500
     }
+  end
+
+  def api_headers
+    { "Authorization" => "Bearer #{JwtService.encode(user_id: @admin.id)}" }
   end
 end
