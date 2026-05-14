@@ -44,7 +44,7 @@ Rails.application.routes.draw do
     post "login",  to: "sessions#create"
     post "logout", to: "sessions#destroy", as: :logout
 
-    resources :segments, only: %i[index new create show edit update destroy]
+    resources :segments, only: %i[index new create edit update destroy]
     resources :tournaments, only: %i[index new create show edit update destroy] do
       member do
         post :activate
