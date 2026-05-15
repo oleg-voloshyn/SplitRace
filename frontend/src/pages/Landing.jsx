@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
+import logoWordmark from '../assets/logo-wordmark.png';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 
 // Latest Android APK — update on each EAS build
@@ -12,7 +13,9 @@ function Landing() {
     <div className="sr-landing">
       {/* Header */}
       <header className="sr-landing-header">
-        <div className="sr-landing-brand">SplitRace</div>
+        <Link to="/" className="sr-landing-brand" aria-label="SplitRace">
+          <img src={logoWordmark} alt="SplitRace" className="sr-landing-logo" />
+        </Link>
         <div className="sr-landing-actions">
           <LanguageSwitcher />
           <Link to="/login" className="sr-landing-signin">

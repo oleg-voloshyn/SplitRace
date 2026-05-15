@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
+import logoWordmark from '../assets/logo-wordmark.png';
 import { useAuth } from '../contexts/AuthContext';
 import LanguageSwitcher from './LanguageSwitcher';
 
@@ -31,8 +32,8 @@ function Navbar() {
     <>
       {/* ── top bar ───────────────────────────────────────────────── */}
       <nav className="sr-topbar">
-        <Link to="/" className="sr-brand">
-          SplitRace
+        <Link to="/" className="sr-brand" aria-label="SplitRace">
+          <img src={logoWordmark} alt="SplitRace" className="sr-logo-image" />
         </Link>
 
         {user && (
