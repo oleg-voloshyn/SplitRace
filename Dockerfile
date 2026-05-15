@@ -2,6 +2,7 @@
 
 # Make sure RUBY_VERSION matches the Ruby version in .ruby-version and Gemfile
 ARG RUBY_VERSION=4.0.4
+ARG NODE_VERSION=22.22.3
 FROM registry.docker.com/library/ruby:$RUBY_VERSION-slim AS base
 
 # Rails app lives here
@@ -15,7 +16,7 @@ ENV RAILS_ENV="production" \
 
 
 # Build the React app into public/app without committing generated assets.
-FROM node:22-slim AS frontend-build
+FROM node:${NODE_VERSION}-slim AS frontend-build
 
 WORKDIR /rails/frontend
 
