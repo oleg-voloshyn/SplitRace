@@ -1,6 +1,10 @@
 module Api
   module V1
     class SegmentsController < BaseController
+      MAX_SEGMENT_POINTS = 100
+      ROUTE_REQUIRED_ERROR = 'Route must include at least two valid points'.freeze
+      INVALID_COORDINATES_ERROR = 'Route contains invalid coordinates'.freeze
+
       def index
         segments = params[:mine] == '1' ? current_user.created_segments : Segment.active
         segments = segments.order(:name)
@@ -16,7 +20,7 @@ module Api
         segment = current_user.created_segments.build(segment_params)
         assign_geometry(segment)
 
-        if segment.save
+        if segment.errors.empty? && segment.save
           render json: segment_json(segment, detailed: true), status: :created
         else
           render json: { errors: segment.errors.full_messages }, status: :unprocessable_content
@@ -31,7 +35,10 @@ module Api
 
       def assign_geometry(segment)
         points = segment_points
-        return if points.size < 2
+        if points.size < 2
+          segment.errors.add(:base, ROUTE_REQUIRED_ERROR)
+          return
+        end
 
         factory = RGeo::Geographic.spherical_factory(srid: 4326)
         geo_points = points.map { |point| factory.point(point[:lng], point[:lat]) }
@@ -39,18 +46,58 @@ module Api
         segment.end_point = geo_points.last
         segment.polyline = factory.multi_line_string([factory.line_string(geo_points)])
         segment.distance_meters = haversine_total(points)
+      rescue ArgumentError => e
+        segment.errors.add(:base, e.message)
       end
 
       def segment_points
         raw_points = params[:points].presence
         if raw_points.respond_to?(:map)
-          return raw_points.map { |point| { lat: point[:lat].to_f, lng: point[:lng].to_f } }
+          return parsed_route_points(raw_points)
         end
 
         [
-          { lat: params[:start_lat].to_f, lng: params[:start_lng].to_f },
-          { lat: params[:end_lat].to_f, lng: params[:end_lng].to_f }
-        ].select { |point| point[:lat].nonzero? && point[:lng].nonzero? }
+          normalize_legacy_point(params[:start_lat], params[:start_lng]),
+          normalize_legacy_point(params[:end_lat], params[:end_lng])
+        ].compact
+      end
+
+      def parsed_route_points(raw_points)
+        raise ArgumentError, "Route cannot contain more than #{MAX_SEGMENT_POINTS} points" if raw_points.size > MAX_SEGMENT_POINTS
+
+        raw_points.map { |point| normalize_point!(point) }
+      end
+
+      def normalize_point!(point)
+        lat = parse_coordinate(point_value(point, :lat))
+        lng = parse_coordinate(point_value(point, :lng))
+        raise ArgumentError, INVALID_COORDINATES_ERROR unless valid_coordinate?(lat, lng)
+
+        { lat:, lng: }
+      end
+
+      def point_value(point, key)
+        return nil unless point.respond_to?(:[])
+
+        point[key] || point[key.to_s]
+      rescue TypeError
+        nil
+      end
+
+      def normalize_legacy_point(lat_value, lng_value)
+        lat = parse_coordinate(lat_value)
+        lng = parse_coordinate(lng_value)
+        return nil unless valid_coordinate?(lat, lng)
+
+        { lat:, lng: }
+      end
+
+      def parse_coordinate(value)
+        Float(value, exception: false)
+      end
+
+      def valid_coordinate?(lat, lng)
+        lat&.finite? && lng&.finite? && lat.between?(-90, 90) && lng.between?(-180, 180)
       end
 
       def haversine_total(points)

@@ -14,12 +14,16 @@ class Tournament < ApplicationRecord
   STATUSES       = %w[draft pending_review active rejected completed].freeze
   SCORING_TYPES  = %w[golden_fever].freeze
 
-  validates :name, presence: true
+  validates :name, presence: true, length: { maximum: 120 }
+  validates :description, length: { maximum: 10_000 }, allow_blank: true
+  validates :city, :country, length: { maximum: 120 }, allow_blank: true
   validates :slug, presence: true, uniqueness: true, format: { with: /\A[a-z0-9-]+\z/ }
   validates :status, inclusion: { in: STATUSES }
   validates :scoring_type, inclusion: { in: SCORING_TYPES }
   validates :total_segments_count, :rated_segments_count, presence: true,
-                                                          numericality: { only_integer: true, greater_than: 0 }
+                                                          numericality: { only_integer: true,
+                                                                          greater_than: 0,
+                                                                          less_than_or_equal_to: 100 }
   validate  :rated_count_within_total
 
   before_validation :generate_slug, if: -> { slug.blank? && name.present? }

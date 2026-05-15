@@ -151,10 +151,28 @@ p  { margin: 0; }
   grid-template-columns: 1fr;
   gap: 1rem;
 }
+.sr-creator-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+.sr-creator-actions button {
+  border: 0;
+  border-radius: 6px;
+  background: #1a1a2e;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  padding: 0.65rem 0.95rem;
+}
 .sr-creator-form {
   display: flex;
   flex-direction: column;
   gap: 0.7rem;
+}
+.sr-creator-form-wide {
+  margin-bottom: 1.25rem;
 }
 .sr-creator-form input,
 .sr-creator-form textarea,
@@ -189,6 +207,46 @@ p  { margin: 0; }
   cursor: not-allowed;
   opacity: 0.45;
 }
+.sr-creator-card-head .sr-creator-ghost-btn,
+.sr-creator-route-actions button,
+.sr-rich-toolbar button {
+  background: #fff;
+  border: 1px solid #d8dde2;
+  color: #1a1a2e;
+}
+.sr-creator-card-head .sr-creator-ghost-btn {
+  padding: 0.45rem 0.75rem;
+}
+.sr-creator-map-hint {
+  color: #666;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+.sr-creator-map {
+  height: 360px;
+  min-height: 280px;
+  overflow: hidden;
+  border: 1px solid #d8dde2;
+  border-radius: 8px;
+}
+.sr-creator-route-meta,
+.sr-creator-route-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+}
+.sr-creator-route-meta span {
+  background: #f8f9fa;
+  border: 1px solid #edf0f2;
+  border-radius: 6px;
+  color: #555;
+  font-size: 0.9rem;
+  padding: 0.45rem 0.6rem;
+}
+.sr-creator-route-actions button {
+  padding: 0.5rem 0.75rem;
+}
 .sr-creator-two {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -218,6 +276,40 @@ p  { margin: 0; }
   justify-content: space-between;
   gap: 1rem;
   margin-bottom: 1rem;
+}
+.sr-page-heading h2 {
+  margin-bottom: 0;
+}
+.sr-rich-editor {
+  border: 1px solid #d8dde2;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #fff;
+}
+.sr-rich-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  padding: 0.45rem;
+  border-bottom: 1px solid #e9ecef;
+  background: #f8f9fa;
+}
+.sr-rich-toolbar button {
+  min-width: 34px;
+  border-radius: 5px;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.86rem;
+}
+.sr-rich-editor-input {
+  min-height: 120px;
+  padding: 0.7rem;
+  line-height: 1.5;
+  outline: none;
+}
+.sr-rich-editor-input:empty::before {
+  content: attr(data-placeholder);
+  color: #777;
+  pointer-events: none;
 }
 .sr-feed-list {
   display: flex;

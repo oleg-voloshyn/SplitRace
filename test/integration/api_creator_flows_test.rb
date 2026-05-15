@@ -70,6 +70,38 @@ class ApiCreatorFlowsTest < ActionDispatch::IntegrationTest
     assert_equal 0, tournament.tournament_segments.count
   end
 
+  test 'segment creation requires a valid drawn route' do
+    user = create_user(email: 'route-check@example.com')
+
+    post api_v1_segments_path,
+         params: { name: 'Broken Route', points: [{ lat: 50.45, lng: 30.52 }] },
+         headers: auth_headers(user)
+
+    assert_response :unprocessable_content
+    assert_includes response.parsed_body['errors'].join, 'Route must include at least two valid points'
+
+    post api_v1_segments_path,
+         params: { name: 'Injected Route', points: [{ lat: 'oops', lng: 30.52 }, { lat: 50.46, lng: 30.53 }] },
+         headers: auth_headers(user)
+
+    assert_response :unprocessable_content
+    assert_includes response.parsed_body['errors'].join, 'Route contains invalid coordinates'
+  end
+
+  test 'segment descriptions are sanitized on api creation' do
+    user = create_user(email: 'rich-text@example.com')
+
+    post api_v1_segments_path,
+         params: segment_params(name: 'Rich Segment').merge(
+           description: '<p>Safe <strong>text</strong></p><script>alert("x")</script>'
+         ),
+         headers: auth_headers(user)
+
+    assert_response :created
+    assert_includes response.parsed_body['description'], '<strong>text</strong>'
+    assert_not_includes response.parsed_body['description'], '<script'
+  end
+
   test 'admin can approve or reject pending tournament requests' do
     admin = create_user(email: 'admin@example.com', role: 'admin')
     owner = create_user(email: 'runner@example.com')
