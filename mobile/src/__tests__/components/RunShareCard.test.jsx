@@ -1,12 +1,12 @@
-import { render, screen } from '@testing-library/react-native';
 import React from 'react';
+import { render, screen } from '@testing-library/react-native';
 import { RunShareCard } from '../../components/RunShareCard';
 
 const baseActivity = {
   distance_meters: 5230,
   elapsed_time_seconds: 1500,
   segment_efforts: [],
-  segment_efforts_count: 0,
+  segment_efforts_count: 0
 };
 
 describe('RunShareCard', () => {
@@ -42,8 +42,8 @@ describe('RunShareCard', () => {
       segment_efforts_count: 2,
       segment_efforts: [
         { id: 1, segment: { name: 'Park Hill' }, formatted_time: '2:30' },
-        { id: 2, segment: { name: 'Bridge Loop' }, formatted_time: '5:12' },
-      ],
+        { id: 2, segment: { name: 'Bridge Loop' }, formatted_time: '5:12' }
+      ]
     };
     render(<RunShareCard activity={activity} />);
     expect(screen.getByText('2 сегменти пройдено')).toBeTruthy();
@@ -53,9 +53,7 @@ describe('RunShareCard', () => {
     const activity = {
       ...baseActivity,
       segment_efforts_count: 1,
-      segment_efforts: [
-        { id: 1, segment: { name: 'Park Hill' }, formatted_time: '2:30' },
-      ],
+      segment_efforts: [{ id: 1, segment: { name: 'Park Hill' }, formatted_time: '2:30' }]
     };
     render(<RunShareCard activity={activity} />);
     expect(screen.getByText('Park Hill')).toBeTruthy();
@@ -74,8 +72,8 @@ describe('RunShareCard', () => {
       segment_efforts: Array.from({ length: 5 }, (_, i) => ({
         id: i,
         segment: { name: `Segment ${i + 1}` },
-        formatted_time: '1:00',
-      })),
+        formatted_time: '1:00'
+      }))
     };
     render(<RunShareCard activity={activity} />);
     expect(screen.getByText('Segment 1')).toBeTruthy();

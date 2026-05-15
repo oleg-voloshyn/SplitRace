@@ -8,7 +8,7 @@ import { defineConfig, globalIgnores } from 'eslint/config';
 import globals from 'globals';
 
 export default defineConfig([
-  globalIgnores(['dist/**', 'node_modules/**']),
+  globalIgnores(['coverage/**', 'dist/**', 'node_modules/**']),
   js.configs.recommended,
   {
     files: ['**/*.{js,jsx,mjs}'],
@@ -94,6 +94,20 @@ export default defineConfig([
       'simple-import-sort/exports': 'error',
       'import/group-exports': 'error',
       'import/exports-last': 'error'
+    }
+  },
+  {
+    files: ['jest.setup.js', '__mocks__/**/*.js', 'src/**/__tests__/**/*.{js,jsx}'],
+    languageOptions: {
+      globals: {
+        ...globals.jest
+      }
+    },
+    rules: {
+      'import/exports-last': 'off',
+      'import/group-exports': 'off',
+      'no-restricted-syntax': 'off',
+      'no-unused-vars': 'off'
     }
   },
   eslintPluginPrettierRecommended,

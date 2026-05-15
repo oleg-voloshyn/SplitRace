@@ -31,9 +31,13 @@ function CreatorScreen() {
 
   useEffect(() => {
     refresh();
-    Location.getLastKnownPositionAsync().then((pos) => {
-      if (pos) setUserLocation([pos.coords.latitude, pos.coords.longitude]);
-    }).catch(() => {});
+    Location.getLastKnownPositionAsync()
+      .then((pos) => {
+        if (pos) {
+          setUserLocation([pos.coords.latitude, pos.coords.longitude]);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   async function refresh() {
@@ -122,7 +126,7 @@ function CreatorScreen() {
           <Text style={s.metaText}>
             {t('creator.distance')}: <Text style={s.metaBold}>{formatDistance(routeDistance(segmentForm.points))}</Text>
           </Text>
-          {(segmentForm.city || segmentForm.country) ? (
+          {segmentForm.city || segmentForm.country ? (
             <Text style={s.metaText}>
               📍 <Text style={s.metaBold}>{[segmentForm.city, segmentForm.country].filter(Boolean).join(', ')}</Text>
             </Text>
@@ -218,7 +222,6 @@ function CreatorInput({ label, value, onChangeText }) {
     </View>
   );
 }
-
 
 const s = StyleSheet.create({
   mapHint: { color: '#555', fontSize: 12, marginBottom: 6 },

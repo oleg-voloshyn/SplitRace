@@ -1,11 +1,4 @@
-import {
-  buildShareText,
-  calcDistance,
-  fmtDist,
-  fmtPace,
-  fmtTime,
-  haversine,
-} from '../../utils/runUtils';
+import { buildShareText, calcDistance, fmtDist, fmtPace, fmtTime, haversine } from '../../utils/runUtils';
 
 describe('fmtTime', () => {
   it('formats seconds under a minute', () => {
@@ -129,7 +122,10 @@ describe('calcDistance', () => {
   });
 
   it('gives positive distance for two different points', () => {
-    const pts = [{ lat: 50.45, lng: 30.52 }, { lat: 50.46, lng: 30.53 }];
+    const pts = [
+      { lat: 50.45, lng: 30.52 },
+      { lat: 50.46, lng: 30.53 }
+    ];
     expect(calcDistance(pts)).toBeGreaterThan(0);
   });
 });
@@ -141,9 +137,11 @@ describe('buildShareText', () => {
       'run.distance': 'Distance',
       'run.time': 'Time',
       'run.pace': 'Pace',
-      'run.noSegmentsCompleted': 'No segments completed.',
+      'run.noSegmentsCompleted': 'No segments completed.'
     };
-    if (key === 'run.segmentsCompleted') return `${opts.count} segments completed`;
+    if (key === 'run.segmentsCompleted') {
+      return `${opts.count} segments completed`;
+    }
     return map[key] || key;
   };
 
@@ -151,7 +149,7 @@ describe('buildShareText', () => {
     const activity = {
       distance_meters: 5000,
       elapsed_time_seconds: 1500,
-      segment_efforts: [],
+      segment_efforts: []
     };
     const text = buildShareText(activity, t);
     expect(text).toContain('5.00 km');
@@ -163,9 +161,7 @@ describe('buildShareText', () => {
     const activity = {
       distance_meters: 3000,
       elapsed_time_seconds: 900,
-      segment_efforts: [
-        { id: 1, segment: { name: 'Park Hill' }, formatted_time: '2:30' },
-      ],
+      segment_efforts: [{ id: 1, segment: { name: 'Park Hill' }, formatted_time: '2:30' }]
     };
     const text = buildShareText(activity, t);
     expect(text).toContain('Park Hill');
@@ -176,7 +172,7 @@ describe('buildShareText', () => {
     const activity = {
       distance_meters: 2000,
       elapsed_time_seconds: 600,
-      segment_efforts: [],
+      segment_efforts: []
     };
     const text = buildShareText(activity, t);
     expect(text).toContain('No segments completed.');

@@ -55,8 +55,8 @@
     "share": "Share",
     "copyLink": "Copy link",
     "linkCopied": "Copied",
-    "shareText": "Join {{name}} on SplitRace"
-    ,"feed": "News"
+    "shareText": "Join {{name}} on SplitRace",
+    "feed": "News"
   },
   "profile": {
     "title": "Profile",

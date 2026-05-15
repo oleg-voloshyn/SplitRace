@@ -1,10 +1,10 @@
+import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import * as Sharing from 'expo-sharing';
-import React from 'react';
 import RunTrackerScreen from '../../screens/RunTrackerScreen';
 
 jest.mock('../../api/client', () => ({
-  api: { saveActivity: jest.fn() },
+  api: { saveActivity: jest.fn() }
 }));
 
 jest.mock('../../components/LeafletMap', () => {
@@ -27,13 +27,13 @@ const mockT = (key, opts) => {
     'run.noSegmentUnlocked': 'Run summary',
     'run.segmentsCompleted': `${opts?.count ?? 0} segments completed`,
     'run.noSegmentsCompleted': 'No segments completed.',
-    'run.shareTitle': 'My SplitRace run',
+    'run.shareTitle': 'My SplitRace run'
   };
   return map[key] ?? key;
 };
 
 jest.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: mockT, i18n: { language: 'en' } }),
+  useTranslation: () => ({ t: mockT, i18n: { language: 'en' } })
 }));
 
 describe('RunTrackerScreen — idle state', () => {
@@ -63,7 +63,7 @@ describe('RunTrackerScreen — saved state', () => {
       elapsed_time_seconds: 1800,
       distance_meters: 5000,
       segment_efforts: [],
-      segment_efforts_count: 0,
+      segment_efforts_count: 0
     });
 
     // We can't easily trigger the full run flow, so test the share card
@@ -73,7 +73,7 @@ describe('RunTrackerScreen — saved state', () => {
       elapsed_time_seconds: 1800,
       distance_meters: 5000,
       segment_efforts: [],
-      segment_efforts_count: 0,
+      segment_efforts_count: 0
     };
     render(<RunShareCard activity={activity} />);
     expect(screen.getByText('5.00 km')).toBeTruthy();

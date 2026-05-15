@@ -55,8 +55,8 @@
     "share": "Поділитися",
     "copyLink": "Копіювати лінк",
     "linkCopied": "Скопійовано",
-    "shareText": "Долучайся до {{name}} у SplitRace"
-    ,"feed": "Новини"
+    "shareText": "Долучайся до {{name}} у SplitRace",
+    "feed": "Новини"
   },
   "profile": {
     "title": "Профіль",
@@ -139,7 +139,7 @@
     "status_rejected": "Відхилено",
     "status_completed": "Завершено"
   },
-    "landing": {
+  "landing": {
     "signIn": "Увійти",
     "getStarted": "Почати",
     "registerClub": "Зареєструвати біговий клуб",

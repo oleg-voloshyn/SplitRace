@@ -3,6 +3,8 @@ coverage
 dist
 node_modules
 public/app/assets
+frontend/playwright-report
+frontend/test-results
 tmp
 log
 storage

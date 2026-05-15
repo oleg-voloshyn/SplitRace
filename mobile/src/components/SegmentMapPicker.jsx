@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { WebView } from 'react-native-webview';
 
@@ -6,10 +6,12 @@ const DEFAULT_CENTER = [50.45, 30.52];
 
 function SegmentMapPicker({ points = [], onPointsChange, initialCenter, hint, undoLabel, clearLabel }) {
   const webRef = useRef(null);
-  const html = useRef(buildHtml(DEFAULT_CENTER)).current;
+  const html = useMemo(() => buildHtml(DEFAULT_CENTER), []);
 
   useEffect(() => {
-    if (!initialCenter || !webRef.current) return;
+    if (!initialCenter || !webRef.current) {
+      return;
+    }
     const [lat, lng] = initialCenter;
     webRef.current.injectJavaScript(`window.SR && window.SR.recenter(${lat}, ${lng}); true;`);
   }, [initialCenter]);
@@ -17,8 +19,12 @@ function SegmentMapPicker({ points = [], onPointsChange, initialCenter, hint, un
   function handleMessage(event) {
     try {
       const msg = JSON.parse(event.nativeEvent.data);
-      if (msg.type === 'points') onPointsChange(msg.points);
-    } catch {}
+      if (msg.type === 'points') {
+        onPointsChange(msg.points);
+      }
+    } catch {
+      // Ignore malformed messages from the embedded map.
+    }
   }
 
   function undo() {
@@ -136,17 +142,20 @@ const s = StyleSheet.create({
     backgroundColor: '#f0f0f0',
     paddingHorizontal: 12,
     paddingVertical: 8,
-    gap: 6,
+    gap: 6
   },
   hint: { color: '#555', fontSize: 12, textAlign: 'center' },
   btns: { flexDirection: 'row', gap: 8 },
   btn: {
-    flex: 1, backgroundColor: '#1a1a2e', borderRadius: 8,
-    paddingVertical: 8, alignItems: 'center',
+    flex: 1,
+    backgroundColor: '#1a1a2e',
+    borderRadius: 8,
+    paddingVertical: 8,
+    alignItems: 'center'
   },
   btnDisabled: { backgroundColor: '#ddd' },
   btnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
-  btnTextDim: { color: '#aaa' },
+  btnTextDim: { color: '#aaa' }
 });
 
 export default SegmentMapPicker;

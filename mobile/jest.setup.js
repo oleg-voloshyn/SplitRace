@@ -5,11 +5,11 @@ jest.mock('expo-location', () => ({
   requestBackgroundPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted' }),
   startLocationUpdatesAsync: jest.fn().mockResolvedValue(undefined),
   stopLocationUpdatesAsync: jest.fn().mockResolvedValue(undefined),
-  Accuracy: { BestForNavigation: 6 },
+  Accuracy: { BestForNavigation: 6 }
 }));
 
 jest.mock('expo-task-manager', () => ({
-  defineTask: jest.fn(),
+  defineTask: jest.fn()
 }));
 
 jest.mock('expo-notifications', () => ({
@@ -18,25 +18,25 @@ jest.mock('expo-notifications', () => ({
   getPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted' }),
   requestPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted' }),
   getExpoPushTokenAsync: jest.fn().mockResolvedValue({ data: 'ExponentPushToken[test]' }),
-  AndroidImportance: { MAX: 5 },
+  AndroidImportance: { MAX: 5 }
 }));
 
 jest.mock('expo-device', () => ({
-  isDevice: true,
+  isDevice: true
 }));
 
 jest.mock('expo-constants', () => ({
   default: {
     easConfig: { projectId: 'test-project-id' },
-    expoConfig: { extra: { eas: { projectId: 'test-project-id' } } },
+    expoConfig: { extra: { eas: { projectId: 'test-project-id' } } }
   },
-  easConfig: { projectId: 'test-project-id' },
+  easConfig: { projectId: 'test-project-id' }
 }));
 
 jest.mock('expo-secure-store', () => ({
   getItemAsync: jest.fn().mockResolvedValue(null),
   setItemAsync: jest.fn().mockResolvedValue(undefined),
-  deleteItemAsync: jest.fn().mockResolvedValue(undefined),
+  deleteItemAsync: jest.fn().mockResolvedValue(undefined)
 }));
 
 jest.mock('@react-native-async-storage/async-storage', () =>
@@ -44,7 +44,7 @@ jest.mock('@react-native-async-storage/async-storage', () =>
 );
 
 jest.mock('expo-localization', () => ({
-  getLocales: jest.fn().mockReturnValue([{ languageCode: 'en' }]),
+  getLocales: jest.fn().mockReturnValue([{ languageCode: 'en' }])
 }));
 
 global.fetch = jest.fn();

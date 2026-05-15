@@ -1,5 +1,5 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import React from 'react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import CreatorScreen from '../../screens/CreatorScreen';
 
 jest.mock('../../api/client', () => ({
@@ -9,14 +9,14 @@ jest.mock('../../api/client', () => ({
     createSegment: jest.fn(),
     createTournament: jest.fn(),
     addTournamentSegment: jest.fn(),
-    submitTournamentForReview: jest.fn(),
-  },
+    submitTournamentForReview: jest.fn()
+  }
 }));
 
 jest.mock('../../utils/geoUtils', () => ({
   reverseGeocode: jest.fn().mockResolvedValue({ city: 'Kyiv', country: 'UA' }),
   routeDistance: jest.fn().mockReturnValue(0),
-  formatDistance: jest.fn().mockReturnValue('-'),
+  formatDistance: jest.fn().mockReturnValue('-')
 }));
 
 const mockT = (key, opts) => {
@@ -43,28 +43,35 @@ const mockT = (key, opts) => {
     'creator.noSegments': 'No segments',
     'creator.addSegment': 'Add segment',
     'creator.submitReview': 'Submit',
-    'common.error': 'Error',
+    'common.error': 'Error'
   };
   return map[key] ?? key;
 };
 
 jest.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: mockT }),
+  useTranslation: () => ({ t: mockT })
 }));
 
 jest.mock('../../components/SegmentMapPicker', () => {
   const React = require('react');
   const { View, Text, TouchableOpacity } = require('react-native');
   return ({ onPointsChange, hint, undoLabel, clearLabel }) =>
-    React.createElement(View, { testID: 'segment-map' },
+    React.createElement(
+      View,
+      { testID: 'segment-map' },
       React.createElement(Text, null, hint),
-      React.createElement(TouchableOpacity, {
-        testID: 'add-point-btn',
-        onPress: () => onPointsChange([
-          { lat: 50.45, lng: 30.52 },
-          { lat: 50.46, lng: 30.53 },
-        ]),
-      }, React.createElement(Text, null, 'Add Points')),
+      React.createElement(
+        TouchableOpacity,
+        {
+          testID: 'add-point-btn',
+          onPress: () =>
+            onPointsChange([
+              { lat: 50.45, lng: 30.52 },
+              { lat: 50.46, lng: 30.53 }
+            ])
+        },
+        React.createElement(Text, null, 'Add Points')
+      )
     );
 });
 
@@ -100,10 +107,7 @@ describe('CreatorScreen', () => {
     fireEvent.press(screen.getByText('Create segment'));
 
     await waitFor(() => {
-      expect(alertSpy).toHaveBeenCalledWith(
-        'Error',
-        'Draw a route — at least 2 points required'
-      );
+      expect(alertSpy).toHaveBeenCalledWith('Error', 'Draw a route — at least 2 points required');
     });
   });
 
@@ -126,7 +130,7 @@ describe('CreatorScreen', () => {
       expect(api.createSegment).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'Test Hill',
-          points: expect.arrayContaining([expect.objectContaining({ lat: 50.45 })]),
+          points: expect.arrayContaining([expect.objectContaining({ lat: 50.45 })])
         })
       );
     });
@@ -148,8 +152,8 @@ describe('CreatorScreen', () => {
         status: 'draft',
         slug: 'spring-race',
         total_segments_count: 2,
-        segments: [],
-      },
+        segments: []
+      }
     ]);
     api.mySegments.mockResolvedValueOnce([]);
 

@@ -28,7 +28,10 @@ describe('routeDistance', () => {
   });
 
   it('returns positive value for two distinct points', () => {
-    const pts = [{ lat: 50.45, lng: 30.52 }, { lat: 50.46, lng: 30.53 }];
+    const pts = [
+      { lat: 50.45, lng: 30.52 },
+      { lat: 50.46, lng: 30.53 }
+    ];
     expect(routeDistance(pts)).toBeGreaterThan(0);
   });
 
@@ -51,8 +54,8 @@ describe('reverseGeocode', () => {
     global.fetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
-        address: { city: 'Kyiv', country_code: 'ua' },
-      }),
+        address: { city: 'Kyiv', country_code: 'ua' }
+      })
     });
 
     const result = await reverseGeocode(50.45, 30.52);
@@ -75,8 +78,8 @@ describe('reverseGeocode', () => {
     global.fetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
-        address: { town: 'Brovary', country_code: 'ua' },
-      }),
+        address: { town: 'Brovary', country_code: 'ua' }
+      })
     });
     const result = await reverseGeocode(50.5, 30.8);
     expect(result.city).toBe('Brovary');
@@ -85,14 +88,10 @@ describe('reverseGeocode', () => {
   it('calls nominatim with correct coordinates', async () => {
     global.fetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ address: {} }),
+      json: async () => ({ address: {} })
     });
     await reverseGeocode(48.123, 24.456);
-    expect(global.fetch).toHaveBeenCalledWith(
-      expect.stringContaining('lat=48.123')
-    );
-    expect(global.fetch).toHaveBeenCalledWith(
-      expect.stringContaining('lon=24.456')
-    );
+    expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining('lat=48.123'));
+    expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining('lon=24.456'));
   });
 });

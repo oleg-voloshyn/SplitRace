@@ -1,6 +1,6 @@
+import React from 'react';
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 import * as SecureStore from 'expo-secure-store';
-import React from 'react';
 import { api, tokenStore } from '../../api/client';
 import { AuthProvider, useAuth } from '../../contexts/AuthContext';
 
@@ -8,17 +8,17 @@ jest.mock('../../api/client', () => ({
   api: {
     me: jest.fn(),
     login: jest.fn(),
-    register: jest.fn(),
+    register: jest.fn()
   },
   tokenStore: {
     set: jest.fn().mockResolvedValue(undefined),
-    delete: jest.fn().mockResolvedValue(undefined),
-  },
+    delete: jest.fn().mockResolvedValue(undefined)
+  }
 }));
 
 jest.mock('../../services/pushNotifications', () => ({
   registerForPushNotificationsAsync: jest.fn().mockResolvedValue(null),
-  unregisterPushNotificationsAsync: jest.fn().mockResolvedValue(undefined),
+  unregisterPushNotificationsAsync: jest.fn().mockResolvedValue(undefined)
 }));
 
 const wrapper = ({ children }) => <AuthProvider>{children}</AuthProvider>;
@@ -72,7 +72,7 @@ describe('AuthContext — login', () => {
     await waitFor(() => expect(result.current.loading).toBe(false));
 
     await expect(result.current.login('x@y.com', 'wrong')).rejects.toEqual({
-      errors: ['Bad credentials'],
+      errors: ['Bad credentials']
     });
   });
 });

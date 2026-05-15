@@ -1,5 +1,5 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import React from 'react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { AuthProvider } from '../../contexts/AuthContext';
 import LoginScreen from '../../screens/LoginScreen';
 
@@ -7,17 +7,17 @@ jest.mock('../../api/client', () => ({
   api: {
     me: jest.fn().mockRejectedValue(new Error('')),
     login: jest.fn(),
-    register: jest.fn(),
+    register: jest.fn()
   },
   tokenStore: {
     set: jest.fn().mockResolvedValue(undefined),
-    delete: jest.fn().mockResolvedValue(undefined),
-  },
+    delete: jest.fn().mockResolvedValue(undefined)
+  }
 }));
 
 jest.mock('../../services/pushNotifications', () => ({
   registerForPushNotificationsAsync: jest.fn().mockResolvedValue(null),
-  unregisterPushNotificationsAsync: jest.fn().mockResolvedValue(undefined),
+  unregisterPushNotificationsAsync: jest.fn().mockResolvedValue(undefined)
 }));
 
 function renderLogin() {

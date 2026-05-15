@@ -6,8 +6,8 @@ import { api } from '../../api/client';
 jest.mock('../../api/client', () => ({
   api: {
     registerPushToken: jest.fn().mockResolvedValue({}),
-    unregisterPushToken: jest.fn().mockResolvedValue({}),
-  },
+    unregisterPushToken: jest.fn().mockResolvedValue({})
+  }
 }));
 
 describe('registerForPushNotificationsAsync', () => {
@@ -16,10 +16,10 @@ describe('registerForPushNotificationsAsync', () => {
     jest.mock('expo-device', () => ({ isDevice: false }));
     jest.mock('expo-notifications', () => ({
       setNotificationHandler: jest.fn(),
-      AndroidImportance: { MAX: 5 },
+      AndroidImportance: { MAX: 5 }
     }));
     jest.mock('../../api/client', () => ({
-      api: { registerPushToken: jest.fn() },
+      api: { registerPushToken: jest.fn() }
     }));
 
     const { registerForPushNotificationsAsync } = require('../../services/pushNotifications');
@@ -35,17 +35,17 @@ describe('registerForPushNotificationsAsync', () => {
       getPermissionsAsync: jest.fn().mockResolvedValue({ status: 'denied' }),
       requestPermissionsAsync: jest.fn().mockResolvedValue({ status: 'denied' }),
       setNotificationChannelAsync: jest.fn().mockResolvedValue(undefined),
-      AndroidImportance: { MAX: 5 },
+      AndroidImportance: { MAX: 5 }
     }));
     jest.mock('expo-secure-store', () => ({
       getItemAsync: jest.fn().mockResolvedValue(null),
-      setItemAsync: jest.fn().mockResolvedValue(undefined),
+      setItemAsync: jest.fn().mockResolvedValue(undefined)
     }));
     jest.mock('expo-constants', () => ({
-      default: { easConfig: { projectId: 'pid' } },
+      default: { easConfig: { projectId: 'pid' } }
     }));
     jest.mock('../../api/client', () => ({
-      api: { registerPushToken: jest.fn() },
+      api: { registerPushToken: jest.fn() }
     }));
 
     const { registerForPushNotificationsAsync } = require('../../services/pushNotifications');
@@ -63,16 +63,16 @@ describe('registerForPushNotificationsAsync', () => {
       requestPermissionsAsync: mockRequestPermissions,
       getExpoPushTokenAsync: jest.fn().mockResolvedValue({ data: 'ExponentPushToken[abc]' }),
       setNotificationChannelAsync: jest.fn().mockResolvedValue(undefined),
-      AndroidImportance: { MAX: 5 },
+      AndroidImportance: { MAX: 5 }
     }));
     jest.mock('expo-secure-store', () => ({
-      setItemAsync: jest.fn().mockResolvedValue(undefined),
+      setItemAsync: jest.fn().mockResolvedValue(undefined)
     }));
     jest.mock('expo-constants', () => ({
-      default: { easConfig: { projectId: 'pid' } },
+      default: { easConfig: { projectId: 'pid' } }
     }));
     jest.mock('../../api/client', () => ({
-      api: { registerPushToken: jest.fn().mockResolvedValue({}) },
+      api: { registerPushToken: jest.fn().mockResolvedValue({}) }
     }));
 
     const { registerForPushNotificationsAsync } = require('../../services/pushNotifications');
@@ -87,10 +87,10 @@ describe('unregisterPushNotificationsAsync', () => {
     jest.mock('expo-notifications', () => ({ setNotificationHandler: jest.fn() }));
     jest.mock('expo-secure-store', () => ({
       getItemAsync: jest.fn().mockResolvedValue(null),
-      deleteItemAsync: jest.fn().mockResolvedValue(undefined),
+      deleteItemAsync: jest.fn().mockResolvedValue(undefined)
     }));
     jest.mock('../../api/client', () => ({
-      api: { unregisterPushToken: jest.fn() },
+      api: { unregisterPushToken: jest.fn() }
     }));
 
     const { unregisterPushNotificationsAsync } = require('../../services/pushNotifications');
@@ -107,10 +107,10 @@ describe('unregisterPushNotificationsAsync', () => {
     jest.mock('expo-notifications', () => ({ setNotificationHandler: jest.fn() }));
     jest.mock('expo-secure-store', () => ({
       getItemAsync: jest.fn().mockResolvedValue('ExponentPushToken[xyz]'),
-      deleteItemAsync: mockDeleteItem,
+      deleteItemAsync: mockDeleteItem
     }));
     jest.mock('../../api/client', () => ({
-      api: { unregisterPushToken: mockUnregister },
+      api: { unregisterPushToken: mockUnregister }
     }));
 
     const { unregisterPushNotificationsAsync } = require('../../services/pushNotifications');
