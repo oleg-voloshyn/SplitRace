@@ -71,7 +71,7 @@ function TournamentScreen() {
   }
 
   const isParticipant = data.is_participating;
-  const canJoin = data.status === 'active' && !isParticipant;
+  const canJoin = data.status === 'active' && data.can_participate !== false && !isParticipant;
 
   return (
     <View style={s.screen}>
@@ -141,10 +141,7 @@ function TournamentScreen() {
 
       {tab === 'segments' && (
         <ScrollView style={{ flex: 1 }}>
-          <SegmentsMap
-            segments={data.segments ?? []}
-            style={{ height: 280 }}
-          />
+          <SegmentsMap segments={data.segments ?? []} style={{ height: 280 }} />
           <View style={s.segList}>
             {(data.segments ?? []).length === 0 ? (
               <Text style={s.empty}>{t('tournaments.noSegments')}</Text>
@@ -156,18 +153,14 @@ function TournamentScreen() {
                     <View style={[s.segColorDot, { backgroundColor: segColor(i) }]} />
                     <View style={{ flex: 1 }}>
                       <Text style={s.segName}>{ts.segment.name}</Text>
-                      {(ts.segment.city || ts.segment.country) ? (
-                        <Text style={s.segLoc}>
-                          {[ts.segment.city, ts.segment.country].filter(Boolean).join(', ')}
-                        </Text>
+                      {ts.segment.city || ts.segment.country ? (
+                        <Text style={s.segLoc}>{[ts.segment.city, ts.segment.country].filter(Boolean).join(', ')}</Text>
                       ) : null}
                     </View>
                     <View style={{ alignItems: 'flex-end' }}>
                       <Text style={s.segOrder}>#{ts.order_number}</Text>
                       {ts.segment.distance_meters != null ? (
-                        <Text style={s.segDist}>
-                          {(ts.segment.distance_meters / 1000).toFixed(2)} km
-                        </Text>
+                        <Text style={s.segDist}>{(ts.segment.distance_meters / 1000).toFixed(2)} km</Text>
                       ) : null}
                     </View>
                   </View>

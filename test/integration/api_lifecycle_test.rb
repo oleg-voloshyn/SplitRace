@@ -94,6 +94,23 @@ class ApiLifecycleTest < ActionDispatch::IntegrationTest
     assert_equal 'Tournament is not active', response.parsed_body['error']
   end
 
+  test 'club cannot participate in active tournament' do
+    owner = create_user(email: 'club-participation-owner@example.com')
+    club = create_club(
+      email: 'club-participation@example.com',
+      club_name: 'Lifecycle Running Club'
+    )
+    tournament = create_tournament(owner, status: 'active')
+
+    assert_no_difference 'TournamentParticipant.count' do
+      post join_api_v1_tournament_path(tournament.slug), headers: auth_headers(club)
+    end
+
+    assert_response :forbidden
+    assert_equal 'Running clubs cannot participate in tournaments', response.parsed_body['error']
+    assert_not tournament.tournament_participants.build(user: club).valid?
+  end
+
   test 'user can leave tournament and second leave is rejected' do
     owner = create_user(email: 'leave-owner@example.com')
     user = create_user(email: 'leave-runner@example.com')
@@ -264,6 +281,16 @@ class ApiLifecycleTest < ActionDispatch::IntegrationTest
       role:,
       gender:,
       first_name:
+    )
+  end
+
+  def create_club(email:, club_name:)
+    User.create!(
+      email:,
+      password: 'password123',
+      password_confirmation: 'password123',
+      account_type: 'club',
+      club_name:
     )
   end
 

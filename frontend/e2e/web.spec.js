@@ -12,10 +12,15 @@ test('landing page starts club registration flow', async ({ page }) => {
   await expect(page).toHaveURL(/\/login\?mode=register&type=club/);
   await expect(page.getByRole('heading', { name: 'Register' })).toBeVisible();
   await expect(page.getByLabel('Running club')).toBeChecked();
+  await expect(page.getByPlaceholder('First Name')).toHaveCount(0);
+  await expect(page.getByPlaceholder('Last Name')).toHaveCount(0);
+  await expect(page.getByText('Gender *')).toHaveCount(0);
+  await expect(page.getByText('Or continue with')).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Google' })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Apple' })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Strava' })).toHaveCount(0);
 
   await page.getByPlaceholder('Club name').fill('E2E Running Club');
-  await page.getByPlaceholder('First Name').fill('Club');
-  await page.getByLabel('Other').check();
   await page.getByPlaceholder('Email').fill(email);
   await page.getByPlaceholder('Password').fill(password);
   await page.getByRole('button', { name: 'Register' }).click();

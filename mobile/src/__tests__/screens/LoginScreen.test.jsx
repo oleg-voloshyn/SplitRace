@@ -28,6 +28,12 @@ function renderLogin() {
   );
 }
 
+beforeEach(() => {
+  jest.clearAllMocks();
+  const { api } = require('../../api/client');
+  api.me.mockRejectedValue(new Error(''));
+});
+
 describe('LoginScreen — render', () => {
   it('shows SplitRace logo', () => {
     renderLogin();
@@ -79,6 +85,41 @@ describe('LoginScreen — register tab', () => {
       expect(screen.getByText('Please select gender')).toBeTruthy();
     });
     expect(api.register).not.toHaveBeenCalled();
+  });
+
+  it('hides runner-only fields for club registration', () => {
+    renderLogin();
+    fireEvent.press(screen.getByText('Register'));
+    fireEvent.press(screen.getByText('Running club'));
+
+    expect(screen.getByPlaceholderText('Club name')).toBeTruthy();
+    expect(screen.queryByPlaceholderText('First name')).toBeNull();
+    expect(screen.queryByPlaceholderText('Last name')).toBeNull();
+    expect(screen.queryByText('Gender')).toBeNull();
+    expect(screen.queryByText('Male')).toBeNull();
+    expect(screen.queryByText('Female')).toBeNull();
+    expect(screen.queryByText('Other')).toBeNull();
+  });
+
+  it('registers a club without gender or runner profile fields', async () => {
+    const { api } = require('../../api/client');
+    api.register.mockResolvedValueOnce({ token: 'tok', user: { id: 1, account_type: 'club' } });
+    renderLogin();
+    fireEvent.press(screen.getByText('Register'));
+    fireEvent.press(screen.getByText('Running club'));
+    fireEvent.changeText(screen.getByPlaceholderText('Club name'), 'Mobile Club');
+    fireEvent.changeText(screen.getByPlaceholderText('Email'), 'club@test.com');
+    fireEvent.changeText(screen.getByPlaceholderText('Password'), 'secret');
+    fireEvent.press(screen.getByText('Create Account'));
+
+    await waitFor(() => {
+      expect(api.register).toHaveBeenCalledWith({
+        account_type: 'club',
+        club_name: 'Mobile Club',
+        email: 'club@test.com',
+        password: 'secret'
+      });
+    });
   });
 });
 

@@ -72,6 +72,10 @@ module Api
       end
 
       def join
+        if current_user.club?
+          return render json: { error: 'Running clubs cannot participate in tournaments' }, status: :forbidden
+        end
+
         return render json: { error: 'Already joined' }, status: :unprocessable_content if @tournament.participating?(current_user)
         return render json: { error: 'Tournament is not active' }, status: :unprocessable_content unless @tournament.status == 'active'
 
@@ -147,6 +151,7 @@ module Api
       end
 
       def tournament_json(tournament, detailed: false, owned: false)
+        can_participate = !current_user.club?
         data = {
           id: tournament.id,
           name: tournament.name,
@@ -168,7 +173,8 @@ module Api
             account_type: tournament.created_by.account_type
           },
           is_owner: tournament.created_by_id == current_user.id,
-          is_participating: tournament.participating?(current_user)
+          is_participating: can_participate && tournament.participating?(current_user),
+          can_participate:
         }
 
         if detailed || owned

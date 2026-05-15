@@ -10,16 +10,10 @@ function ProfileScreen() {
   const { t, i18n } = useTranslation();
   const { user, setUser, logout } = useAuth();
   const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState({
-    first_name: user?.first_name || '',
-    last_name: user?.last_name || '',
-    gender: user?.gender || '',
-    units: user?.units || 'km',
-    country: user?.country || '',
-    city: user?.city || ''
-  });
+  const [form, setForm] = useState(() => profileFormFromUser(user));
   const [activities, setActivities] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
+  const isClub = user?.account_type === 'club';
 
   useEffect(() => {
     api
@@ -29,20 +23,13 @@ function ProfileScreen() {
   }, []);
 
   function startEdit() {
-    setForm({
-      first_name: user?.first_name || '',
-      last_name: user?.last_name || '',
-      gender: user?.gender || '',
-      units: user?.units || 'km',
-      country: user?.country || '',
-      city: user?.city || ''
-    });
+    setForm(profileFormFromUser(user));
     setEditing(true);
   }
 
   async function handleSave() {
     try {
-      const updated = await api.updateMe(form);
+      const updated = await api.updateMe(profilePayload(form, isClub));
       setUser(updated);
       setEditing(false);
     } catch {
@@ -61,8 +48,10 @@ function ProfileScreen() {
     ]);
   }
 
-  const initials = (user?.first_name?.[0] || user?.email?.[0] || '?').toUpperCase();
-  const fullName = [user?.first_name, user?.last_name].filter(Boolean).join(' ') || '—';
+  const initials = (user?.club_name?.[0] || user?.first_name?.[0] || user?.email?.[0] || '?').toUpperCase();
+  const fullName = isClub
+    ? user?.club_name || '—'
+    : [user?.first_name, user?.last_name].filter(Boolean).join(' ') || '—';
 
   return (
     <ScrollView style={s.scroll} contentContainerStyle={s.container}>
@@ -79,7 +68,7 @@ function ProfileScreen() {
         <Text style={s.userEmail}>{user?.email}</Text>
       </View>
 
-      {!user?.gender && !editing && (
+      {!isClub && !user?.gender && !editing && (
         <View style={s.warning}>
           <Text style={s.warningText}>{t('profile.genderWarning')}</Text>
         </View>
@@ -89,9 +78,15 @@ function ProfileScreen() {
       <View style={s.section}>
         {!editing ? (
           <>
-            <InfoRow label={t('auth.firstName')} value={user?.first_name || '—'} />
-            <InfoRow label={t('auth.lastName')} value={user?.last_name || '—'} />
-            <InfoRow label={t('auth.gender')} value={user?.gender ? t(`auth.gender_${user.gender}`) : '—'} />
+            {isClub ? (
+              <InfoRow label={t('auth.clubName')} value={user?.club_name || '—'} />
+            ) : (
+              <>
+                <InfoRow label={t('auth.firstName')} value={user?.first_name || '—'} />
+                <InfoRow label={t('auth.lastName')} value={user?.last_name || '—'} />
+                <InfoRow label={t('auth.gender')} value={user?.gender ? t(`auth.gender_${user.gender}`) : '—'} />
+              </>
+            )}
             <InfoRow
               label={t('profile.units')}
               value={user?.units === 'miles' ? t('profile.miles') : t('profile.km')}
@@ -104,40 +99,54 @@ function ProfileScreen() {
           </>
         ) : (
           <>
-            <Text style={s.label}>{t('auth.firstName')}</Text>
-            <TextInput
-              style={s.input}
-              value={form.first_name}
-              onChangeText={(v) => setForm((f) => ({ ...f, first_name: v }))}
-              placeholder={t('auth.firstName')}
-            />
+            {isClub ? (
+              <>
+                <Text style={s.label}>{t('auth.clubName')}</Text>
+                <TextInput
+                  style={s.input}
+                  value={form.club_name}
+                  onChangeText={(v) => setForm((f) => ({ ...f, club_name: v }))}
+                  placeholder={t('auth.clubName')}
+                />
+              </>
+            ) : (
+              <>
+                <Text style={s.label}>{t('auth.firstName')}</Text>
+                <TextInput
+                  style={s.input}
+                  value={form.first_name}
+                  onChangeText={(v) => setForm((f) => ({ ...f, first_name: v }))}
+                  placeholder={t('auth.firstName')}
+                />
 
-            <Text style={s.label}>{t('auth.lastName')}</Text>
-            <TextInput
-              style={s.input}
-              value={form.last_name}
-              onChangeText={(v) => setForm((f) => ({ ...f, last_name: v }))}
-              placeholder={t('auth.lastName')}
-            />
+                <Text style={s.label}>{t('auth.lastName')}</Text>
+                <TextInput
+                  style={s.input}
+                  value={form.last_name}
+                  onChangeText={(v) => setForm((f) => ({ ...f, last_name: v }))}
+                  placeholder={t('auth.lastName')}
+                />
 
-            <Text style={s.label}>{t('auth.gender')}</Text>
-            <View style={s.genderRow}>
-              {['male', 'female', 'other'].map((g) => {
-                const active = form.gender === g;
-                return (
-                  <TouchableOpacity
-                    key={g}
-                    style={[s.genderBtn, active && s.genderBtnActive]}
-                    onPress={() => setForm((f) => ({ ...f, gender: g }))}
-                  >
-                    <Text style={[s.genderText, active && s.genderTextActive]}>
-                      {active ? '✓ ' : ''}
-                      {t(`auth.gender_${g}`)}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
+                <Text style={s.label}>{t('auth.gender')}</Text>
+                <View style={s.genderRow}>
+                  {['male', 'female', 'other'].map((g) => {
+                    const active = form.gender === g;
+                    return (
+                      <TouchableOpacity
+                        key={g}
+                        style={[s.genderBtn, active && s.genderBtnActive]}
+                        onPress={() => setForm((f) => ({ ...f, gender: g }))}
+                      >
+                        <Text style={[s.genderText, active && s.genderTextActive]}>
+                          {active ? '✓ ' : ''}
+                          {t(`auth.gender_${g}`)}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </>
+            )}
 
             <Text style={s.label}>{t('profile.units')}</Text>
             <View style={s.genderRow}>
@@ -292,6 +301,31 @@ function buildActivityShareText(activity, t) {
     segmentLines,
     'SplitRace'
   ].join('\n');
+}
+
+function profileFormFromUser(user) {
+  return {
+    club_name: user?.club_name || '',
+    first_name: user?.first_name || '',
+    last_name: user?.last_name || '',
+    gender: user?.gender || '',
+    units: user?.units || 'km',
+    country: user?.country || '',
+    city: user?.city || ''
+  };
+}
+
+function profilePayload(form, isClub) {
+  if (isClub) {
+    return {
+      club_name: form.club_name,
+      units: form.units,
+      country: form.country,
+      city: form.city
+    };
+  }
+
+  return form;
 }
 
 function InfoRow({ label, value }) {

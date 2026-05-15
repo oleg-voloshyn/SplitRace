@@ -1,15 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
-import {
-  ActivityIndicator,
-  Alert,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
-} from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { api } from '../api/client';
 
 function CreatorTournamentScreen() {
@@ -36,7 +28,11 @@ function CreatorTournamentScreen() {
   }, [slug, navigation, t]);
 
   useEffect(() => {
-    load();
+    const timer = setTimeout(() => {
+      load();
+    }, 0);
+
+    return () => clearTimeout(timer);
   }, [load]);
 
   async function handleAddSegment(segment) {
@@ -72,13 +68,13 @@ function CreatorTournamentScreen() {
     );
   }
 
-  if (!tournament) return null;
+  if (!tournament) {
+    return null;
+  }
 
   const isEditable = tournament.status === 'draft' || tournament.status === 'rejected';
   const sortedSegments = [...(tournament.segments || [])].sort((a, b) => a.order_number - b.order_number);
-  const available = mySegments.filter(
-    (seg) => !tournament.segments?.some((ts) => ts.segment.id === seg.id)
-  );
+  const available = mySegments.filter((seg) => !tournament.segments?.some((ts) => ts.segment.id === seg.id));
 
   return (
     <ScrollView style={s.scroll} contentContainerStyle={s.container}>
@@ -117,9 +113,7 @@ function CreatorTournamentScreen() {
       {isEditable && (
         <View style={s.card}>
           <TouchableOpacity style={s.addToggle} onPress={() => setShowAdd(!showAdd)}>
-            <Text style={s.addToggleText}>
-              {showAdd ? t('creator.cancelAdd') : t('creator.addSegmentBtn')}
-            </Text>
+            <Text style={s.addToggleText}>{showAdd ? t('creator.cancelAdd') : t('creator.addSegmentBtn')}</Text>
           </TouchableOpacity>
           {showAdd &&
             (available.length === 0 ? (

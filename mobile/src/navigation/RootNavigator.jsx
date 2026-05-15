@@ -61,7 +61,9 @@ function TabIcon({ name, focused }) {
 function AppTabs() {
   const { t } = useTranslation();
   const navigation = useNavigation();
+  const { user } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
+  const isClub = user?.account_type === 'club';
 
   const refreshUnreadCount = useCallback(() => {
     api
@@ -114,11 +116,13 @@ function AppTabs() {
         component={TournamentsStack}
         options={{ headerShown: false, tabBarLabel: t('nav.tournaments') }}
       />
-      <Tab.Screen
-        name="Run"
-        component={RunTrackerScreen}
-        options={{ title: t('nav.run'), tabBarLabel: t('nav.run') }}
-      />
+      {!isClub && (
+        <Tab.Screen
+          name="Run"
+          component={RunTrackerScreen}
+          options={{ title: t('nav.run'), tabBarLabel: t('nav.run') }}
+        />
+      )}
       <Tab.Screen
         name="Creator"
         component={CreatorStack}

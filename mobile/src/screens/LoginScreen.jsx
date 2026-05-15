@@ -28,8 +28,38 @@ function LoginScreen() {
   });
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const isClubRegistration = mode === 'register' && form.account_type === 'club';
 
   const set = (key) => (val) => setForm((f) => ({ ...f, [key]: val }));
+  const setAccountType = (accountType) =>
+    setForm((current) => ({
+      ...current,
+      account_type: accountType,
+      club_name: accountType === 'club' ? current.club_name : '',
+      first_name: accountType === 'user' ? current.first_name : '',
+      last_name: accountType === 'user' ? current.last_name : '',
+      gender: accountType === 'user' ? current.gender : ''
+    }));
+
+  function registrationPayload() {
+    if (form.account_type === 'club') {
+      return {
+        account_type: 'club',
+        club_name: form.club_name.trim(),
+        email: form.email.trim(),
+        password: form.password
+      };
+    }
+
+    return {
+      account_type: 'user',
+      email: form.email.trim(),
+      password: form.password,
+      first_name: form.first_name,
+      last_name: form.last_name,
+      gender: form.gender
+    };
+  }
 
   async function submit() {
     setError(null);
@@ -38,18 +68,12 @@ function LoginScreen() {
       if (mode === 'login') {
         await login(form.email.trim(), form.password);
       } else {
-        if (!form.gender) {
+        if (!isClubRegistration && !form.gender) {
           setError(t('auth.selectGender'));
           setLoading(false);
           return;
         }
-        await register({
-          email: form.email.trim(),
-          password: form.password,
-          first_name: form.first_name,
-          last_name: form.last_name,
-          gender: form.gender
-        });
+        await register(registrationPayload());
       }
     } catch (e) {
       setError(e?.errors?.join(', ') || e?.error || t('auth.somethingWrong'));
@@ -99,7 +123,7 @@ function LoginScreen() {
                   <TouchableOpacity
                     key={type}
                     style={[s.genderBtn, form.account_type === type && s.genderBtnActive]}
-                    onPress={() => set('account_type')(type)}
+                    onPress={() => setAccountType(type)}
                   >
                     <Text style={[s.genderText, form.account_type === type && s.genderTextActive]}>
                       {t(`auth.account_${type}`)}
@@ -115,30 +139,36 @@ function LoginScreen() {
                   onChangeText={set('club_name')}
                 />
               )}
-              <TextInput
-                style={s.input}
-                placeholder={t('auth.firstName')}
-                value={form.first_name}
-                onChangeText={set('first_name')}
-              />
-              <TextInput
-                style={s.input}
-                placeholder={t('auth.lastName')}
-                value={form.last_name}
-                onChangeText={set('last_name')}
-              />
-              <Text style={s.label}>{t('auth.gender')}</Text>
-              <View style={s.genderRow}>
-                {['male', 'female', 'other'].map((g) => (
-                  <TouchableOpacity
-                    key={g}
-                    style={[s.genderBtn, form.gender === g && s.genderBtnActive]}
-                    onPress={() => set('gender')(g)}
-                  >
-                    <Text style={[s.genderText, form.gender === g && s.genderTextActive]}>{t(`auth.gender_${g}`)}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+              {!isClubRegistration && (
+                <>
+                  <TextInput
+                    style={s.input}
+                    placeholder={t('auth.firstName')}
+                    value={form.first_name}
+                    onChangeText={set('first_name')}
+                  />
+                  <TextInput
+                    style={s.input}
+                    placeholder={t('auth.lastName')}
+                    value={form.last_name}
+                    onChangeText={set('last_name')}
+                  />
+                  <Text style={s.label}>{t('auth.gender')}</Text>
+                  <View style={s.genderRow}>
+                    {['male', 'female', 'other'].map((g) => (
+                      <TouchableOpacity
+                        key={g}
+                        style={[s.genderBtn, form.gender === g && s.genderBtnActive]}
+                        onPress={() => set('gender')(g)}
+                      >
+                        <Text style={[s.genderText, form.gender === g && s.genderTextActive]}>
+                          {t(`auth.gender_${g}`)}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </>
+              )}
             </>
           )}
 

@@ -299,9 +299,7 @@ function Creator() {
         {tournaments.map((tournament) => {
           const isEditable = tournament.status === 'draft' || tournament.status === 'rejected';
           const sortedSegments = [...(tournament.segments || [])].sort((a, b) => a.order_number - b.order_number);
-          const available = segmentOptions.filter(
-            (s) => !tournament.segments?.some((e) => e.segment.id === s.id)
-          );
+          const available = segmentOptions.filter((s) => !tournament.segments?.some((e) => e.segment.id === s.id));
           return (
             <div key={tournament.id} className="sr-card">
               <div className="sr-creator-card-head">
@@ -318,9 +316,7 @@ function Creator() {
                 )}
               </div>
 
-              {tournament.review_note && (
-                <p className="sr-creator-review-note">{tournament.review_note}</p>
-              )}
+              {tournament.review_note && <p className="sr-creator-review-note">{tournament.review_note}</p>}
 
               <p className="sr-creator-seg-count">
                 {sortedSegments.length} / {tournament.total_segments_count} {t('creator.segments')}
@@ -334,9 +330,7 @@ function Creator() {
                       <span className="sr-creator-seg-name">{ts.segment.name}</span>
                       {ts.is_rated && <span className="sr-creator-rated">★ {t('creator.rated')}</span>}
                       {ts.segment.distance_meters != null && (
-                        <span className="sr-creator-seg-dist">
-                          {(ts.segment.distance_meters / 1000).toFixed(2)} km
-                        </span>
+                        <span className="sr-creator-seg-dist">{(ts.segment.distance_meters / 1000).toFixed(2)} km</span>
                       )}
                     </div>
                   ))}
@@ -362,7 +356,9 @@ function Creator() {
                       style={{ marginTop: '0.6rem' }}
                       onSubmit={async (event) => {
                         const ok = await addSegment(tournament, event);
-                        if (ok) setExpandedAdd(null);
+                        if (ok) {
+                          setExpandedAdd(null);
+                        }
                       }}
                     >
                       <select name="segment_id" required>
@@ -373,12 +369,7 @@ function Creator() {
                           </option>
                         ))}
                       </select>
-                      <input
-                        name="order_number"
-                        type="number"
-                        min="1"
-                        defaultValue={sortedSegments.length + 1}
-                      />
+                      <input name="order_number" type="number" min="1" defaultValue={sortedSegments.length + 1} />
                       <label>
                         <input name="is_rated" type="checkbox" defaultChecked /> {t('creator.rated')}
                       </label>

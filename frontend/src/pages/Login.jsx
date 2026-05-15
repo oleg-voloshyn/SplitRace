@@ -24,6 +24,39 @@ function Login() {
   });
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const isRegister = mode === 'register';
+  const isClubRegistration = isRegister && form.account_type === 'club';
+
+  function updateAccountType(accountType) {
+    setForm((current) => ({
+      ...current,
+      account_type: accountType,
+      club_name: accountType === 'club' ? current.club_name : '',
+      first_name: accountType === 'user' ? current.first_name : '',
+      last_name: accountType === 'user' ? current.last_name : '',
+      gender: accountType === 'user' ? current.gender : ''
+    }));
+  }
+
+  function registrationPayload() {
+    if (form.account_type === 'club') {
+      return {
+        account_type: 'club',
+        club_name: form.club_name.trim(),
+        email: form.email.trim(),
+        password: form.password
+      };
+    }
+
+    return {
+      account_type: 'user',
+      first_name: form.first_name,
+      last_name: form.last_name,
+      gender: form.gender,
+      email: form.email.trim(),
+      password: form.password
+    };
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -33,7 +66,7 @@ function Login() {
       if (mode === 'login') {
         await login(form.email, form.password);
       } else {
-        await register(form);
+        await register(registrationPayload());
       }
       navigate(returnTo, { replace: true });
     } catch (err) {
@@ -50,7 +83,7 @@ function Login() {
       <h2>{t(`auth.${mode}`)}</h2>
       {error && <p style={{ color: 'red' }}>{error}</p>}
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-        {mode === 'register' && (
+        {isRegister && (
           <>
             <div style={{ display: 'flex', gap: '0.75rem' }}>
               {['user', 'club'].map((type) => (
@@ -60,7 +93,7 @@ function Login() {
                     name="account_type"
                     value={type}
                     checked={form.account_type === type}
-                    onChange={() => setForm({ ...form, account_type: type })}
+                    onChange={() => updateAccountType(type)}
                   />
                   {t(`auth.account_${type}`)}
                 </label>
@@ -75,36 +108,43 @@ function Login() {
                 style={inputStyle}
               />
             )}
-            <input
-              placeholder={t('auth.firstName')}
-              value={form.first_name}
-              onChange={(e) => setForm({ ...form, first_name: e.target.value })}
-              style={inputStyle}
-            />
-            <input
-              placeholder={t('auth.lastName')}
-              value={form.last_name}
-              onChange={(e) => setForm({ ...form, last_name: e.target.value })}
-              style={inputStyle}
-            />
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-              <span style={{ fontSize: '0.85rem', color: '#555' }}>{t('auth.gender')} *</span>
-              <div style={{ display: 'flex', gap: '1.5rem' }}>
-                {['male', 'female', 'other'].map((g) => (
-                  <label key={g} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer' }}>
-                    <input
-                      type="radio"
-                      name="gender"
-                      value={g}
-                      checked={form.gender === g}
-                      onChange={() => setForm({ ...form, gender: g })}
-                      required
-                    />
-                    {t(`auth.gender_${g}`)}
-                  </label>
-                ))}
-              </div>
-            </div>
+            {form.account_type === 'user' && (
+              <>
+                <input
+                  placeholder={t('auth.firstName')}
+                  value={form.first_name}
+                  onChange={(e) => setForm({ ...form, first_name: e.target.value })}
+                  style={inputStyle}
+                />
+                <input
+                  placeholder={t('auth.lastName')}
+                  value={form.last_name}
+                  onChange={(e) => setForm({ ...form, last_name: e.target.value })}
+                  style={inputStyle}
+                />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                  <span style={{ fontSize: '0.85rem', color: '#555' }}>{t('auth.gender')} *</span>
+                  <div style={{ display: 'flex', gap: '1.5rem' }}>
+                    {['male', 'female', 'other'].map((g) => (
+                      <label
+                        key={g}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer' }}
+                      >
+                        <input
+                          type="radio"
+                          name="gender"
+                          value={g}
+                          checked={form.gender === g}
+                          onChange={() => setForm({ ...form, gender: g })}
+                          required
+                        />
+                        {t(`auth.gender_${g}`)}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
           </>
         )}
         <input
@@ -128,27 +168,41 @@ function Login() {
         </button>
       </form>
 
-      <div style={{ marginTop: '1rem', textAlign: 'center' }}>
-        <p style={{ color: '#666', marginBottom: '0.5rem' }}>{t('auth.orContinueWith')}</p>
-        <a
-          href="/auth/google_oauth2"
-          style={{ ...btnStyle, display: 'inline-block', background: '#4285f4', textDecoration: 'none', color: '#fff' }}
-        >
-          Google
-        </a>{' '}
-        <a
-          href="/auth/apple"
-          style={{ ...btnStyle, display: 'inline-block', background: '#000', textDecoration: 'none', color: '#fff' }}
-        >
-          Apple
-        </a>{' '}
-        <a
-          href="/auth/strava"
-          style={{ ...btnStyle, display: 'inline-block', background: '#fc4c02', textDecoration: 'none', color: '#fff' }}
-        >
-          Strava
-        </a>
-      </div>
+      {!isClubRegistration && (
+        <div style={{ marginTop: '1rem', textAlign: 'center' }}>
+          <p style={{ color: '#666', marginBottom: '0.5rem' }}>{t('auth.orContinueWith')}</p>
+          <a
+            href="/auth/google_oauth2"
+            style={{
+              ...btnStyle,
+              display: 'inline-block',
+              background: '#4285f4',
+              textDecoration: 'none',
+              color: '#fff'
+            }}
+          >
+            Google
+          </a>{' '}
+          <a
+            href="/auth/apple"
+            style={{ ...btnStyle, display: 'inline-block', background: '#000', textDecoration: 'none', color: '#fff' }}
+          >
+            Apple
+          </a>{' '}
+          <a
+            href="/auth/strava"
+            style={{
+              ...btnStyle,
+              display: 'inline-block',
+              background: '#fc4c02',
+              textDecoration: 'none',
+              color: '#fff'
+            }}
+          >
+            Strava
+          </a>
+        </div>
+      )}
 
       <p style={{ textAlign: 'center', marginTop: '1rem' }}>
         {mode === 'login' ? t('auth.noAccount') : t('auth.hasAccount')}{' '}

@@ -7,7 +7,9 @@ const SEGMENT_COLORS = ['#e53935', '#1976d2', '#388e3c', '#f57c00', '#7b1fa2', '
 function SegmentsMap({ segments = [], style }) {
   const html = useMemo(() => buildHtml(segments), [segments]);
 
-  if (segments.length === 0) return null;
+  if (segments.length === 0) {
+    return null;
+  }
 
   return (
     <View style={[s.wrap, style]}>

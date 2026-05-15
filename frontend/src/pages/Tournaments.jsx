@@ -39,6 +39,7 @@ function Tournaments() {
 function TournamentCard({ tournament, onUpdate }) {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
+  const canParticipate = tournament.can_participate !== false;
 
   async function handleJoin(e) {
     e.preventDefault();
@@ -93,7 +94,7 @@ function TournamentCard({ tournament, onUpdate }) {
       </div>
 
       <div style={{ marginTop: 'auto', paddingTop: '0.5rem' }}>
-        {tournament.status === 'active' && !tournament.is_participating && (
+        {tournament.status === 'active' && canParticipate && !tournament.is_participating && (
           <button
             onClick={handleJoin}
             disabled={loading}

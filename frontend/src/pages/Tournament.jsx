@@ -95,9 +95,7 @@ function Tournament() {
                       <td className="sr-seg-num">#{ts.order_number}</td>
                       <td className="sr-seg-name">{ts.segment.name}</td>
                       <td className="sr-seg-dist">
-                        {ts.segment.distance_meters
-                          ? `${(ts.segment.distance_meters / 1000).toFixed(2)} km`
-                          : '—'}
+                        {ts.segment.distance_meters ? `${(ts.segment.distance_meters / 1000).toFixed(2)} km` : '—'}
                       </td>
                       <td className="sr-seg-loc">
                         {[ts.segment.city, ts.segment.country].filter(Boolean).join(', ') || '—'}

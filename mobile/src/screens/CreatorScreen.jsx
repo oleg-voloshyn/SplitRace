@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import * as Location from 'expo-location';
 import { useNavigation } from '@react-navigation/native';
+import * as Location from 'expo-location';
 import { useTranslation } from 'react-i18next';
 import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { api } from '../api/client';

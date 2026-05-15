@@ -14,6 +14,7 @@ function Profile() {
   const [saveError, setSaveError] = useState(null);
   const [activities, setActivities] = useState(null);
   const [expanded, setExpanded] = useState(null);
+  const isClub = user?.account_type === 'club';
 
   useEffect(() => {
     api
@@ -27,7 +28,7 @@ function Profile() {
     setSaving(true);
     setSaveError(null);
     try {
-      const updated = await api.updateMe(form);
+      const updated = await api.updateMe(profilePayload(form, isClub));
       setUser(updated);
       setForm(profileFormFromUser(updated));
       setEditing(false);
@@ -46,7 +47,9 @@ function Profile() {
     setEditing(true);
   }
 
-  const fullName = [user?.first_name, user?.last_name].filter(Boolean).join(' ') || user?.email || '—';
+  const fullName = isClub
+    ? user?.club_name || user?.email || '—'
+    : [user?.first_name, user?.last_name].filter(Boolean).join(' ') || user?.email || '—';
 
   return (
     <div>
@@ -68,7 +71,7 @@ function Profile() {
             </div>
           </div>
 
-          {!user?.gender && (
+          {!isClub && !user?.gender && (
             <div
               style={{
                 background: '#fff3cd',
@@ -86,9 +89,15 @@ function Profile() {
 
           {!editing ? (
             <div>
-              <ProfileRow label={t('auth.firstName')} value={user?.first_name || '—'} />
-              <ProfileRow label={t('auth.lastName')} value={user?.last_name || '—'} />
-              <ProfileRow label={t('auth.gender')} value={user?.gender ? t(`auth.gender_${user.gender}`) : '—'} />
+              {isClub ? (
+                <ProfileRow label={t('auth.clubName')} value={user?.club_name || '—'} />
+              ) : (
+                <>
+                  <ProfileRow label={t('auth.firstName')} value={user?.first_name || '—'} />
+                  <ProfileRow label={t('auth.lastName')} value={user?.last_name || '—'} />
+                  <ProfileRow label={t('auth.gender')} value={user?.gender ? t(`auth.gender_${user.gender}`) : '—'} />
+                </>
+              )}
               <ProfileRow
                 label={t('profile.units')}
                 value={user?.units === 'miles' ? t('profile.miles') : t('profile.km')}
@@ -102,36 +111,50 @@ function Profile() {
             </div>
           ) : (
             <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              <input
-                placeholder={t('auth.firstName')}
-                value={form.first_name}
-                onChange={(e) => setForm({ ...form, first_name: e.target.value })}
-                style={inputStyle}
-              />
-              <input
-                placeholder={t('auth.lastName')}
-                value={form.last_name}
-                onChange={(e) => setForm({ ...form, last_name: e.target.value })}
-                style={inputStyle}
-              />
+              {isClub ? (
+                <input
+                  placeholder={t('auth.clubName')}
+                  value={form.club_name}
+                  onChange={(e) => setForm({ ...form, club_name: e.target.value })}
+                  style={inputStyle}
+                />
+              ) : (
+                <>
+                  <input
+                    placeholder={t('auth.firstName')}
+                    value={form.first_name}
+                    onChange={(e) => setForm({ ...form, first_name: e.target.value })}
+                    style={inputStyle}
+                  />
+                  <input
+                    placeholder={t('auth.lastName')}
+                    value={form.last_name}
+                    onChange={(e) => setForm({ ...form, last_name: e.target.value })}
+                    style={inputStyle}
+                  />
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-                <span style={{ fontSize: '0.85rem', color: '#555' }}>{t('auth.gender')}</span>
-                <div style={{ display: 'flex', gap: '1.5rem' }}>
-                  {['male', 'female', 'other'].map((g) => (
-                    <label key={g} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer' }}>
-                      <input
-                        type="radio"
-                        name="gender"
-                        value={g}
-                        checked={form.gender === g}
-                        onChange={() => setForm({ ...form, gender: g })}
-                      />
-                      {t(`auth.gender_${g}`)}
-                    </label>
-                  ))}
-                </div>
-              </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                    <span style={{ fontSize: '0.85rem', color: '#555' }}>{t('auth.gender')}</span>
+                    <div style={{ display: 'flex', gap: '1.5rem' }}>
+                      {['male', 'female', 'other'].map((g) => (
+                        <label
+                          key={g}
+                          style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer' }}
+                        >
+                          <input
+                            type="radio"
+                            name="gender"
+                            value={g}
+                            checked={form.gender === g}
+                            onChange={() => setForm({ ...form, gender: g })}
+                          />
+                          {t(`auth.gender_${g}`)}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
 
               <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 {t('profile.units')}:
@@ -320,6 +343,7 @@ function buildActivityShareText(activity, t) {
 
 function profileFormFromUser(user) {
   return {
+    club_name: user?.club_name || '',
     first_name: user?.first_name || '',
     last_name: user?.last_name || '',
     units: user?.units || 'km',
@@ -327,6 +351,19 @@ function profileFormFromUser(user) {
     country: user?.country || '',
     city: user?.city || ''
   };
+}
+
+function profilePayload(form, isClub) {
+  if (isClub) {
+    return {
+      club_name: form.club_name,
+      units: form.units,
+      country: form.country,
+      city: form.city
+    };
+  }
+
+  return form;
 }
 
 function ProfileRow({ label, value }) {
