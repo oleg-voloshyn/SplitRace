@@ -9,7 +9,7 @@ import { defineConfig, globalIgnores } from 'eslint/config';
 import globals from 'globals';
 
 export default defineConfig([
-  globalIgnores(['dist/**', 'node_modules/**']),
+  globalIgnores(['dist/**', 'node_modules/**', 'playwright-report/**', 'test-results/**']),
   js.configs.recommended,
   {
     files: ['**/*.{js,jsx,mjs}'],
@@ -96,6 +96,14 @@ export default defineConfig([
       'simple-import-sort/exports': 'error',
       'import/group-exports': 'error',
       'import/exports-last': 'error'
+    }
+  },
+  {
+    files: ['playwright.config.js', 'e2e/**/*.js'],
+    languageOptions: {
+      globals: {
+        ...globals.node
+      }
     }
   },
   eslintPluginPrettierRecommended,
