@@ -31,7 +31,6 @@ function SegmentsMap({ segments = [], style }) {
 function buildHtml(segments) {
   const segsJson = JSON.stringify(
     segments.map((ts, i) => ({
-      order: ts.order_number ?? i + 1,
       name: ts.segment?.name ?? '',
       color: SEGMENT_COLORS[i % SEGMENT_COLORS.length],
       polyline: ts.segment?.polyline ?? [],
@@ -80,7 +79,7 @@ function buildHtml(segments) {
         var mid = line[Math.floor(line.length / 2)];
         var icon = L.divIcon({
           className: 'seg-label',
-          html: '<div class="seg-label-inner">' + seg.order + '. ' + seg.name + '</div>',
+          html: '<div class="seg-label-inner">' + seg.name + '</div>',
           iconAnchor: [0, 0]
         });
         L.marker(mid, { icon: icon }).addTo(map);

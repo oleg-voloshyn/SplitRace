@@ -14,7 +14,7 @@ module Api
       end
 
       def show
-        render json: tournament_json(@tournament, detailed: true)
+        render json: tournament_json(@tournament, detailed: true, owned: tournament_owner?(@tournament))
       end
 
       def mine
@@ -128,7 +128,11 @@ module Api
       end
 
       def require_tournament_owner!
-        render json: { error: 'Forbidden' }, status: :forbidden unless @tournament.created_by_id == current_user.id
+        render json: { error: 'Forbidden' }, status: :forbidden unless tournament_owner?(@tournament)
+      end
+
+      def tournament_owner?(tournament)
+        tournament.created_by_id == current_user.id
       end
 
       def tournament_params
@@ -178,9 +182,12 @@ module Api
         }
 
         if detailed || owned
-          data[:segments] = tournament.tournament_segments.includes(:segment).order(:order_number).map do |ts|
+          segments = tournament.tournament_segments.includes(:segment)
+          segments = owned ? segments.order(:order_number) : segments.joins(:segment).order('segments.name ASC')
+
+          data[:segments] = segments.map do |ts|
             {
-              order_number: ts.order_number,
+              order_number: owned ? ts.order_number : nil,
               is_rated: owned ? ts.is_rated : nil,
               segment: {
                 id: ts.segment.id,

@@ -51,6 +51,8 @@ function Tournament() {
   if (!tournament) {
     return <p>{t('tournaments.notFound')}</p>;
   }
+  const visibleSegments = segmentsForDisplay(tournament.segments || []);
+  const showSegmentOrder = visibleSegments.some((ts) => ts.order_number != null);
 
   return (
     <div>
@@ -70,10 +72,10 @@ function Tournament() {
         )}
       </div>
 
-      {tournament.segments?.length > 0 && (
+      {visibleSegments.length > 0 && (
         <>
           <div className="sr-card sr-tournament-map-card">
-            <MapView segments={tournament.segments.map((ts) => ts.segment)} height="440px" />
+            <MapView segments={visibleSegments.map((ts) => ts.segment)} height="440px" />
           </div>
 
           <div className="sr-card" style={{ marginBottom: '1.25rem' }}>
@@ -81,27 +83,25 @@ function Tournament() {
             <table className="sr-segment-table">
               <thead>
                 <tr>
-                  <th>#</th>
+                  {showSegmentOrder && <th>#</th>}
                   <th>{t('tournaments.segmentName')}</th>
                   <th>{t('tournaments.distance')}</th>
                   <th>{t('tournaments.location')}</th>
                 </tr>
               </thead>
               <tbody>
-                {[...tournament.segments]
-                  .sort((a, b) => a.order_number - b.order_number)
-                  .map((ts) => (
-                    <tr key={ts.segment.id}>
-                      <td className="sr-seg-num">#{ts.order_number}</td>
-                      <td className="sr-seg-name">{ts.segment.name}</td>
-                      <td className="sr-seg-dist">
-                        {ts.segment.distance_meters ? `${(ts.segment.distance_meters / 1000).toFixed(2)} km` : '—'}
-                      </td>
-                      <td className="sr-seg-loc">
-                        {[ts.segment.city, ts.segment.country].filter(Boolean).join(', ') || '—'}
-                      </td>
-                    </tr>
-                  ))}
+                {visibleSegments.map((ts) => (
+                  <tr key={ts.segment.id}>
+                    {showSegmentOrder && <td className="sr-seg-num">#{ts.order_number}</td>}
+                    <td className="sr-seg-name">{ts.segment.name}</td>
+                    <td className="sr-seg-dist">
+                      {ts.segment.distance_meters ? `${(ts.segment.distance_meters / 1000).toFixed(2)} km` : '—'}
+                    </td>
+                    <td className="sr-seg-loc">
+                      {[ts.segment.city, ts.segment.country].filter(Boolean).join(', ') || '—'}
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
@@ -329,6 +329,15 @@ function Stat({ label, value }) {
       <div className="value">{value}</div>
     </div>
   );
+}
+
+function segmentsForDisplay(segments) {
+  const copy = [...segments];
+  if (copy.every((ts) => ts.order_number != null)) {
+    return copy.sort((a, b) => a.order_number - b.order_number);
+  }
+
+  return copy.sort((a, b) => (a.segment?.name || '').localeCompare(b.segment?.name || ''));
 }
 
 const thStyle = { padding: '0.5rem', textAlign: 'left', fontWeight: '600', fontSize: '0.85rem' };

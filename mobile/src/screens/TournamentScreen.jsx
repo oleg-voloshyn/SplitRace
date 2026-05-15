@@ -72,6 +72,8 @@ function TournamentScreen() {
 
   const isParticipant = data.is_participating;
   const canJoin = data.status === 'active' && data.can_participate !== false && !isParticipant;
+  const visibleSegments = segmentsForDisplay(data.segments ?? []);
+  const showSegmentOrder = visibleSegments.some((ts) => ts.order_number != null);
 
   return (
     <View style={s.screen}>
@@ -143,28 +145,26 @@ function TournamentScreen() {
         <ScrollView style={{ flex: 1 }}>
           <SegmentsMap segments={data.segments ?? []} style={{ height: 280 }} />
           <View style={s.segList}>
-            {(data.segments ?? []).length === 0 ? (
+            {visibleSegments.length === 0 ? (
               <Text style={s.empty}>{t('tournaments.noSegments')}</Text>
             ) : (
-              [...(data.segments ?? [])]
-                .sort((a, b) => a.order_number - b.order_number)
-                .map((ts, i) => (
-                  <View key={ts.segment.id} style={s.segRow}>
-                    <View style={[s.segColorDot, { backgroundColor: segColor(i) }]} />
-                    <View style={{ flex: 1 }}>
-                      <Text style={s.segName}>{ts.segment.name}</Text>
-                      {ts.segment.city || ts.segment.country ? (
-                        <Text style={s.segLoc}>{[ts.segment.city, ts.segment.country].filter(Boolean).join(', ')}</Text>
-                      ) : null}
-                    </View>
-                    <View style={{ alignItems: 'flex-end' }}>
-                      <Text style={s.segOrder}>#{ts.order_number}</Text>
-                      {ts.segment.distance_meters != null ? (
-                        <Text style={s.segDist}>{(ts.segment.distance_meters / 1000).toFixed(2)} km</Text>
-                      ) : null}
-                    </View>
+              visibleSegments.map((ts, i) => (
+                <View key={ts.segment.id} style={s.segRow}>
+                  <View style={[s.segColorDot, { backgroundColor: segColor(i) }]} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.segName}>{ts.segment.name}</Text>
+                    {ts.segment.city || ts.segment.country ? (
+                      <Text style={s.segLoc}>{[ts.segment.city, ts.segment.country].filter(Boolean).join(', ')}</Text>
+                    ) : null}
                   </View>
-                ))
+                  <View style={{ alignItems: 'flex-end' }}>
+                    {showSegmentOrder && <Text style={s.segOrder}>#{ts.order_number}</Text>}
+                    {ts.segment.distance_meters != null ? (
+                      <Text style={s.segDist}>{(ts.segment.distance_meters / 1000).toFixed(2)} km</Text>
+                    ) : null}
+                  </View>
+                </View>
+              ))
             )}
           </View>
         </ScrollView>
@@ -286,6 +286,15 @@ function badgeColor(status) {
 const SEG_COLORS = ['#e53935', '#1976d2', '#388e3c', '#f57c00', '#7b1fa2', '#0097a7', '#c2185b', '#5d4037'];
 function segColor(index) {
   return SEG_COLORS[index % SEG_COLORS.length];
+}
+
+function segmentsForDisplay(segments) {
+  const copy = [...segments];
+  if (copy.every((ts) => ts.order_number != null)) {
+    return copy.sort((a, b) => a.order_number - b.order_number);
+  }
+
+  return copy.sort((a, b) => (a.segment?.name || '').localeCompare(b.segment?.name || ''));
 }
 
 const s = StyleSheet.create({

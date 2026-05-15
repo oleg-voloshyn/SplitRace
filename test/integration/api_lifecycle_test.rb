@@ -167,6 +167,32 @@ class ApiLifecycleTest < ActionDispatch::IntegrationTest
     assert_equal [first.id, third.id], tournament.tournament_segments.order(:order_number).pluck(:segment_id)
   end
 
+  test 'tournament details hide segment order from non owner' do
+    owner = create_user(email: 'hidden-order-owner@example.com')
+    viewer = create_user(email: 'hidden-order-viewer@example.com')
+    tournament = create_tournament(owner, status: 'active', total_segments_count: 3, rated_segments_count: 2)
+    first = create_segment(owner, name: 'Alpha Hidden')
+    second = create_segment(owner, name: 'Beta Hidden')
+    tournament.tournament_segments.create!(segment: second, order_number: 1, is_rated: true)
+    tournament.tournament_segments.create!(segment: first, order_number: 2, is_rated: false)
+
+    get api_v1_tournament_path(tournament.slug), headers: auth_headers(viewer)
+
+    assert_response :success
+    public_segments = response.parsed_body['segments']
+    public_segment_names = public_segments.map { |ts| ts.dig('segment', 'name') }
+    assert_equal ['Alpha Hidden', 'Beta Hidden'], public_segment_names
+    assert(public_segments.all? { |ts| ts['order_number'].nil? })
+    assert(public_segments.all? { |ts| ts['is_rated'].nil? })
+
+    get api_v1_tournament_path(tournament.slug), headers: auth_headers(owner)
+
+    assert_response :success
+    owner_segments = response.parsed_body['segments']
+    assert_equal [1, 2], owner_segments.pluck('order_number')
+    assert_equal [true, false], owner_segments.pluck('is_rated')
+  end
+
   test 'leaderboard orders scores and filters by gender' do
     owner = create_user(email: 'leader-owner@example.com')
     female = create_user(email: 'leader-female@example.com', gender: 'female')
