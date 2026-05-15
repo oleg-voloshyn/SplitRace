@@ -17,6 +17,7 @@
     "gender": "Gender",
     "gender_male": "Male",
     "gender_female": "Female",
+    "gender_other": "Other",
     "accountType": "Account type",
     "account_user": "Runner",
     "account_club": "Running club",

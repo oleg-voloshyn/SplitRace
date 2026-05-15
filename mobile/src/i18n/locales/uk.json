@@ -17,6 +17,7 @@
     "gender": "Стать",
     "gender_male": "Чоловіча",
     "gender_female": "Жіноча",
+    "gender_other": "Інша",
     "accountType": "Тип акаунта",
     "account_user": "Бігун",
     "account_club": "Біговий клуб",

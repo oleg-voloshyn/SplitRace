@@ -15,7 +15,11 @@
     "lastName": "Nachname",
     "orContinueWith": "Oder weiter mit",
     "noAccount": "Noch kein Konto?",
-    "hasAccount": "Schon ein Konto?"
+    "hasAccount": "Schon ein Konto?",
+    "gender": "Geschlecht",
+    "gender_male": "Männlich",
+    "gender_female": "Weiblich",
+    "gender_other": "Andere"
   },
   "tournaments": {
     "title": "Turniere",

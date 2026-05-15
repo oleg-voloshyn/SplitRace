@@ -122,7 +122,7 @@ function ProfileScreen() {
 
             <Text style={s.label}>{t('auth.gender')}</Text>
             <View style={s.genderRow}>
-              {['male', 'female'].map((g) => {
+              {['male', 'female', 'other'].map((g) => {
                 const active = form.gender === g;
                 return (
                   <TouchableOpacity

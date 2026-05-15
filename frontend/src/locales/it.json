@@ -1,6 +1,6 @@
 {
   "nav": { "tournaments": "Tornei", "run": "Avvia Corsa", "profile": "Profilo", "logout": "Esci", "login": "Accedi" },
-  "auth": { "login": "Accedi", "register": "Registrati", "email": "Email", "password": "Password", "firstName": "Nome", "lastName": "Cognome", "orContinueWith": "O continua con", "noAccount": "Non hai un account?", "hasAccount": "Hai già un account?" , "gender": "Sesso", "gender_male": "Uomo", "gender_female": "Donna"},
+  "auth": { "login": "Accedi", "register": "Registrati", "email": "Email", "password": "Password", "firstName": "Nome", "lastName": "Cognome", "orContinueWith": "O continua con", "noAccount": "Non hai un account?", "hasAccount": "Hai già un account?" , "gender": "Sesso", "gender_male": "Uomo", "gender_female": "Donna", "gender_other": "Altro"},
   "tournaments": { "title": "Tornei", "active": "Attivo", "completed": "Completato", "join": "Unisciti", "leave": "Lascia", "leaderboard": "Classifica", "participants": "{{count}} partecipanti", "segments": "{{count}} segmenti", "noTournaments": "Nessun torneo disponibile" },
   "run": { "title": "Avvia Corsa", "start": "Avvia", "stop": "Ferma e Salva", "recording": "Registrazione...", "distance": "Distanza", "duration": "Durata", "gpsWaiting": "In attesa del segnale GPS...", "saved": "Corsa salvata!" },
   "profile": { "title": "Profilo", "units": "Unità", "km": "Chilometri", "miles": "Miglia", "save": "Salva", "saving": "Salvataggio...", "cancel": "Annulla", "editInfo": "Modifica profilo", "saveError": "Impossibile salvare il profilo", "country": "Paese", "city": "Città" }

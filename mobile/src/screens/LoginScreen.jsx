@@ -129,7 +129,7 @@ function LoginScreen() {
               />
               <Text style={s.label}>{t('auth.gender')}</Text>
               <View style={s.genderRow}>
-                {['male', 'female'].map((g) => (
+                {['male', 'female', 'other'].map((g) => (
                   <TouchableOpacity
                     key={g}
                     style={[s.genderBtn, form.gender === g && s.genderBtnActive]}

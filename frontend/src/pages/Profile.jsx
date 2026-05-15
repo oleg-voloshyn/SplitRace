@@ -118,7 +118,7 @@ function Profile() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
                 <span style={{ fontSize: '0.85rem', color: '#555' }}>{t('auth.gender')}</span>
                 <div style={{ display: 'flex', gap: '1.5rem' }}>
-                  {['male', 'female'].map((g) => (
+                  {['male', 'female', 'other'].map((g) => (
                     <label key={g} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer' }}>
                       <input
                         type="radio"
