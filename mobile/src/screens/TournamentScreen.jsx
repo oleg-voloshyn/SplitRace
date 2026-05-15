@@ -6,6 +6,7 @@ import {
   Alert,
   FlatList,
   Modal,
+  ScrollView,
   Share,
   StyleSheet,
   Text,
@@ -15,6 +16,7 @@ import {
 } from 'react-native';
 import { WEB_URL, api } from '../api/client';
 import RichDescription from '../components/RichDescription';
+import SegmentsMap from '../components/SegmentsMap';
 import { useAuth } from '../contexts/AuthContext';
 
 function TournamentScreen() {
@@ -75,23 +77,50 @@ function TournamentScreen() {
     <View style={s.screen}>
       {/* Tabs */}
       <View style={s.tabs}>
-        {['info', 'leaderboard'].map((key) => (
+        {['info', 'segments', 'leaderboard'].map((key) => (
           <TouchableOpacity key={key} style={[s.tab, tab === key && s.tabActive]} onPress={() => setTab(key)}>
             <Text style={[s.tabText, tab === key && s.tabTextActive]}>
-              {key === 'info' ? t('tournaments.info') : t('tournaments.leaderboard')}
+              {key === 'info'
+                ? t('tournaments.info')
+                : key === 'segments'
+                  ? t('tournaments.segmentsTab')
+                  : t('tournaments.leaderboard')}
             </Text>
           </TouchableOpacity>
         ))}
       </View>
 
-      {tab === 'info' ? (
-        <View style={s.info}>
+      {tab === 'info' && (
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={s.info}>
           <View
             style={[s.badge, { backgroundColor: badgeColor(data.status), alignSelf: 'flex-start', marginBottom: 12 }]}
           >
             <Text style={s.badgeText}>{t(`tournaments.${data.status}`).toUpperCase()}</Text>
           </View>
           <RichDescription html={data.description} style={s.desc} />
+          <View style={s.metaBox}>
+            <Text style={s.meta}>{t('tournaments.participants', { count: data.participants_count ?? 0 })}</Text>
+            {data.starts_at && (
+              <Text style={s.meta}>
+                {t('tournaments.starts')}: {new Date(data.starts_at).toLocaleDateString()}
+              </Text>
+            )}
+            {data.ends_at && (
+              <Text style={s.meta}>
+                {t('tournaments.ends')}: {new Date(data.ends_at).toLocaleDateString()}
+              </Text>
+            )}
+          </View>
+          {canJoin && (
+            <TouchableOpacity style={s.joinBtn} onPress={join} disabled={joining}>
+              <Text style={s.joinBtnText}>{joining ? '...' : t('tournaments.join')}</Text>
+            </TouchableOpacity>
+          )}
+          {isParticipant && (
+            <View style={s.joinedBadge}>
+              <Text style={s.joinedText}>✓ {t('tournaments.youParticipate')}</Text>
+            </View>
+          )}
           <TouchableOpacity style={s.shareBtn} onPress={shareTournament}>
             <Text style={s.shareBtnText}>{t('tournaments.share')}</Text>
           </TouchableOpacity>
@@ -107,30 +136,48 @@ function TournamentScreen() {
               ))}
             </View>
           )}
-          <Text style={s.meta}>{t('tournaments.participants', { count: data.participants_count ?? 0 })}</Text>
-          {data.starts_at && (
-            <Text style={s.meta}>
-              {t('tournaments.starts')}: {new Date(data.starts_at).toLocaleDateString()}
-            </Text>
-          )}
-          {data.ends_at && (
-            <Text style={s.meta}>
-              {t('tournaments.ends')}: {new Date(data.ends_at).toLocaleDateString()}
-            </Text>
-          )}
+        </ScrollView>
+      )}
 
-          {canJoin && (
-            <TouchableOpacity style={s.joinBtn} onPress={join} disabled={joining}>
-              <Text style={s.joinBtnText}>{joining ? '...' : t('tournaments.join')}</Text>
-            </TouchableOpacity>
-          )}
-          {isParticipant && (
-            <View style={s.joinedBadge}>
-              <Text style={s.joinedText}>✓ {t('tournaments.youParticipate')}</Text>
-            </View>
-          )}
-        </View>
-      ) : (
+      {tab === 'segments' && (
+        <ScrollView style={{ flex: 1 }}>
+          <SegmentsMap
+            segments={data.segments ?? []}
+            style={{ height: 280 }}
+          />
+          <View style={s.segList}>
+            {(data.segments ?? []).length === 0 ? (
+              <Text style={s.empty}>{t('tournaments.noSegments')}</Text>
+            ) : (
+              [...(data.segments ?? [])]
+                .sort((a, b) => a.order_number - b.order_number)
+                .map((ts, i) => (
+                  <View key={ts.segment.id} style={s.segRow}>
+                    <View style={[s.segColorDot, { backgroundColor: segColor(i) }]} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={s.segName}>{ts.segment.name}</Text>
+                      {(ts.segment.city || ts.segment.country) ? (
+                        <Text style={s.segLoc}>
+                          {[ts.segment.city, ts.segment.country].filter(Boolean).join(', ')}
+                        </Text>
+                      ) : null}
+                    </View>
+                    <View style={{ alignItems: 'flex-end' }}>
+                      <Text style={s.segOrder}>#{ts.order_number}</Text>
+                      {ts.segment.distance_meters != null ? (
+                        <Text style={s.segDist}>
+                          {(ts.segment.distance_meters / 1000).toFixed(2)} km
+                        </Text>
+                      ) : null}
+                    </View>
+                  </View>
+                ))
+            )}
+          </View>
+        </ScrollView>
+      )}
+
+      {tab === 'leaderboard' && (
         <FlatList
           style={{ flex: 1 }}
           data={board ?? []}
@@ -243,6 +290,11 @@ function badgeColor(status) {
   return status === 'active' ? '#4caf50' : status === 'completed' ? '#9e9e9e' : '#ff9800';
 }
 
+const SEG_COLORS = ['#e53935', '#1976d2', '#388e3c', '#f57c00', '#7b1fa2', '#0097a7', '#c2185b', '#5d4037'];
+function segColor(index) {
+  return SEG_COLORS[index % SEG_COLORS.length];
+}
+
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#f5f5f5' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
@@ -251,8 +303,24 @@ const s = StyleSheet.create({
   tabActive: { borderBottomWidth: 2, borderBottomColor: '#e53935' },
   tabText: { color: '#888', fontSize: 14 },
   tabTextActive: { color: '#e53935', fontWeight: '600' },
-  info: { padding: 16 },
+  info: { padding: 16, paddingBottom: 32 },
   desc: { marginBottom: 12 },
+  metaBox: { marginBottom: 12 },
+  segList: { padding: 12, paddingBottom: 32 },
+  segRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 8,
+    gap: 10
+  },
+  segColorDot: { width: 10, height: 10, borderRadius: 5 },
+  segName: { fontSize: 14, fontWeight: '600', color: '#1a1a2e', marginBottom: 2 },
+  segLoc: { fontSize: 12, color: '#888' },
+  segOrder: { fontSize: 12, color: '#bbb', fontWeight: '700' },
+  segDist: { fontSize: 12, color: '#555', marginTop: 2 },
   shareBtn: {
     alignSelf: 'flex-start',
     borderWidth: 1,

@@ -70,6 +70,46 @@ function Tournament() {
         )}
       </div>
 
+      {tournament.segments?.length > 0 && (
+        <>
+          <div className="sr-card sr-tournament-map-card">
+            <MapView segments={tournament.segments.map((ts) => ts.segment)} height="440px" />
+          </div>
+
+          <div className="sr-card" style={{ marginBottom: '1.25rem' }}>
+            <h3 style={{ marginBottom: '0.75rem' }}>{t('tournaments.segmentsHeader')}</h3>
+            <table className="sr-segment-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>{t('tournaments.segmentName')}</th>
+                  <th>{t('tournaments.distance')}</th>
+                  <th>{t('tournaments.location')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[...tournament.segments]
+                  .sort((a, b) => a.order_number - b.order_number)
+                  .map((ts) => (
+                    <tr key={ts.segment.id}>
+                      <td className="sr-seg-num">#{ts.order_number}</td>
+                      <td className="sr-seg-name">{ts.segment.name}</td>
+                      <td className="sr-seg-dist">
+                        {ts.segment.distance_meters
+                          ? `${(ts.segment.distance_meters / 1000).toFixed(2)} km`
+                          : '—'}
+                      </td>
+                      <td className="sr-seg-loc">
+                        {[ts.segment.city, ts.segment.country].filter(Boolean).join(', ') || '—'}
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+
       <div className="sr-tournament-detail">
         <div>
           {tournament.feed?.length > 0 && (
@@ -77,36 +117,6 @@ function Tournament() {
               <h3>{t('tournaments.feed')}</h3>
               <TournamentFeed events={tournament.feed} />
             </div>
-          )}
-          {tournament.segments?.length > 0 && (
-            <>
-              <div className="sr-card" style={{ padding: 0, overflow: 'hidden', marginBottom: '1rem' }}>
-                <MapView segments={tournament.segments.map((ts) => ts.segment)} height="420px" />
-              </div>
-              <div className="sr-card">
-                <h3>{t('tournaments.segmentsHeader')}</h3>
-                {tournament.segments.map((ts) => (
-                  <div
-                    key={ts.segment.id}
-                    style={{
-                      padding: '0.6rem 0',
-                      borderBottom: '1px solid #f0f0f0',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem'
-                    }}
-                  >
-                    <strong style={{ color: '#888', minWidth: 24 }}>#{ts.order_number}</strong>
-                    <span style={{ flex: 1 }}>{ts.segment.name}</span>
-                    {ts.segment.distance_meters && (
-                      <span style={{ color: '#888', fontSize: '0.85rem' }}>
-                        {(ts.segment.distance_meters / 1000).toFixed(2)} km
-                      </span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </>
           )}
         </div>
 

@@ -50,6 +50,8 @@
     "ends": "Ends",
     "noResults": "No results yet",
     "segments": "segments",
+    "segmentsTab": "Segments",
+    "noSegments": "No segments yet",
     "couldNotJoin": "Could not join",
     "share": "Share tournament",
     "shareText": "Join {{name}} on SplitRace",

@@ -192,6 +192,43 @@ p {
   grid-template-columns: 1fr;
   gap: 1.25rem;
 }
+.sr-tournament-map-card {
+  padding: 0;
+  overflow: hidden;
+  margin-bottom: 1.25rem;
+  border-radius: 10px;
+}
+.sr-segment-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+.sr-segment-table thead tr {
+  border-bottom: 2px solid #e9ecef;
+}
+.sr-segment-table th {
+  padding: 0.45rem 0.6rem;
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.sr-segment-table tbody tr {
+  border-bottom: 1px solid #f4f4f4;
+}
+.sr-segment-table tbody tr:last-child {
+  border-bottom: none;
+}
+.sr-segment-table td {
+  padding: 0.6rem 0.6rem;
+  vertical-align: middle;
+}
+.sr-seg-num { color: #bbb; font-weight: 700; width: 36px; font-size: 0.82rem; }
+.sr-seg-name { color: #1a1a2e; font-weight: 500; }
+.sr-seg-dist { color: #666; white-space: nowrap; }
+.sr-seg-loc { color: #999; font-size: 0.82rem; }
 .sr-profile-grid {
   display: grid;
   grid-template-columns: 1fr;

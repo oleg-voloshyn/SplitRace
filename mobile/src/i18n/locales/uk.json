@@ -50,6 +50,8 @@
     "ends": "Кінець",
     "noResults": "Поки що немає результатів",
     "segments": "сегментів",
+    "segmentsTab": "Сегменти",
+    "noSegments": "Сегментів ще немає",
     "couldNotJoin": "Не вдалося долучитися",
     "share": "Поділитися турніром",
     "shareText": "Долучайся до {{name}} у SplitRace",

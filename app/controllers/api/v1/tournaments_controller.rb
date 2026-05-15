@@ -180,6 +180,8 @@ module Api
                 id: ts.segment.id,
                 name: ts.segment.name,
                 description: ts.segment.description_html,
+                city: ts.segment.city,
+                country: ts.segment.country,
                 distance_meters: ts.segment.distance_meters,
                 start_point: ts.segment.start_point ? { lat: ts.segment.start_point.lat, lng: ts.segment.start_point.lon } : nil,
                 end_point: ts.segment.end_point ? { lat: ts.segment.end_point.lat, lng: ts.segment.end_point.lon } : nil,
