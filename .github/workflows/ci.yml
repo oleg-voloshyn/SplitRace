@@ -52,8 +52,41 @@ jobs:
         env:
           RUBOCOP_CACHE_ROOT: tmp/rubocop_cache
 
-      - name: Rails tests
-        run: bin/rails test
+      - name: Rails tests with coverage
+        run: COVERAGE=1 bin/rails test
+
+      - name: Backend coverage summary
+        if: always()
+        run: |
+          ruby -rjson -e '
+            path = "coverage/.last_run.json"
+            exit 0 unless File.exist?(path)
+            result = JSON.parse(File.read(path))["result"] || {}
+            lines = result["covered_percent"] || result["line"]
+            branches = result["branch"]
+            summary = "### Backend coverage\n\n"
+            summary += "- Lines: #{format("%.2f", lines)}%\n" if lines
+            summary += "- Branches: #{format("%.2f", branches)}%\n" if branches
+            File.open(ENV.fetch("GITHUB_STEP_SUMMARY"), "a") { |file| file.puts(summary) }
+          '
+
+      - name: Upload backend coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: coverage
+          if-no-files-found: ignore
+
+      - name: Upload backend coverage to Codecov
+        if: always()
+        uses: codecov/codecov-action@v5
+        with:
+          files: coverage/lcov.info
+          flags: backend
+          fail_ci_if_error: false
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   frontend:
     name: Frontend
@@ -112,6 +145,14 @@ jobs:
         working-directory: frontend
         run: npx playwright test
 
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-playwright-report
+          path: frontend/playwright-report
+          if-no-files-found: ignore
+
   mobile:
     name: Mobile
     runs-on: ubuntu-latest
@@ -138,6 +179,45 @@ jobs:
         working-directory: mobile
         run: npm run lint
 
-      - name: Jest
+      - name: Jest with coverage
         working-directory: mobile
-        run: npm test -- --runInBand
+        run: npm run test:coverage -- --runInBand
+
+      - name: Mobile coverage summary
+        if: always()
+        working-directory: mobile
+        run: |
+          node -e '
+            const fs = require("fs");
+            const path = "coverage/coverage-summary.json";
+            if (!fs.existsSync(path)) process.exit(0);
+            const total = JSON.parse(fs.readFileSync(path, "utf8")).total;
+            const summary = [
+              "### Mobile coverage",
+              "",
+              "- Lines: " + total.lines.pct + "%",
+              "- Statements: " + total.statements.pct + "%",
+              "- Branches: " + total.branches.pct + "%",
+              "- Functions: " + total.functions.pct + "%",
+              ""
+            ].join("\n");
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, summary);
+          '
+
+      - name: Upload mobile coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-coverage
+          path: mobile/coverage
+          if-no-files-found: ignore
+
+      - name: Upload mobile coverage to Codecov
+        if: always()
+        uses: codecov/codecov-action@v5
+        with:
+          files: mobile/coverage/lcov.info
+          flags: mobile
+          fail_ci_if_error: false
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}

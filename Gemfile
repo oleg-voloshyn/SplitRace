@@ -42,4 +42,6 @@ group :development, :test do
   gem 'rubocop-rails', '~> 2.35', require: false
   gem 'rubocop-rspec', '~> 3.9', require: false
   gem 'rubocop-thread_safety', '~> 0.7', require: false
+  gem 'simplecov', '~> 0.22', require: false
+  gem 'simplecov-lcov', '~> 0.8', require: false
 end

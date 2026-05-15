@@ -28,6 +28,7 @@
 /tmp/storage/*
 !/tmp/storage/
 !/tmp/storage/.keep
+/coverage/
 
 # Ignore master key for decrypting credentials and more.
 /config/master.key
@@ -43,6 +44,7 @@
 # Mobile (Expo)
 /mobile/node_modules/
 /mobile/.expo/
+/mobile/coverage/
 /mobile/dist/
 /mobile/android/
 /mobile/ios/
