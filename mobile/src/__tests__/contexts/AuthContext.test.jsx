@@ -22,25 +22,29 @@ jest.mock('../../services/pushNotifications', () => ({
 }));
 
 const wrapper = ({ children }) => <AuthProvider>{children}</AuthProvider>;
+const flushAuthEffect = () => act(async () => {});
 
 describe('AuthContext — initial load', () => {
   it('sets user when me() resolves', async () => {
     api.me.mockResolvedValueOnce({ id: 1, email: 'a@b.com' });
     const { result } = renderHook(() => useAuth(), { wrapper });
+    await flushAuthEffect();
 
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.user).toEqual({ id: 1, email: 'a@b.com' });
   });
 
   it('starts with loading true', () => {
-    api.me.mockResolvedValueOnce({ id: 1 });
-    const { result } = renderHook(() => useAuth(), { wrapper });
+    api.me.mockReturnValueOnce(new Promise(() => {}));
+    const { result, unmount } = renderHook(() => useAuth(), { wrapper });
     expect(result.current.loading).toBe(true);
+    unmount();
   });
 
   it('leaves user null and deletes token when me() fails', async () => {
     api.me.mockRejectedValueOnce(new Error('Unauthorized'));
     const { result } = renderHook(() => useAuth(), { wrapper });
+    await flushAuthEffect();
 
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.user).toBeNull();
@@ -56,6 +60,7 @@ describe('AuthContext — login', () => {
   it('sets user after successful login', async () => {
     api.login.mockResolvedValueOnce({ token: 'tok', user: { id: 2 } });
     const { result } = renderHook(() => useAuth(), { wrapper });
+    await flushAuthEffect();
     await waitFor(() => expect(result.current.loading).toBe(false));
 
     await act(async () => {
@@ -69,6 +74,7 @@ describe('AuthContext — login', () => {
   it('throws when login API fails', async () => {
     api.login.mockRejectedValueOnce({ errors: ['Bad credentials'] });
     const { result } = renderHook(() => useAuth(), { wrapper });
+    await flushAuthEffect();
     await waitFor(() => expect(result.current.loading).toBe(false));
 
     await expect(result.current.login('x@y.com', 'wrong')).rejects.toEqual({
@@ -85,6 +91,7 @@ describe('AuthContext — register', () => {
   it('sets user after successful register', async () => {
     api.register.mockResolvedValueOnce({ token: 'tok2', user: { id: 3 } });
     const { result } = renderHook(() => useAuth(), { wrapper });
+    await flushAuthEffect();
     await waitFor(() => expect(result.current.loading).toBe(false));
 
     await act(async () => {
@@ -100,6 +107,7 @@ describe('AuthContext — logout', () => {
   it('clears user and deletes token', async () => {
     api.me.mockResolvedValueOnce({ id: 1 });
     const { result } = renderHook(() => useAuth(), { wrapper });
+    await flushAuthEffect();
     await waitFor(() => expect(result.current.user).toEqual({ id: 1 }));
 
     await act(async () => {

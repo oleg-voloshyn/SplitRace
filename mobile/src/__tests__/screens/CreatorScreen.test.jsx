@@ -13,6 +13,12 @@ jest.mock('../../api/client', () => ({
   }
 }));
 
+jest.mock('@react-navigation/native', () => ({
+  useNavigation: () => ({
+    navigate: jest.fn()
+  })
+}));
+
 jest.mock('../../utils/geoUtils', () => ({
   reverseGeocode: jest.fn().mockResolvedValue({ city: 'Kyiv', country: 'UA' }),
   routeDistance: jest.fn().mockReturnValue(0),

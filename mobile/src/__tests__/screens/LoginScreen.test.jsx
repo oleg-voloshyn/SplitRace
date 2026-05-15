@@ -1,37 +1,24 @@
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
-import { AuthProvider } from '../../contexts/AuthContext';
 import LoginScreen from '../../screens/LoginScreen';
 
-jest.mock('../../api/client', () => ({
-  api: {
-    me: jest.fn().mockRejectedValue(new Error('')),
-    login: jest.fn(),
-    register: jest.fn()
-  },
-  tokenStore: {
-    set: jest.fn().mockResolvedValue(undefined),
-    delete: jest.fn().mockResolvedValue(undefined)
-  }
-}));
+const mockLogin = jest.fn();
+const mockRegister = jest.fn();
 
-jest.mock('../../services/pushNotifications', () => ({
-  registerForPushNotificationsAsync: jest.fn().mockResolvedValue(null),
-  unregisterPushNotificationsAsync: jest.fn().mockResolvedValue(undefined)
+jest.mock('../../contexts/AuthContext', () => ({
+  useAuth: () => ({
+    login: mockLogin,
+    register: mockRegister
+  })
 }));
 
 function renderLogin() {
-  return render(
-    <AuthProvider>
-      <LoginScreen />
-    </AuthProvider>
-  );
+  return render(<LoginScreen />);
 }
 
 beforeEach(() => {
-  jest.clearAllMocks();
-  const { api } = require('../../api/client');
-  api.me.mockRejectedValue(new Error(''));
+  mockLogin.mockReset();
+  mockRegister.mockReset();
 });
 
 describe('LoginScreen — render', () => {
@@ -75,7 +62,6 @@ describe('LoginScreen — register tab', () => {
   });
 
   it('shows error when submitting without gender', async () => {
-    const { api } = require('../../api/client');
     renderLogin();
     fireEvent.press(screen.getByText('Register'));
     fireEvent.changeText(screen.getByPlaceholderText('Email'), 'a@b.com');
@@ -84,7 +70,7 @@ describe('LoginScreen — register tab', () => {
     await waitFor(() => {
       expect(screen.getByText('Please select gender')).toBeTruthy();
     });
-    expect(api.register).not.toHaveBeenCalled();
+    expect(mockRegister).not.toHaveBeenCalled();
   });
 
   it('hides runner-only fields for club registration', () => {
@@ -102,8 +88,7 @@ describe('LoginScreen — register tab', () => {
   });
 
   it('registers a club without gender or runner profile fields', async () => {
-    const { api } = require('../../api/client');
-    api.register.mockResolvedValueOnce({ token: 'tok', user: { id: 1, account_type: 'club' } });
+    mockRegister.mockResolvedValueOnce({ token: 'tok', user: { id: 1, account_type: 'club' } });
     renderLogin();
     fireEvent.press(screen.getByText('Register'));
     fireEvent.press(screen.getByText('Running club'));
@@ -113,7 +98,7 @@ describe('LoginScreen — register tab', () => {
     fireEvent.press(screen.getByText('Create Account'));
 
     await waitFor(() => {
-      expect(api.register).toHaveBeenCalledWith({
+      expect(mockRegister).toHaveBeenCalledWith({
         account_type: 'club',
         club_name: 'Mobile Club',
         email: 'club@test.com',
@@ -125,20 +110,18 @@ describe('LoginScreen — register tab', () => {
 
 describe('LoginScreen — login submit', () => {
   it('calls login with email and password', async () => {
-    const { api } = require('../../api/client');
-    api.login.mockResolvedValueOnce({ token: 'tok', user: { id: 1 } });
+    mockLogin.mockResolvedValueOnce({ token: 'tok', user: { id: 1 } });
     renderLogin();
     fireEvent.changeText(screen.getByPlaceholderText('Email'), 'user@test.com');
     fireEvent.changeText(screen.getByPlaceholderText('Password'), 'secret');
     fireEvent.press(screen.getAllByText('Sign In')[1]);
     await waitFor(() => {
-      expect(api.login).toHaveBeenCalledWith('user@test.com', 'secret');
+      expect(mockLogin).toHaveBeenCalledWith('user@test.com', 'secret');
     });
   });
 
   it('shows error message on failed login', async () => {
-    const { api } = require('../../api/client');
-    api.login.mockRejectedValueOnce({ errors: ['Invalid email or password'] });
+    mockLogin.mockRejectedValueOnce({ errors: ['Invalid email or password'] });
     renderLogin();
     fireEvent.changeText(screen.getByPlaceholderText('Email'), 'bad@test.com');
     fireEvent.changeText(screen.getByPlaceholderText('Password'), 'wrong');
@@ -149,14 +132,13 @@ describe('LoginScreen — login submit', () => {
   });
 
   it('trims whitespace from email', async () => {
-    const { api } = require('../../api/client');
-    api.login.mockResolvedValueOnce({ token: 'tok', user: { id: 1 } });
+    mockLogin.mockResolvedValueOnce({ token: 'tok', user: { id: 1 } });
     renderLogin();
     fireEvent.changeText(screen.getByPlaceholderText('Email'), '  user@test.com  ');
     fireEvent.changeText(screen.getByPlaceholderText('Password'), 'pw');
     fireEvent.press(screen.getAllByText('Sign In')[1]);
     await waitFor(() => {
-      expect(api.login).toHaveBeenCalledWith('user@test.com', 'pw');
+      expect(mockLogin).toHaveBeenCalledWith('user@test.com', 'pw');
     });
   });
 });
