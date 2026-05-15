@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../api/client';
 
-const initialSegment = {
+const defaultSegment = {
   name: '',
   description: '',
   city: '',
@@ -12,6 +12,27 @@ const initialSegment = {
   end_lat: '50.46',
   end_lng: '30.53'
 };
+
+function segmentDefaultsFromLocation(latitude, longitude, location = {}) {
+  return {
+    ...defaultSegment,
+    city: location.city || '',
+    country: location.country || '',
+    start_lat: latitude.toFixed(6),
+    start_lng: longitude.toFixed(6),
+    end_lat: (latitude + 0.01).toFixed(6),
+    end_lng: (longitude + 0.01).toFixed(6)
+  };
+}
+
+function hasDefaultCoordinates(segment) {
+  return (
+    segment.start_lat === defaultSegment.start_lat &&
+    segment.start_lng === defaultSegment.start_lng &&
+    segment.end_lat === defaultSegment.end_lat &&
+    segment.end_lng === defaultSegment.end_lng
+  );
+}
 
 const initialTournament = {
   name: '',
@@ -26,7 +47,8 @@ function Creator() {
   const { t } = useTranslation();
   const [segments, setSegments] = useState([]);
   const [tournaments, setTournaments] = useState([]);
-  const [segmentForm, setSegmentForm] = useState(initialSegment);
+  const [segmentDefaults, setSegmentDefaults] = useState(defaultSegment);
+  const [segmentForm, setSegmentForm] = useState(defaultSegment);
   const [tournamentForm, setTournamentForm] = useState(initialTournament);
   const [message, setMessage] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -35,6 +57,34 @@ function Creator() {
 
   useEffect(() => {
     refreshCreatorData();
+  }, []);
+
+  useEffect(() => {
+    if (!navigator.geolocation) {
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        const nextDefaults = segmentDefaultsFromLocation(coords.latitude, coords.longitude);
+        setSegmentDefaults(nextDefaults);
+        setSegmentForm((current) => (hasDefaultCoordinates(current) ? { ...current, ...nextDefaults } : current));
+        reverseGeocode(coords.latitude, coords.longitude).then((location) => {
+          if (!location.city && !location.country) {
+            return;
+          }
+
+          setSegmentDefaults((current) => ({ ...current, ...location }));
+          setSegmentForm((current) =>
+            hasDefaultCoordinates(current) || (current.city === '' && current.country === '')
+              ? { ...current, ...location }
+              : current
+          );
+        });
+      },
+      () => {},
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 }
+    );
   }, []);
 
   async function refreshCreatorData() {
@@ -53,7 +103,7 @@ function Creator() {
     setMessage(null);
     try {
       await api.createSegment(segmentForm);
-      setSegmentForm(initialSegment);
+      setSegmentForm(segmentDefaults);
       setMessage(t('creator.segmentCreated'));
       await refreshCreatorData();
     } catch (error) {
@@ -229,6 +279,30 @@ function Creator() {
 
   function setTournament(key) {
     return (event) => setTournamentForm((current) => ({ ...current, [key]: event.target.value }));
+  }
+}
+
+async function reverseGeocode(latitude, longitude) {
+  try {
+    const url = new URL('https://nominatim.openstreetmap.org/reverse');
+    url.searchParams.set('format', 'jsonv2');
+    url.searchParams.set('lat', latitude);
+    url.searchParams.set('lon', longitude);
+    url.searchParams.set('accept-language', 'en');
+
+    const response = await fetch(url.toString());
+    if (!response.ok) {
+      return {};
+    }
+
+    const data = await response.json();
+    const address = data?.address || {};
+    return {
+      city: address.city || address.town || address.village || address.municipality || address.county || '',
+      country: (address.country_code || '').toUpperCase() || address.country || ''
+    };
+  } catch {
+    return {};
   }
 }
 

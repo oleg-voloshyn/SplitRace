@@ -5,8 +5,9 @@
   const countryField = document.getElementById('segment-country');
   const locationLabel = document.getElementById('segment-location');
   const EXISTING = JSON.parse(waypointsField.value || '[]');
+  const DEFAULT_CENTER = [50.45, 30.52];
 
-  const map = L.map('segment-map').setView([50.45, 30.52], 13);
+  const map = L.map('segment-map').setView(DEFAULT_CENTER, 13);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap contributors'
   }).addTo(map);
@@ -152,6 +153,22 @@
     redraw();
     save();
     map.fitBounds(waypoints.map(p => [p.lat, p.lng]), { padding: [30, 30] });
+  } else if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      function(position) {
+        const current = [position.coords.latitude, position.coords.longitude];
+        map.setView(current, 15);
+        L.circleMarker(current, {
+          radius: 7,
+          color: '#1976d2',
+          fillColor: '#1976d2',
+          fillOpacity: 0.85,
+          weight: 2
+        }).bindTooltip('Your location', { permanent: false }).addTo(map);
+      },
+      function() {},
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 }
+    );
   }
 })();
 </script>
