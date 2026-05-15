@@ -36,6 +36,7 @@ function Creator() {
   const [message, setMessage] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const [expandedAdd, setExpandedAdd] = useState(null);
   const segmentOptions = useMemo(() => segments.filter((segment) => segment.id), [segments]);
 
   useEffect(() => {
@@ -125,8 +126,10 @@ function Creator() {
       });
       setMessage(t('creator.segmentAdded'));
       await refreshCreatorData();
+      return true;
     } catch (error) {
       setMessage(error?.errors?.join(', ') || error?.error || t('creator.failed'));
+      return false;
     }
   }
 
@@ -293,48 +296,100 @@ function Creator() {
       {loading && <p>{t('common.loading')}</p>}
       {!loading && tournaments.length === 0 && <p className="sr-card">{t('creator.noTournaments')}</p>}
       <div className="sr-creator-list">
-        {tournaments.map((tournament) => (
-          <div key={tournament.id} className="sr-card">
-            <div className="sr-creator-card-head">
-              <div>
-                <h3>{tournament.name}</h3>
-                <p style={{ color: '#777' }}>{t(`creator.status_${tournament.status}`)}</p>
+        {tournaments.map((tournament) => {
+          const isEditable = tournament.status === 'draft' || tournament.status === 'rejected';
+          const sortedSegments = [...(tournament.segments || [])].sort((a, b) => a.order_number - b.order_number);
+          const available = segmentOptions.filter(
+            (s) => !tournament.segments?.some((e) => e.segment.id === s.id)
+          );
+          return (
+            <div key={tournament.id} className="sr-card">
+              <div className="sr-creator-card-head">
+                <div>
+                  <h3 style={{ marginBottom: '0.4rem' }}>{tournament.name}</h3>
+                  <span className={`sr-status-badge sr-status-${tournament.status}`}>
+                    {t(`creator.status_${tournament.status}`)}
+                  </span>
+                </div>
+                {isEditable && (
+                  <button type="button" onClick={() => submitForReview(tournament)}>
+                    {t('creator.submitReview')}
+                  </button>
+                )}
               </div>
-              <button
-                type="button"
-                disabled={tournament.status !== 'draft' && tournament.status !== 'rejected'}
-                onClick={() => submitForReview(tournament)}
-              >
-                {t('creator.submitReview')}
-              </button>
-            </div>
-            {tournament.review_note && (
-              <p style={{ color: '#a33', marginBottom: '0.75rem' }}>{tournament.review_note}</p>
-            )}
-            <p style={{ marginBottom: '0.75rem', color: '#555' }}>
-              {tournament.segments?.length || 0}/{tournament.total_segments_count} {t('creator.segments')}
-            </p>
-            <form className="sr-creator-add-row" onSubmit={(event) => addSegment(tournament, event)}>
-              <select name="segment_id" required>
-                <option value="">{t('creator.selectSegment')}</option>
-                {segmentOptions
-                  .filter((segment) => !tournament.segments?.some((entry) => entry.segment.id === segment.id))
-                  .map((segment) => (
-                    <option key={segment.id} value={segment.id}>
-                      {segment.name}
-                    </option>
+
+              {tournament.review_note && (
+                <p className="sr-creator-review-note">{tournament.review_note}</p>
+              )}
+
+              <p className="sr-creator-seg-count">
+                {sortedSegments.length} / {tournament.total_segments_count} {t('creator.segments')}
+              </p>
+
+              {sortedSegments.length > 0 ? (
+                <div className="sr-creator-segment-list">
+                  {sortedSegments.map((ts) => (
+                    <div key={ts.segment.id} className="sr-creator-segment-item">
+                      <span className="sr-creator-seg-num">#{ts.order_number}</span>
+                      <span className="sr-creator-seg-name">{ts.segment.name}</span>
+                      {ts.is_rated && <span className="sr-creator-rated">★ {t('creator.rated')}</span>}
+                      {ts.segment.distance_meters != null && (
+                        <span className="sr-creator-seg-dist">
+                          {(ts.segment.distance_meters / 1000).toFixed(2)} km
+                        </span>
+                      )}
+                    </div>
                   ))}
-              </select>
-              <input name="order_number" type="number" min="1" defaultValue={(tournament.segments?.length || 0) + 1} />
-              <label>
-                <input name="is_rated" type="checkbox" defaultChecked /> {t('creator.rated')}
-              </label>
-              <button type="submit" disabled={tournament.status === 'active' || tournament.status === 'completed'}>
-                {t('creator.add')}
-              </button>
-            </form>
-          </div>
-        ))}
+                </div>
+              ) : (
+                <p style={{ color: '#888', fontSize: '0.9rem', marginBottom: '0.75rem' }}>
+                  {t('creator.noSegmentsAdded')}
+                </p>
+              )}
+
+              {isEditable && (
+                <>
+                  <button
+                    type="button"
+                    className="sr-creator-ghost-btn sr-creator-add-toggle"
+                    onClick={() => setExpandedAdd(expandedAdd === tournament.id ? null : tournament.id)}
+                  >
+                    {expandedAdd === tournament.id ? t('creator.cancelAdd') : t('creator.addSegmentBtn')}
+                  </button>
+                  {expandedAdd === tournament.id && (
+                    <form
+                      className="sr-creator-add-row"
+                      style={{ marginTop: '0.6rem' }}
+                      onSubmit={async (event) => {
+                        const ok = await addSegment(tournament, event);
+                        if (ok) setExpandedAdd(null);
+                      }}
+                    >
+                      <select name="segment_id" required>
+                        <option value="">{t('creator.selectSegment')}</option>
+                        {available.map((segment) => (
+                          <option key={segment.id} value={segment.id}>
+                            {segment.name}
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        name="order_number"
+                        type="number"
+                        min="1"
+                        defaultValue={sortedSegments.length + 1}
+                      />
+                      <label>
+                        <input name="is_rated" type="checkbox" defaultChecked /> {t('creator.rated')}
+                      </label>
+                      <button type="submit">{t('creator.add')}</button>
+                    </form>
+                  )}
+                </>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

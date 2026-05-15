@@ -8,6 +8,7 @@ import { Text } from 'react-native';
 import { api } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
 import CreatorScreen from '../screens/CreatorScreen';
+import CreatorTournamentScreen from '../screens/CreatorTournamentScreen';
 import LoginScreen from '../screens/LoginScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
@@ -18,21 +19,35 @@ import TournamentsScreen from '../screens/TournamentsScreen';
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
+const stackScreenOptions = {
+  headerStyle: { backgroundColor: '#1a1a2e' },
+  headerTintColor: '#fff',
+  headerTitleStyle: { fontWeight: '700' }
+};
+
 function TournamentsStack() {
   const { t } = useTranslation();
   return (
-    <Stack.Navigator
-      screenOptions={{
-        headerStyle: { backgroundColor: '#1a1a2e' },
-        headerTintColor: '#fff',
-        headerTitleStyle: { fontWeight: '700' }
-      }}
-    >
+    <Stack.Navigator screenOptions={stackScreenOptions}>
       <Stack.Screen name="TournamentsList" component={TournamentsScreen} options={{ title: t('nav.tournaments') }} />
       <Stack.Screen
         name="Tournament"
         component={TournamentScreen}
         options={({ route }) => ({ title: route.params?.slug || t('nav.tournaments') })}
+      />
+    </Stack.Navigator>
+  );
+}
+
+function CreatorStack() {
+  const { t } = useTranslation();
+  return (
+    <Stack.Navigator screenOptions={stackScreenOptions}>
+      <Stack.Screen name="CreatorHome" component={CreatorScreen} options={{ title: t('nav.creator') }} />
+      <Stack.Screen
+        name="CreatorTournament"
+        component={CreatorTournamentScreen}
+        options={({ route }) => ({ title: route.params?.name || t('nav.creator') })}
       />
     </Stack.Navigator>
   );
@@ -106,8 +121,8 @@ function AppTabs() {
       />
       <Tab.Screen
         name="Creator"
-        component={CreatorScreen}
-        options={{ title: t('nav.creator'), tabBarLabel: t('nav.creator') }}
+        component={CreatorStack}
+        options={{ headerShown: false, tabBarLabel: t('nav.creator') }}
       />
       <Tab.Screen
         name="Notifications"
