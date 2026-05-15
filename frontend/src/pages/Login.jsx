@@ -169,38 +169,38 @@ function Login() {
       </form>
 
       {!isClubRegistration && (
-        <div style={{ marginTop: '1rem', textAlign: 'center' }}>
-          <p style={{ color: '#666', marginBottom: '0.5rem' }}>{t('auth.orContinueWith')}</p>
-          <a
-            href="/auth/google_oauth2"
-            style={{
-              ...btnStyle,
-              display: 'inline-block',
-              background: '#4285f4',
-              textDecoration: 'none',
-              color: '#fff'
-            }}
-          >
-            Google
-          </a>{' '}
-          <a
-            href="/auth/apple"
-            style={{ ...btnStyle, display: 'inline-block', background: '#000', textDecoration: 'none', color: '#fff' }}
-          >
-            Apple
-          </a>{' '}
-          <a
-            href="/auth/strava"
-            style={{
-              ...btnStyle,
-              display: 'inline-block',
-              background: '#fc4c02',
-              textDecoration: 'none',
-              color: '#fff'
-            }}
-          >
-            Strava
-          </a>
+        <div style={oauthBlockStyle}>
+          <div style={dividerStyle}>
+            <span style={dividerLineStyle} />
+            <span style={dividerTextStyle}>{t('auth.orContinueWith')}</span>
+            <span style={dividerLineStyle} />
+          </div>
+          <div style={providerGridStyle}>
+            <a
+              href="/auth/google_oauth2"
+              style={{
+                ...providerBtnStyle,
+                borderColor: '#d8e2ff',
+                background: '#fff',
+                color: '#1f1f2f',
+                textDecoration: 'none'
+              }}
+            >
+              Google
+            </a>
+            <a
+              href="/auth/apple"
+              style={{
+                ...providerBtnStyle,
+                borderColor: '#111',
+                background: '#111',
+                color: '#fff',
+                textDecoration: 'none'
+              }}
+            >
+              Apple
+            </a>
+          </div>
         </div>
       )}
 
@@ -226,6 +226,20 @@ const btnStyle = {
   borderRadius: '4px',
   cursor: 'pointer',
   fontSize: '1rem'
+};
+const oauthBlockStyle = { marginTop: '1.25rem' };
+const dividerStyle = { display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' };
+const dividerLineStyle = { flex: 1, height: '1px', background: '#e5e7eb' };
+const dividerTextStyle = { color: '#666', fontSize: '0.875rem', whiteSpace: 'nowrap' };
+const providerGridStyle = { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '0.75rem' };
+const providerBtnStyle = {
+  padding: '0.7rem 1rem',
+  border: '1px solid',
+  borderRadius: '6px',
+  cursor: 'pointer',
+  fontSize: '0.95rem',
+  fontWeight: 700,
+  textAlign: 'center'
 };
 
 export default Login;

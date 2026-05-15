@@ -29,6 +29,15 @@ test('landing page starts club registration flow', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Tournaments' })).toBeVisible();
 });
 
+test('runner auth offers Google and Apple without Strava', async ({ page }) => {
+  await page.goto('/login?mode=register');
+
+  await expect(page.getByRole('heading', { name: 'Register' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Google' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Apple' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Strava' })).toHaveCount(0);
+});
+
 test('runner can join active tournament and open tournament detail', async ({ page, request }) => {
   const catalog = seedAdminCatalog(`e2e-web-${Date.now()}`);
   await registerViaApi(request, page, { email: uniqueEmail('e2e-joiner') });
