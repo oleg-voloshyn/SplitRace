@@ -62,8 +62,8 @@ module Admin
     def destroy
       @tournament.destroy!
       redirect_to admin_tournaments_path, notice: 'Deleted.'
-    rescue ActiveRecord::InvalidForeignKey, ActiveRecord::RecordNotDestroyed => e
-      redirect_to admin_tournaments_path, alert: "Tournament could not be deleted: #{e.message}"
+    rescue => e
+      redirect_to admin_tournament_path(@tournament), alert: "Tournament could not be deleted: #{e.message}"
     end
 
     def activate
