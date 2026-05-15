@@ -1,4 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import * as Google from 'expo-auth-session/providers/google';
+import Constants from 'expo-constants';
+import * as WebBrowser from 'expo-web-browser';
 import { useTranslation } from 'react-i18next';
 import {
   KeyboardAvoidingView,
@@ -13,9 +16,11 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { SUPPORTED_LANGS } from '../i18n';
 
+WebBrowser.maybeCompleteAuthSession();
+
 function LoginScreen() {
   const { t, i18n } = useTranslation();
-  const { login, register } = useAuth();
+  const { login, loginWithGoogle, register } = useAuth();
   const [mode, setMode] = useState('login');
   const [form, setForm] = useState({
     email: '',
@@ -28,7 +33,19 @@ function LoginScreen() {
   });
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const handledGoogleTokenRef = useRef(null);
   const isClubRegistration = mode === 'register' && form.account_type === 'club';
+  const googleOAuth = Constants.expoConfig?.extra?.googleOAuth || {};
+  const googleConfigured = Boolean(
+    googleOAuth.expoClientId || googleOAuth.iosClientId || googleOAuth.androidClientId || googleOAuth.webClientId
+  );
+  const [googleRequest, googleResponse, promptGoogleAsync] = Google.useIdTokenAuthRequest({
+    clientId: googleOAuth.expoClientId || googleOAuth.webClientId || undefined,
+    iosClientId: googleOAuth.iosClientId || undefined,
+    androidClientId: googleOAuth.androidClientId || undefined,
+    webClientId: googleOAuth.webClientId || undefined
+  });
 
   const set = (key) => (val) => setForm((f) => ({ ...f, [key]: val }));
   const setAccountType = (accountType) =>
@@ -61,6 +78,29 @@ function LoginScreen() {
     };
   }
 
+  useEffect(() => {
+    if (googleResponse?.type !== 'success') {
+      return;
+    }
+
+    const idToken = googleResponse.params?.id_token;
+    if (!idToken) {
+      queueMicrotask(() => {
+        setError(t('auth.googleFailed'));
+        setGoogleLoading(false);
+      });
+      return;
+    }
+    if (handledGoogleTokenRef.current === idToken) {
+      return;
+    }
+
+    handledGoogleTokenRef.current = idToken;
+    loginWithGoogle(idToken)
+      .catch((e) => setError(e?.errors?.join(', ') || e?.error || t('auth.googleFailed')))
+      .finally(() => setGoogleLoading(false));
+  }, [googleResponse, loginWithGoogle, t]);
+
   async function submit() {
     setError(null);
     setLoading(true);
@@ -79,6 +119,20 @@ function LoginScreen() {
       setError(e?.errors?.join(', ') || e?.error || t('auth.somethingWrong'));
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function submitGoogle() {
+    setError(null);
+    if (!googleConfigured) {
+      setError(t('auth.googleNotConfigured'));
+      return;
+    }
+
+    setGoogleLoading(true);
+    const response = await promptGoogleAsync().catch(() => ({ type: 'error' }));
+    if (response?.type !== 'success') {
+      setGoogleLoading(false);
     }
   }
 
@@ -195,6 +249,23 @@ function LoginScreen() {
               {loading ? '...' : mode === 'login' ? t('auth.signIn') : t('auth.createAccount')}
             </Text>
           </TouchableOpacity>
+
+          {!isClubRegistration && (
+            <>
+              <View style={s.oauthDivider}>
+                <View style={s.oauthLine} />
+                <Text style={s.oauthDividerText}>{t('auth.orContinueWith')}</Text>
+                <View style={s.oauthLine} />
+              </View>
+              <TouchableOpacity
+                style={[s.googleBtn, (!googleRequest || googleLoading) && s.disabledBtn]}
+                onPress={submitGoogle}
+                disabled={!googleRequest || googleLoading}
+              >
+                <Text style={s.googleBtnText}>{googleLoading ? '...' : t('auth.continueWithGoogle')}</Text>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -232,7 +303,20 @@ const s = StyleSheet.create({
   genderTextActive: { color: '#fff', fontWeight: '600' },
   error: { color: '#e53935', fontSize: 13, marginBottom: 10, textAlign: 'center' },
   btn: { backgroundColor: '#e53935', borderRadius: 8, padding: 14, alignItems: 'center', marginTop: 4 },
-  btnText: { color: '#fff', fontWeight: '700', fontSize: 16 }
+  btnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+  oauthDivider: { flexDirection: 'row', alignItems: 'center', gap: 10, marginVertical: 16 },
+  oauthLine: { flex: 1, height: 1, backgroundColor: '#e8e8ee' },
+  oauthDividerText: { color: '#777', fontSize: 12 },
+  googleBtn: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 14,
+    alignItems: 'center',
+    backgroundColor: '#fff'
+  },
+  disabledBtn: { opacity: 0.6 },
+  googleBtnText: { color: '#1a1a2e', fontWeight: '700', fontSize: 15 }
 });
 
 export default LoginScreen;

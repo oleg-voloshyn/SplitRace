@@ -40,6 +40,73 @@ class ApiLifecycleTest < ActionDispatch::IntegrationTest
     assert_equal 'Invalid email or password', response.parsed_body['error']
   end
 
+  test 'google auth creates runner user and oauth identity' do
+    payload = {
+      'sub' => 'google-runner-1',
+      'email' => 'Google.Runner@Example.com',
+      'email_verified' => 'true',
+      'given_name' => 'Google',
+      'family_name' => 'Runner',
+      'picture' => 'https://example.com/avatar.png',
+      'exp' => 1.hour.from_now.to_i
+    }
+
+    assert_difference 'User.count', 1 do
+      assert_difference 'OauthIdentity.count', 1 do
+        with_google_verifier(payload) do
+          post api_v1_auth_google_path, params: { id_token: 'google-id-token' }
+        end
+      end
+    end
+
+    assert_response :success
+    user = User.find_by!(email: 'google.runner@example.com')
+    assert_equal 'user', user.account_type
+    assert_equal 'Google', user.first_name
+    assert_equal 'Runner', user.last_name
+    assert_equal 'https://example.com/avatar.png', user.avatar_url
+    assert_equal 'google_oauth2', user.oauth_identities.first.provider
+    assert_predicate response.parsed_body['token'], :present?
+  end
+
+  test 'google auth links existing runner by email' do
+    user = create_user(email: 'existing-google@example.com')
+    payload = {
+      'sub' => 'google-runner-existing',
+      'email' => user.email,
+      'email_verified' => 'true'
+    }
+
+    assert_no_difference 'User.count' do
+      assert_difference 'OauthIdentity.count', 1 do
+        with_google_verifier(payload) do
+          post api_v1_auth_google_path, params: { id_token: 'google-id-token' }
+        end
+      end
+    end
+
+    assert_response :success
+    assert_equal user.id, OauthIdentity.find_by!(provider: 'google_oauth2', uid: 'google-runner-existing').user_id
+  end
+
+  test 'google auth is rejected for club email' do
+    club = create_club(email: 'club-google@example.com', club_name: 'Google Club')
+    payload = {
+      'sub' => 'google-club-1',
+      'email' => club.email,
+      'email_verified' => 'true'
+    }
+
+    assert_no_difference 'OauthIdentity.count' do
+      with_google_verifier(payload) do
+        post api_v1_auth_google_path, params: { id_token: 'google-id-token' }
+      end
+    end
+
+    assert_response :unprocessable_content
+    assert_includes response.parsed_body['errors'], 'Google sign-in is only available for runners'
+  end
+
   test 'protected api endpoints require bearer token' do
     get api_v1_me_path
 
@@ -370,5 +437,20 @@ class ApiLifecycleTest < ActionDispatch::IntegrationTest
 
   def auth_headers(user)
     { 'Authorization' => "Bearer #{JwtService.encode(user_id: user.id)}" }
+  end
+
+  def with_google_verifier(payload)
+    original_verifier = GoogleIdentityTokenVerifier
+    stubbed_verifier = Class.new do
+      define_method(:verify!) { |_id_token| payload }
+    end
+    stubbed_verifier.const_set(:Error, Class.new(StandardError))
+
+    Object.send(:remove_const, :GoogleIdentityTokenVerifier)
+    Object.const_set(:GoogleIdentityTokenVerifier, stubbed_verifier)
+    yield
+  ensure
+    Object.send(:remove_const, :GoogleIdentityTokenVerifier)
+    Object.const_set(:GoogleIdentityTokenVerifier, original_verifier)
   end
 end

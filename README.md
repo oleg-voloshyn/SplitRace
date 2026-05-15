@@ -80,6 +80,25 @@ npm ci
 
 The mobile API base URL is currently defined in `mobile/src/api/client.js`. Update `WEB_URL` there if you want the mobile app to talk to a local backend instead of the deployed backend.
 
+Mobile Google sign-in uses Expo AuthSession. Set the Google OAuth client IDs before starting or building the app:
+
+```sh
+export EXPO_PUBLIC_GOOGLE_EXPO_CLIENT_ID=your-expo-client-id
+export EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=your-ios-client-id
+export EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID=your-android-client-id
+export EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=your-web-client-id
+```
+
+The Rails API verifies Google ID tokens against these backend env vars:
+
+```sh
+export GOOGLE_CLIENT_ID=your-web-client-id
+export GOOGLE_WEB_CLIENT_ID=your-web-client-id
+export GOOGLE_IOS_CLIENT_ID=your-ios-client-id
+export GOOGLE_ANDROID_CLIENT_ID=your-android-client-id
+export GOOGLE_EXPO_CLIENT_ID=your-expo-client-id
+```
+
 ## Running Locally
 
 Start the Rails backend:

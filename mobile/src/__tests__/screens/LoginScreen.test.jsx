@@ -3,13 +3,35 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react-nativ
 import LoginScreen from '../../screens/LoginScreen';
 
 const mockLogin = jest.fn();
+const mockLoginWithGoogle = jest.fn();
 const mockRegister = jest.fn();
+const mockPromptGoogleAsync = jest.fn();
+let mockGoogleResponse = null;
 
 jest.mock('../../contexts/AuthContext', () => ({
   useAuth: () => ({
     login: mockLogin,
+    loginWithGoogle: mockLoginWithGoogle,
     register: mockRegister
   })
+}));
+
+jest.mock('expo-auth-session/providers/google', () => ({
+  useIdTokenAuthRequest: () => [{}, mockGoogleResponse, mockPromptGoogleAsync]
+}));
+
+jest.mock('expo-constants', () => ({
+  expoConfig: {
+    extra: {
+      googleOAuth: {
+        expoClientId: 'expo-google-client'
+      }
+    }
+  }
+}));
+
+jest.mock('expo-web-browser', () => ({
+  maybeCompleteAuthSession: jest.fn()
 }));
 
 function renderLogin() {
@@ -18,7 +40,10 @@ function renderLogin() {
 
 beforeEach(() => {
   mockLogin.mockReset();
+  mockLoginWithGoogle.mockReset();
   mockRegister.mockReset();
+  mockPromptGoogleAsync.mockReset();
+  mockGoogleResponse = null;
 });
 
 describe('LoginScreen — render', () => {
@@ -42,6 +67,21 @@ describe('LoginScreen — render', () => {
     renderLogin();
     expect(screen.getByText('EN')).toBeTruthy();
     expect(screen.getByText('UK')).toBeTruthy();
+  });
+
+  it('shows Google sign-in for runners', () => {
+    renderLogin();
+    expect(screen.getByText('Continue with Google')).toBeTruthy();
+  });
+
+  it('starts Google auth prompt', async () => {
+    mockPromptGoogleAsync.mockResolvedValueOnce({ type: 'cancel' });
+    renderLogin();
+    fireEvent.press(screen.getByText('Continue with Google'));
+
+    await waitFor(() => {
+      expect(mockPromptGoogleAsync).toHaveBeenCalled();
+    });
   });
 });
 
@@ -85,6 +125,7 @@ describe('LoginScreen — register tab', () => {
     expect(screen.queryByText('Male')).toBeNull();
     expect(screen.queryByText('Female')).toBeNull();
     expect(screen.queryByText('Other')).toBeNull();
+    expect(screen.queryByText('Continue with Google')).toBeNull();
   });
 
   it('registers a club without gender or runner profile fields', async () => {

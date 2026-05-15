@@ -10,6 +10,7 @@ Rails.application.routes.draw do
       # Auth
       post   'auth/register', to: 'auth#register'
       post   'auth/login',    to: 'auth#login'
+      post   'auth/google',   to: 'auth#google'
 
       # Current user
       get    'me',            to: 'users#me'

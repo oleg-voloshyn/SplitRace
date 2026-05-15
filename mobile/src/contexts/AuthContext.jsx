@@ -26,6 +26,13 @@ function AuthProvider({ children }) {
     registerForPushNotificationsAsync().catch(() => {});
   }
 
+  async function loginWithGoogle(idToken) {
+    const { token, user } = await api.googleLogin(idToken);
+    await tokenStore.set(token);
+    setUser(user);
+    registerForPushNotificationsAsync().catch(() => {});
+  }
+
   async function register(params) {
     const { token, user } = await api.register(params);
     await tokenStore.set(token);
@@ -40,7 +47,9 @@ function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, setUser }}>{children}</AuthContext.Provider>
+    <AuthContext.Provider value={{ user, loading, login, loginWithGoogle, register, logout, setUser }}>
+      {children}
+    </AuthContext.Provider>
   );
 }
 

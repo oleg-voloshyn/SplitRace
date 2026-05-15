@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from '../../contexts/AuthContext';
 jest.mock('../../api/client', () => ({
   api: {
     me: jest.fn(),
+    googleLogin: jest.fn(),
     login: jest.fn(),
     register: jest.fn()
   },
@@ -80,6 +81,20 @@ describe('AuthContext — login', () => {
     await expect(result.current.login('x@y.com', 'wrong')).rejects.toEqual({
       errors: ['Bad credentials']
     });
+  });
+
+  it('sets user after successful Google login', async () => {
+    api.googleLogin.mockResolvedValueOnce({ token: 'google-token', user: { id: 4 } });
+    const { result } = renderHook(() => useAuth(), { wrapper });
+    await flushAuthEffect();
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => {
+      await result.current.loginWithGoogle('id-token');
+    });
+
+    expect(result.current.user).toEqual({ id: 4 });
+    expect(tokenStore.set).toHaveBeenCalledWith('google-token');
   });
 });
 

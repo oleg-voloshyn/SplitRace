@@ -23,6 +23,10 @@
     "account_club": "Running club",
     "clubName": "Club name",
     "createAccount": "Create Account",
+    "continueWithGoogle": "Continue with Google",
+    "orContinueWith": "Or continue with",
+    "googleFailed": "Google sign-in failed",
+    "googleNotConfigured": "Google sign-in is not configured",
     "selectGender": "Please select gender",
     "somethingWrong": "Something went wrong",
     "subtitle": "GPS Tournament Running"

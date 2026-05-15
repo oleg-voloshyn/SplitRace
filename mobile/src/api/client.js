@@ -26,6 +26,7 @@ async function request(path, options = {}) {
 
 const api = {
   login: (email, password) => request('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
+  googleLogin: (idToken) => request('/auth/google', { method: 'POST', body: JSON.stringify({ id_token: idToken }) }),
   register: (params) => request('/auth/register', { method: 'POST', body: JSON.stringify(params) }),
   me: () => request('/me'),
   updateMe: (params) => request('/me', { method: 'PATCH', body: JSON.stringify(params) }),

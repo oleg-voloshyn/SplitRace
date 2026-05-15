@@ -9,6 +9,8 @@ module Api
 
         if identity
           user = identity.user
+          return failure if user.club?
+
           identity.update(
             access_token: auth.credentials.token,
             refresh_token: auth.credentials.refresh_token,
@@ -20,8 +22,10 @@ module Api
                    email: auth.info.email&.downcase,
                    first_name: auth.info.first_name || auth.info.name&.split&.first,
                    last_name: auth.info.last_name || auth.info.name&.split&.last,
-                   avatar_url: auth.info.image
+                   avatar_url: auth.info.image,
+                   account_type: 'user'
                  )
+          return failure if user.club?
 
           identity_attrs = {
             provider: auth.provider,

@@ -85,6 +85,16 @@ describe('api.login', () => {
   });
 });
 
+describe('api.googleLogin', () => {
+  it('POSTs to /auth/google with the Google id token', async () => {
+    mockFetch({ token: 'tok', user: { id: 1 } });
+    await api.googleLogin('id-token');
+    expect(global.fetch).toHaveBeenCalledWith(`${BASE}/auth/google`, expect.objectContaining({ method: 'POST' }));
+    const [, opts] = global.fetch.mock.calls[0];
+    expect(JSON.parse(opts.body)).toEqual({ id_token: 'id-token' });
+  });
+});
+
 describe('api.register', () => {
   it('POSTs to /auth/register', async () => {
     mockFetch({ token: 'tok', user: { id: 2 } });

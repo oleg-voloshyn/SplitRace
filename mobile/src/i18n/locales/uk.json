@@ -23,6 +23,10 @@
     "account_club": "Біговий клуб",
     "clubName": "Назва клубу",
     "createAccount": "Створити акаунт",
+    "continueWithGoogle": "Продовжити з Google",
+    "orContinueWith": "Або продовжити з",
+    "googleFailed": "Не вдалося увійти через Google",
+    "googleNotConfigured": "Google-вхід ще не налаштований",
     "selectGender": "Будь ласка, оберіть стать",
     "somethingWrong": "Щось пішло не так",
     "subtitle": "GPS турніри з бігу"

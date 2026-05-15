@@ -21,11 +21,65 @@ module Api
         end
       end
 
+      def google
+        payload = GoogleIdentityTokenVerifier.new.verify!(params[:id_token])
+        user = find_or_create_google_user!(payload)
+        token = JwtService.encode(user_id: user.id)
+
+        render json: { token:, user: user_json(user) }
+      rescue GoogleIdentityTokenVerifier::Error => e
+        render json: { error: e.message }, status: :unauthorized
+      rescue ActiveRecord::RecordInvalid => e
+        render json: { errors: e.record.errors.full_messages }, status: :unprocessable_content
+      end
+
       private
 
       def register_params
         params.permit(:email, :password, :password_confirmation, :first_name, :last_name, :gender, :locale, :units,
                       :account_type, :club_name)
+      end
+
+      def find_or_create_google_user!(payload)
+        identity = OauthIdentity.find_by(provider: 'google_oauth2', uid: payload['sub'])
+        return ensure_runner!(identity.user) if identity
+
+        user = User.find_by(email: payload['email'].downcase)
+        user = ensure_runner!(user) if user
+        user ||= User.new(
+          email: payload['email'].downcase,
+          first_name: payload['given_name'],
+          last_name: payload['family_name'],
+          avatar_url: payload['picture'],
+          account_type: 'user'
+        )
+
+        identity_attrs = {
+          provider: 'google_oauth2',
+          uid: payload['sub'],
+          token_expires_at: token_expires_at(payload)
+        }
+
+        if user.new_record?
+          user.oauth_identities.build(identity_attrs)
+          user.save!
+        else
+          user.oauth_identities.create!(identity_attrs)
+        end
+
+        user
+      end
+
+      def ensure_runner!(user)
+        return user unless user.club?
+
+        user.errors.add(:base, 'Google sign-in is only available for runners')
+        raise ActiveRecord::RecordInvalid, user
+      end
+
+      def token_expires_at(payload)
+        expires_at = payload['exp'].presence
+        Time.zone.at(expires_at.to_i) if expires_at
       end
 
       def user_json(user)
