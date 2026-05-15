@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
 import { useTranslation } from 'react-i18next';
-import { Alert, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Platform, ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { api } from '../api/client';
 import LeafletMap from '../components/LeafletMap';
 
@@ -38,6 +38,7 @@ function RunTrackerScreen() {
   const [points, setPoints] = useState([]);
   const [duration, setDuration] = useState(0);
   const [error, setError] = useState(null);
+  const [savedActivity, setSavedActivity] = useState(null);
 
   const startTime = useRef(null); // first START timestamp (used for started_at)
   const segmentStart = useRef(null); // when current active recording segment began
@@ -174,7 +175,7 @@ function RunTrackerScreen() {
     const elapsed = Math.floor(accumulatedMs.current / 1000);
 
     try {
-      await api.saveActivity({
+      const activity = await api.saveActivity({
         started_at: new Date(startTime.current).toISOString(),
         finished_at: new Date().toISOString(),
         elapsed_time_seconds: elapsed,
@@ -183,6 +184,9 @@ function RunTrackerScreen() {
         gps_points: pts
       });
       await AsyncStorage.removeItem(POINTS_KEY);
+      setSavedActivity(activity);
+      setPoints(pts);
+      setDuration(activity.elapsed_time_seconds || elapsed);
       setStatus('saved');
     } catch (e) {
       setError(e?.errors?.join(', ') || t('run.saveFailed'));
@@ -203,6 +207,7 @@ function RunTrackerScreen() {
     setStatus('idle');
     setPoints([]);
     setDuration(0);
+    setSavedActivity(null);
     accumulatedMs.current = 0;
     setError(null);
   }
@@ -247,17 +252,52 @@ function RunTrackerScreen() {
 
   // ── SAVED ────────────────────────────────────────────────────────────────────
   if (status === 'saved') {
+    const activity = savedActivity || {
+      elapsed_time_seconds: duration,
+      distance_meters: calcDistance(points),
+      segment_efforts: [],
+      segment_efforts_count: 0
+    };
+    const segmentCount = activity.segment_efforts_count || activity.segment_efforts?.length || 0;
+    const hasSegments = segmentCount > 0;
+
     return (
-      <View style={[s.center, { backgroundColor: '#1a1a2e' }]}>
-        <Text style={{ fontSize: 48, marginBottom: 8 }}>✓</Text>
-        <Text style={{ color: '#4caf50', fontSize: 20, marginBottom: 8 }}>{t('run.runSaved')}</Text>
-        <Text style={{ color: 'rgba(255,255,255,0.6)', marginBottom: 40 }}>
-          {fmtTime(duration)} · {(calcDistance(points) / 1000).toFixed(2)} km
-        </Text>
-        <TouchableOpacity style={s.roundBtn('#1a1a2e')} onPress={reset}>
-          <Text style={s.btnLabel}>{t('run.newRun')}</Text>
-        </TouchableOpacity>
-      </View>
+      <ScrollView style={s.savedScreen} contentContainerStyle={s.savedContent}>
+        <Text style={s.savedCheck}>✓</Text>
+        <Text style={s.savedTitle}>{t('run.runSaved')}</Text>
+        <View style={s.summaryCard}>
+          <Text style={s.summaryKicker}>{hasSegments ? t('run.segmentUnlocked') : t('run.noSegmentUnlocked')}</Text>
+          <View style={s.summaryStats}>
+            <SummaryStat label={t('run.distance')} value={fmtDist(activity.distance_meters)} />
+            <SummaryStat label={t('run.time')} value={fmtTime(activity.elapsed_time_seconds || duration)} />
+            <SummaryStat
+              label={t('run.pace')}
+              value={fmtPace(activity.elapsed_time_seconds, activity.distance_meters)}
+            />
+          </View>
+          <View style={s.segmentSummary}>
+            <Text style={s.segmentCount}>{t('run.segmentsCompleted', { count: segmentCount })}</Text>
+            {hasSegments ? (
+              activity.segment_efforts.map((effort) => (
+                <View key={effort.id} style={s.segmentRow}>
+                  <Text style={s.segmentName}>{effort.segment?.name}</Text>
+                  <Text style={s.segmentTime}>{effort.formatted_time}</Text>
+                </View>
+              ))
+            ) : (
+              <Text style={s.noSegmentsText}>{t('run.noSegmentsCompleted')}</Text>
+            )}
+          </View>
+        </View>
+        <View style={s.savedActions}>
+          <TouchableOpacity style={s.shareBtn} onPress={() => shareActivity(activity, t)}>
+            <Text style={s.shareBtnText}>{t('run.shareResult')}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={s.newRunBtn} onPress={reset}>
+            <Text style={s.newRunBtnText}>{t('run.newRun')}</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
     );
   }
 
@@ -328,12 +368,57 @@ function Stat({ label, value, dark }) {
   );
 }
 
+function SummaryStat({ label, value }) {
+  return (
+    <View style={s.summaryStat}>
+      <Text style={s.summaryStatLabel}>{label}</Text>
+      <Text style={s.summaryStatValue}>{value}</Text>
+    </View>
+  );
+}
+
+function shareActivity(activity, t) {
+  Share.share({ message: buildActivityShareText(activity, t) }).catch(() => {
+    // Native share can be cancelled or unavailable.
+  });
+}
+
+function buildActivityShareText(activity, t) {
+  const segmentCount = activity.segment_efforts_count || activity.segment_efforts?.length || 0;
+  const segments = activity.segment_efforts || [];
+  const segmentLines = segments.length
+    ? segments.map((effort) => `• ${effort.segment?.name} — ${effort.formatted_time}`).join('\n')
+    : t('run.noSegmentsCompleted');
+
+  return [
+    t('run.shareTitle'),
+    `${t('run.distance')}: ${fmtDist(activity.distance_meters)}`,
+    `${t('run.time')}: ${fmtTime(activity.elapsed_time_seconds)}`,
+    `${t('run.pace')}: ${fmtPace(activity.elapsed_time_seconds, activity.distance_meters)} /km`,
+    `${t('run.segmentsCompleted', { count: segmentCount })}`,
+    segmentLines,
+    'SplitRace'
+  ].join('\n');
+}
+
 function fmtTime(secs) {
   const h = Math.floor(secs / 3600),
     m = Math.floor((secs % 3600) / 60),
     s = secs % 60;
   const pad = (n) => String(n).padStart(2, '0');
   return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
+}
+
+function fmtDist(meters) {
+  return `${((meters || 0) / 1000).toFixed(2)} km`;
+}
+
+function fmtPace(secs, meters) {
+  if (!secs || !meters) {
+    return '--:--';
+  }
+
+  return fmtTime(Math.round(secs / (meters / 1000)));
 }
 
 function calcDistance(pts) {
@@ -391,7 +476,50 @@ const s = StyleSheet.create({
     gap: 8
   }),
   pillIcon: { color: '#fff', fontSize: 14 },
-  pillLabel: { color: '#fff', fontWeight: '700', fontSize: 16 }
+  pillLabel: { color: '#fff', fontWeight: '700', fontSize: 16 },
+  savedScreen: { flex: 1, backgroundColor: '#1a1a2e' },
+  savedContent: { padding: 20, paddingBottom: 36, alignItems: 'center' },
+  savedCheck: { fontSize: 48, marginBottom: 8, color: '#4caf50' },
+  savedTitle: { color: '#4caf50', fontSize: 20, fontWeight: '800', marginBottom: 18 },
+  summaryCard: {
+    width: '100%',
+    backgroundColor: '#fff',
+    borderRadius: 18,
+    padding: 18,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 18,
+    elevation: 4
+  },
+  summaryKicker: { color: '#e53935', fontSize: 13, fontWeight: '800', marginBottom: 14, textTransform: 'uppercase' },
+  summaryStats: { flexDirection: 'row', gap: 8 },
+  summaryStat: { flex: 1, backgroundColor: '#f7f7f9', borderRadius: 12, padding: 10 },
+  summaryStatLabel: { color: '#777', fontSize: 10, textTransform: 'uppercase', fontWeight: '700', marginBottom: 4 },
+  summaryStatValue: { color: '#1a1a2e', fontSize: 16, fontWeight: '800' },
+  segmentSummary: { marginTop: 16, borderTopWidth: 1, borderTopColor: '#eee', paddingTop: 14 },
+  segmentCount: { color: '#1a1a2e', fontSize: 16, fontWeight: '800', marginBottom: 10 },
+  segmentRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0'
+  },
+  segmentName: { color: '#333', fontSize: 14, fontWeight: '600', flex: 1 },
+  segmentTime: { color: '#e53935', fontSize: 14, fontWeight: '800' },
+  noSegmentsText: { color: '#777', lineHeight: 20 },
+  savedActions: { width: '100%', gap: 10, marginTop: 18 },
+  shareBtn: { backgroundColor: '#e53935', borderRadius: 14, padding: 15, alignItems: 'center' },
+  shareBtnText: { color: '#fff', fontWeight: '800', fontSize: 16 },
+  newRunBtn: {
+    borderColor: 'rgba(255,255,255,0.24)',
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 15,
+    alignItems: 'center'
+  },
+  newRunBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 }
 });
 
 export default RunTrackerScreen;

@@ -2,7 +2,10 @@ module Api
   module V1
     class ActivitiesController < BaseController
       def index
-        activities = current_user.activities.order(started_at: :desc).limit(20)
+        activities = current_user.activities
+                                 .includes(segment_efforts: :segment)
+                                 .order(started_at: :desc)
+                                 .limit(20)
         render json: activities.map { |a| activity_json(a) }
       end
 
@@ -22,7 +25,7 @@ module Api
           rescue => e
             Rails.logger.error "[SegmentMatcher] #{e.class}: #{e.message}"
           end
-          render json: activity_json(activity), status: :created
+          render json: activity_json(activity.reload), status: :created
         else
           render json: { errors: activity.errors.full_messages }, status: :unprocessable_content
         end
@@ -67,7 +70,24 @@ module Api
           elapsed_time_seconds: activity.elapsed_time_seconds,
           source: activity.source,
           segment_efforts_count: activity.segment_efforts.count,
+          segment_efforts: activity.segment_efforts.includes(:segment).order(:started_at).map { |effort| segment_effort_json(effort) },
           gps_points: activity.gps_points || []
+        }
+      end
+
+      def segment_effort_json(effort)
+        {
+          id: effort.id,
+          elapsed_time_seconds: effort.elapsed_time_seconds,
+          formatted_time: effort.formatted_time,
+          pace_per_km: effort.pace_per_km,
+          segment: {
+            id: effort.segment.id,
+            name: effort.segment.name,
+            distance_meters: effort.segment.distance_meters,
+            city: effort.segment.city,
+            country: effort.segment.country
+          }
         }
       end
     end

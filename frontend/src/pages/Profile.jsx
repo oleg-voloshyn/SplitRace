@@ -206,6 +206,24 @@ function Profile() {
                       <span>{fmtPace(a.elapsed_time_seconds, a.distance_meters)} /km</span>
                     )}
                   </div>
+                  <ActivitySegmentSummary activity={a} t={t} />
+                  <button
+                    type="button"
+                    onClick={() => shareActivity(a, t)}
+                    style={{
+                      marginTop: '0.55rem',
+                      background: '#e53935',
+                      border: 'none',
+                      borderRadius: '6px',
+                      padding: '0.35rem 0.8rem',
+                      fontSize: '0.8rem',
+                      cursor: 'pointer',
+                      color: '#fff',
+                      fontWeight: 700
+                    }}
+                  >
+                    {t('run.shareResult')}
+                  </button>
 
                   {a.gps_points?.length > 1 && (
                     <button
@@ -234,6 +252,70 @@ function Profile() {
       </div>
     </div>
   );
+}
+
+function ActivitySegmentSummary({ activity, t }) {
+  const efforts = activity.segment_efforts || [];
+  const count = activity.segment_efforts_count || efforts.length || 0;
+
+  return (
+    <div
+      style={{
+        marginTop: '0.65rem',
+        padding: '0.65rem',
+        borderRadius: '6px',
+        background: '#fafafa',
+        border: '1px solid #eee'
+      }}
+    >
+      <strong style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.86rem' }}>
+        {t('run.segmentsCompleted', { count })}
+      </strong>
+      {efforts.length > 0 ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+          {efforts.map((effort) => (
+            <div
+              key={effort.id}
+              style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', fontSize: '0.82rem' }}
+            >
+              <span style={{ color: '#444', fontWeight: 600 }}>{effort.segment?.name}</span>
+              <span style={{ color: '#e53935', fontWeight: 800 }}>{effort.formatted_time}</span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <span style={{ color: '#888', fontSize: '0.82rem' }}>{t('run.noSegmentsCompleted')}</span>
+      )}
+    </div>
+  );
+}
+
+async function shareActivity(activity, t) {
+  const text = buildActivityShareText(activity, t);
+  if (navigator.share) {
+    await navigator.share({ text }).catch(() => {});
+    return;
+  }
+
+  await navigator.clipboard?.writeText(text).catch(() => {});
+}
+
+function buildActivityShareText(activity, t) {
+  const segmentCount = activity.segment_efforts_count || activity.segment_efforts?.length || 0;
+  const segments = activity.segment_efforts || [];
+  const segmentLines = segments.length
+    ? segments.map((effort) => `• ${effort.segment?.name} — ${effort.formatted_time}`).join('\n')
+    : t('run.noSegmentsCompleted');
+
+  return [
+    t('run.shareTitle'),
+    `${t('run.distance')}: ${fmtDist(activity.distance_meters)}`,
+    `${t('run.time')}: ${fmtTime(activity.elapsed_time_seconds)}`,
+    `${t('run.pace')}: ${fmtPace(activity.elapsed_time_seconds, activity.distance_meters)} /km`,
+    `${t('run.segmentsCompleted', { count: segmentCount })}`,
+    segmentLines,
+    'SplitRace'
+  ].join('\n');
 }
 
 function profileFormFromUser(user) {

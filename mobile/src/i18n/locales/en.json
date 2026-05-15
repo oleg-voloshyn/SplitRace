@@ -77,7 +77,13 @@
     "permissionDenied": "Location permission denied",
     "backgroundNeeded": "Background location needed",
     "backgroundNeededMsg": "To record your run when the screen is off, please allow \"Allow all the time\" in location settings.",
-    "saveFailed": "Failed to save run"
+    "saveFailed": "Failed to save run",
+    "segmentUnlocked": "Segment unlocked",
+    "noSegmentUnlocked": "Run summary",
+    "segmentsCompleted": "{{count}} segments completed",
+    "noSegmentsCompleted": "No segments were unlocked on this run.",
+    "shareResult": "Share result",
+    "shareTitle": "My SplitRace run"
   },
   "profile": {
     "genderWarning": "⚠ Set your gender — required for tournament scoring",

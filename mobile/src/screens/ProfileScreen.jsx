@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Image, ScrollView, Share, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { api } from '../api/client';
 import LeafletMap from '../components/LeafletMap';
 import { useAuth } from '../contexts/AuthContext';
@@ -227,6 +227,10 @@ function ProfileScreen() {
               <Text style={s.stat}>{fmtPace(a.elapsed_time_seconds, a.distance_meters)} /km</Text>
             )}
           </View>
+          <RunSegmentSummary activity={a} t={t} />
+          <TouchableOpacity style={s.shareRunBtn} onPress={() => shareActivity(a, t)}>
+            <Text style={s.shareRunText}>{t('run.shareResult')}</Text>
+          </TouchableOpacity>
           {a.gps_points?.length > 1 && (
             <TouchableOpacity onPress={() => setExpandedId(expandedId === a.id ? null : a.id)} style={s.routeBtn}>
               <Text style={s.routeBtnText}>
@@ -243,6 +247,51 @@ function ProfileScreen() {
       ))}
     </ScrollView>
   );
+}
+
+function RunSegmentSummary({ activity, t }) {
+  const efforts = activity.segment_efforts || [];
+  const count = activity.segment_efforts_count || efforts.length || 0;
+
+  return (
+    <View style={s.runSegmentBox}>
+      <Text style={s.runSegmentTitle}>{t('run.segmentsCompleted', { count })}</Text>
+      {efforts.length > 0 ? (
+        efforts.map((effort) => (
+          <View key={effort.id} style={s.runSegmentRow}>
+            <Text style={s.runSegmentName}>{effort.segment?.name}</Text>
+            <Text style={s.runSegmentTime}>{effort.formatted_time}</Text>
+          </View>
+        ))
+      ) : (
+        <Text style={s.runSegmentEmpty}>{t('run.noSegmentsCompleted')}</Text>
+      )}
+    </View>
+  );
+}
+
+function shareActivity(activity, t) {
+  Share.share({ message: buildActivityShareText(activity, t) }).catch(() => {
+    // Native share can be cancelled or unavailable.
+  });
+}
+
+function buildActivityShareText(activity, t) {
+  const segmentCount = activity.segment_efforts_count || activity.segment_efforts?.length || 0;
+  const segments = activity.segment_efforts || [];
+  const segmentLines = segments.length
+    ? segments.map((effort) => `• ${effort.segment?.name} — ${effort.formatted_time}`).join('\n')
+    : t('run.noSegmentsCompleted');
+
+  return [
+    t('run.shareTitle'),
+    `${t('run.distance')}: ${fmtDist(activity.distance_meters)}`,
+    `${t('run.time')}: ${fmtTime(activity.elapsed_time_seconds)}`,
+    `${t('run.pace')}: ${fmtPace(activity.elapsed_time_seconds, activity.distance_meters)} /km`,
+    `${t('run.segmentsCompleted', { count: segmentCount })}`,
+    segmentLines,
+    'SplitRace'
+  ].join('\n');
 }
 
 function InfoRow({ label, value }) {
@@ -427,6 +476,28 @@ const s = StyleSheet.create({
   segBadgeText: { color: '#856404', fontSize: 12 },
   runStats: { flexDirection: 'row', gap: 16 },
   stat: { color: '#555', fontSize: 13 },
+  runSegmentBox: { backgroundColor: '#fafafa', borderRadius: 8, padding: 10, marginTop: 10 },
+  runSegmentTitle: { color: '#1a1a2e', fontWeight: '800', marginBottom: 6 },
+  runSegmentRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 10,
+    paddingVertical: 5,
+    borderTopWidth: 1,
+    borderTopColor: '#eee'
+  },
+  runSegmentName: { color: '#444', fontWeight: '600', flex: 1 },
+  runSegmentTime: { color: '#e53935', fontWeight: '800' },
+  runSegmentEmpty: { color: '#888', fontSize: 13 },
+  shareRunBtn: {
+    marginTop: 10,
+    alignSelf: 'flex-start',
+    backgroundColor: '#e53935',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 7
+  },
+  shareRunText: { color: '#fff', fontWeight: '800', fontSize: 12 },
   routeBtn: {
     marginTop: 8,
     alignSelf: 'flex-start',

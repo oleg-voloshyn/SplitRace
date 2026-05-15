@@ -77,6 +77,15 @@
     "showRoute": "Show route",
     "hideRoute": "Hide route"
   },
+  "run": {
+    "distance": "Distance",
+    "time": "Time",
+    "pace": "Pace",
+    "segmentsCompleted": "{{count}} segments completed",
+    "noSegmentsCompleted": "No segments were unlocked on this run.",
+    "shareResult": "Share result",
+    "shareTitle": "My SplitRace run"
+  },
   "report": {
     "title": "Report cheating",
     "subtitle": "Reporting {{name}}. Describe what makes their performance look suspicious.",
