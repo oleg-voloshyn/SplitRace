@@ -5,7 +5,7 @@ services:
     plan: free
     buildCommand: |
       bundle install
-      (cd frontend && npm install && npm run build)
+      (cd frontend && npm ci && npm run build)
       bundle exec rails db:migrate
     startCommand: bundle exec puma -C config/puma.rb
     healthCheckPath: /up

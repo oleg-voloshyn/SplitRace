@@ -2,7 +2,7 @@
 
 # Make sure RUBY_VERSION matches the Ruby version in .ruby-version and Gemfile
 ARG RUBY_VERSION=4.0.4
-FROM registry.docker.com/library/ruby:$RUBY_VERSION-slim as base
+FROM registry.docker.com/library/ruby:$RUBY_VERSION-slim AS base
 
 # Rails app lives here
 WORKDIR /rails
@@ -14,8 +14,20 @@ ENV RAILS_ENV="production" \
     BUNDLE_WITHOUT="development"
 
 
+# Build the React app into public/app without committing generated assets.
+FROM node:22-slim AS frontend-build
+
+WORKDIR /rails/frontend
+
+COPY frontend/package*.json ./
+RUN npm ci
+
+COPY frontend ./
+RUN npm run build
+
+
 # Throw-away build stage to reduce size of final image
-FROM base as build
+FROM base AS build
 
 # Install packages needed to build gems
 RUN apt-get update -qq && \
@@ -29,6 +41,9 @@ RUN bundle install && \
 
 # Copy application code
 COPY . .
+
+# Copy built frontend artifacts
+COPY --from=frontend-build /rails/public/app /rails/public/app
 
 # Precompile bootsnap code for faster boot times
 RUN bundle exec bootsnap precompile app/ lib/

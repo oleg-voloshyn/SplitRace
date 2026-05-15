@@ -36,6 +36,7 @@
 # Frontend dependencies and build output
 /frontend/node_modules/
 /frontend/dist/
+/public/app/
 
 # Mobile (Expo)
 /mobile/node_modules/

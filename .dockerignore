@@ -29,3 +29,7 @@
 !/storage/.keep
 /tmp/storage/*
 !/tmp/storage/.keep
+
+# Ignore generated frontend artifacts and dependencies.
+/frontend/node_modules/
+/public/app/

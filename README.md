@@ -1,24 +1,15 @@
-# README
+# SplitRace
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
+## Frontend build
 
-Things you may want to cover:
+The React app lives in `frontend/` and builds into `public/app/`, which Rails serves as the web app.
 
-* Ruby version
+`public/app/` is generated output and is intentionally ignored by git. Rebuild it when needed:
 
-* System dependencies
+```sh
+cd frontend
+npm ci
+npm run build
+```
 
-* Configuration
-
-* Database creation
-
-* Database initialization
-
-* How to run the test suite
-
-* Services (job queues, cache servers, search engines, etc.)
-
-* Deployment instructions
-
-* ...
+Render runs this during deploy via `render.yaml`. Docker builds it in the `frontend-build` stage and copies the generated `public/app` into the final Rails image.
