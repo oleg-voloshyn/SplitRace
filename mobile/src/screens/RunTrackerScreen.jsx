@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
+import * as Sharing from 'expo-sharing';
 import * as TaskManager from 'expo-task-manager';
 import { useTranslation } from 'react-i18next';
 import { Alert, Platform, ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import ViewShot from 'react-native-view-shot';
 import { api } from '../api/client';
 import LeafletMap from '../components/LeafletMap';
+import { RunShareCard } from '../components/RunShareCard';
 
 const LOCATION_TASK = 'splitrace-location-task';
 const POINTS_KEY = 'splitrace_run_points';
@@ -40,10 +43,11 @@ function RunTrackerScreen() {
   const [error, setError] = useState(null);
   const [savedActivity, setSavedActivity] = useState(null);
 
-  const startTime = useRef(null); // first START timestamp (used for started_at)
-  const segmentStart = useRef(null); // when current active recording segment began
-  const accumulatedMs = useRef(0); // total active time across pauses
+  const startTime = useRef(null);
+  const segmentStart = useRef(null);
+  const accumulatedMs = useRef(0);
   const timerRef = useRef(null);
+  const shareCardRef = useRef(null);
 
   // Poll AsyncStorage for new GPS points while recording
   useEffect(() => {
@@ -265,6 +269,12 @@ function RunTrackerScreen() {
       <ScrollView style={s.savedScreen} contentContainerStyle={s.savedContent}>
         <Text style={s.savedCheck}>✓</Text>
         <Text style={s.savedTitle}>{t('run.runSaved')}</Text>
+
+        {/* Share card — captured as image on share */}
+        <ViewShot ref={shareCardRef} options={{ format: 'png', quality: 1 }} style={s.shareCardWrap}>
+          <RunShareCard activity={activity} />
+        </ViewShot>
+
         <View style={s.summaryCard}>
           <Text style={s.summaryKicker}>{hasSegments ? t('run.segmentUnlocked') : t('run.noSegmentUnlocked')}</Text>
           <View style={s.summaryStats}>
@@ -290,7 +300,7 @@ function RunTrackerScreen() {
           </View>
         </View>
         <View style={s.savedActions}>
-          <TouchableOpacity style={s.shareBtn} onPress={() => shareActivity(activity, t)}>
+          <TouchableOpacity style={s.shareBtn} onPress={() => shareActivityImage(shareCardRef, activity, t)}>
             <Text style={s.shareBtnText}>{t('run.shareResult')}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={s.newRunBtn} onPress={reset}>
@@ -377,28 +387,38 @@ function SummaryStat({ label, value }) {
   );
 }
 
-function shareActivity(activity, t) {
-  Share.share({ message: buildActivityShareText(activity, t) }).catch(() => {
-    // Native share can be cancelled or unavailable.
-  });
+async function shareActivityImage(cardRef, activity, t) {
+  try {
+    const isAvailable = await Sharing.isAvailableAsync();
+    if (!isAvailable || !cardRef.current) {
+      shareActivityText(activity, t);
+      return;
+    }
+    const uri = await cardRef.current.capture();
+    await Sharing.shareAsync(uri, { mimeType: 'image/png', dialogTitle: t('run.shareResult') });
+  } catch {
+    shareActivityText(activity, t);
+  }
 }
 
-function buildActivityShareText(activity, t) {
+function shareActivityText(activity, t) {
   const segmentCount = activity.segment_efforts_count || activity.segment_efforts?.length || 0;
   const segments = activity.segment_efforts || [];
   const segmentLines = segments.length
     ? segments.map((effort) => `• ${effort.segment?.name} — ${effort.formatted_time}`).join('\n')
     : t('run.noSegmentsCompleted');
 
-  return [
-    t('run.shareTitle'),
-    `${t('run.distance')}: ${fmtDist(activity.distance_meters)}`,
-    `${t('run.time')}: ${fmtTime(activity.elapsed_time_seconds)}`,
-    `${t('run.pace')}: ${fmtPace(activity.elapsed_time_seconds, activity.distance_meters)} /km`,
-    `${t('run.segmentsCompleted', { count: segmentCount })}`,
-    segmentLines,
-    'SplitRace'
-  ].join('\n');
+  Share.share({
+    message: [
+      t('run.shareTitle'),
+      `${t('run.distance')}: ${fmtDist(activity.distance_meters)}`,
+      `${t('run.time')}: ${fmtTime(activity.elapsed_time_seconds)}`,
+      `${t('run.pace')}: ${fmtPace(activity.elapsed_time_seconds, activity.distance_meters)} /km`,
+      `${t('run.segmentsCompleted', { count: segmentCount })}`,
+      segmentLines,
+      'SplitRace'
+    ].join('\n')
+  }).catch(() => {});
 }
 
 function fmtTime(secs) {
@@ -479,6 +499,7 @@ const s = StyleSheet.create({
   pillLabel: { color: '#fff', fontWeight: '700', fontSize: 16 },
   savedScreen: { flex: 1, backgroundColor: '#1a1a2e' },
   savedContent: { padding: 20, paddingBottom: 36, alignItems: 'center' },
+  shareCardWrap: { width: 360, marginBottom: 20, borderRadius: 24, overflow: 'hidden' },
   savedCheck: { fontSize: 48, marginBottom: 8, color: '#4caf50' },
   savedTitle: { color: '#4caf50', fontSize: 20, fontWeight: '800', marginBottom: 18 },
   summaryCard: {
