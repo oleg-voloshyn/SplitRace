@@ -10,6 +10,7 @@ class Tournament < ApplicationRecord
   has_many :notifications, dependent: :destroy
   has_many :users, through: :tournament_participants
   has_many :tournament_scores, dependent: :destroy
+  has_many :cheating_reports, dependent: :destroy
 
   STATUSES       = %w[draft pending_review active rejected completed].freeze
   SCORING_TYPES  = %w[golden_fever].freeze

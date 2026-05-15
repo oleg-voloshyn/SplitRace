@@ -72,6 +72,14 @@ class AdminFlowsTest < ActionDispatch::IntegrationTest
     post complete_admin_tournament_path(tournament)
     assert_redirected_to admin_tournament_path(tournament)
     assert_equal "completed", tournament.reload.status
+    reporter = create_user(email: "reporter@example.com")
+    reported = create_user(email: "reported@example.com")
+    CheatingReport.create!(
+      reporter:,
+      reported_user: reported,
+      tournament:,
+      reason: "Suspicious activity on multiple segments"
+    )
 
     get admin_tournaments_path
     assert_response :success
@@ -79,8 +87,10 @@ class AdminFlowsTest < ActionDispatch::IntegrationTest
     assert_select "form[action='#{admin_tournament_path(tournament)}'][method='post'][data-confirm-modal*='Delete #{tournament.name}']"
     assert_select "form[action='#{admin_tournament_path(tournament)}'] input[name='_method'][value='delete']"
 
-    assert_difference "Tournament.count", -1 do
-      delete admin_tournament_path(tournament)
+    assert_difference -> { Tournament.count }, -1 do
+      assert_difference -> { CheatingReport.count }, -1 do
+        delete admin_tournament_path(tournament)
+      end
     end
     assert_redirected_to admin_tournaments_path
   end
