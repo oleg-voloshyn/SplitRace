@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { api } from '../api/client';
 import SegmentMapPicker from '../components/SegmentMapPicker';
+import { formatDistance, reverseGeocode, routeDistance } from '../utils/geoUtils';
 
 const initialSegment = {
   name: '',
@@ -218,36 +219,6 @@ function CreatorInput({ label, value, onChangeText }) {
   );
 }
 
-async function reverseGeocode(lat, lng) {
-  try {
-    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&accept-language=en`;
-    const res = await fetch(url);
-    if (!res.ok) return {};
-    const data = await res.json();
-    const address = data?.address || {};
-    return {
-      city: address.city || address.town || address.village || address.municipality || address.county || '',
-      country: (address.country_code || '').toUpperCase() || address.country || ''
-    };
-  } catch {
-    return {};
-  }
-}
-
-function routeDistance(points) {
-  if (points.length < 2) return 0;
-  return points.slice(1).reduce((total, pt, i) => {
-    const a = points[i], b = pt;
-    const R = 6371000, rad = Math.PI / 180;
-    const dlat = (b.lat - a.lat) * rad, dlng = (b.lng - a.lng) * rad;
-    const x = Math.sin(dlat / 2) ** 2 + Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin(dlng / 2) ** 2;
-    return total + R * 2 * Math.asin(Math.sqrt(x));
-  }, 0);
-}
-
-function formatDistance(meters) {
-  return meters ? `${(meters / 1000).toFixed(2)} km` : '-';
-}
 
 const s = StyleSheet.create({
   mapHint: { color: '#555', fontSize: 12, marginBottom: 6 },
