@@ -11,12 +11,23 @@ class ApiNotificationsTest < ActionDispatch::IntegrationTest
     tournament.tournament_participants.create!(user: runner)
     tournament.tournament_participants.create!(user: spectator)
     effort = create_effort(runner, segment)
+    delivered_notifications = []
+    original_deliver = ExpoPushNotificationService.method(:deliver)
 
-    assert_difference 'TournamentEvent.count', 1 do
-      assert_difference 'Notification.count', 2 do
-        TournamentEventPublisher.segment_unlocked!(tournament:, segment_effort: effort)
-      end
+    ExpoPushNotificationService.define_singleton_method(:deliver) do |notification|
+      delivered_notifications << notification
     end
+
+    begin
+      assert_difference 'TournamentEvent.count', 1 do
+        assert_difference 'Notification.count', 2 do
+          TournamentEventPublisher.segment_unlocked!(tournament:, segment_effort: effort)
+        end
+      end
+    ensure
+      ExpoPushNotificationService.define_singleton_method(:deliver, original_deliver)
+    end
+    assert_equal 2, delivered_notifications.size
 
     get feed_api_v1_tournament_path(tournament.slug), headers: auth_headers(runner)
 
@@ -31,6 +42,29 @@ class ApiNotificationsTest < ActionDispatch::IntegrationTest
     body = response.parsed_body
     assert_equal 1, body['unread_count']
     assert_includes body['notifications'].first['title'], 'Opening Segment'
+  end
+
+  test 'user can register and unregister expo push token' do
+    user = create_user(email: 'push@example.com')
+    token = 'ExpoPushToken[test-token]'
+
+    assert_difference 'DevicePushToken.count', 1 do
+      post api_v1_push_tokens_path,
+           params: { push_token: { token:, platform: 'ios' } },
+           headers: auth_headers(user)
+    end
+
+    assert_response :success
+    push_token = user.device_push_tokens.find_by!(token:)
+    assert_equal 'ios', push_token.platform
+    assert_nil push_token.disabled_at
+
+    delete api_v1_push_tokens_path,
+           params: { token: },
+           headers: auth_headers(user)
+
+    assert_response :success
+    assert_predicate push_token.reload.disabled_at, :present?
   end
 
   private

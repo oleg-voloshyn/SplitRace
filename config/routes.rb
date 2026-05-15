@@ -17,6 +17,8 @@ Rails.application.routes.draw do
       get    'notifications', to: 'notifications#index'
       patch  'notifications/:id/read', to: 'notifications#read', as: :read_notification
       post   'notifications/read_all', to: 'notifications#read_all'
+      post   'push_tokens', to: 'push_tokens#create'
+      delete 'push_tokens', to: 'push_tokens#destroy'
 
       # Segments
       resources :segments, only: %i[index show create]

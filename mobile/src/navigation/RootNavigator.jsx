@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, useNavigation } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import * as Notifications from 'expo-notifications';
 import { useTranslation } from 'react-i18next';
 import { Text } from 'react-native';
 import { api } from '../api/client';
@@ -44,14 +45,42 @@ function TabIcon({ name, focused }) {
 
 function AppTabs() {
   const { t } = useTranslation();
+  const navigation = useNavigation();
   const [unreadCount, setUnreadCount] = useState(0);
 
-  useEffect(() => {
+  const refreshUnreadCount = useCallback(() => {
     api
       .notifications()
       .then((data) => setUnreadCount(data.unread_count || 0))
       .catch(() => setUnreadCount(0));
   }, []);
+
+  useEffect(() => {
+    refreshUnreadCount();
+  }, [refreshUnreadCount]);
+
+  useEffect(() => {
+    const receivedSubscription = Notifications.addNotificationReceivedListener(() => {
+      refreshUnreadCount();
+    });
+
+    const responseSubscription = Notifications.addNotificationResponseReceivedListener((response) => {
+      const slug = response.notification.request.content.data?.tournament_slug;
+
+      refreshUnreadCount();
+      if (slug) {
+        navigation.navigate('Tournaments', {
+          screen: 'Tournament',
+          params: { slug }
+        });
+      }
+    });
+
+    return () => {
+      receivedSubscription.remove();
+      responseSubscription.remove();
+    };
+  }, [navigation, refreshUnreadCount]);
 
   return (
     <Tab.Navigator

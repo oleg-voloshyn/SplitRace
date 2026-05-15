@@ -5,6 +5,7 @@ class User < ApplicationRecord
 
   has_many :oauth_identities, dependent: :destroy
   has_many :activities, dependent: :destroy
+  has_many :device_push_tokens, dependent: :destroy
   has_many :notifications, dependent: :destroy
   has_many :segment_efforts, dependent: :destroy
   has_many :tournament_participants, dependent: :destroy

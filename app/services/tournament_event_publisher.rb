@@ -21,13 +21,14 @@ class TournamentEventPublisher
     )
 
     tournament.tournament_participants.includes(:user).find_each do |participant|
-      participant.user.notifications.create!(
+      notification = participant.user.notifications.create!(
         tournament:,
         tournament_event: event,
         notification_type: event.event_type,
         title: event.title,
         body: event.body
       )
+      ExpoPushNotificationService.deliver(notification)
     end
 
     event

@@ -31,6 +31,9 @@ const api = {
   updateMe: (params) => request('/me', { method: 'PATCH', body: JSON.stringify(params) }),
   notifications: () => request('/notifications'),
   readAllNotifications: () => request('/notifications/read_all', { method: 'POST' }),
+  registerPushToken: (params) =>
+    request('/push_tokens', { method: 'POST', body: JSON.stringify({ push_token: params }) }),
+  unregisterPushToken: (token) => request('/push_tokens', { method: 'DELETE', body: JSON.stringify({ token }) }),
   mySegments: () => request('/segments?mine=1'),
   createSegment: (params) => request('/segments', { method: 'POST', body: JSON.stringify(params) }),
   tournaments: () => request('/tournaments'),

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_14_123000) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_15_080000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "postgis"
@@ -47,6 +47,19 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_14_123000) do
     t.index ["reviewed_by_id"], name: "index_cheating_reports_on_reviewed_by_id"
     t.index ["status"], name: "index_cheating_reports_on_status"
     t.index ["tournament_id"], name: "index_cheating_reports_on_tournament_id"
+  end
+
+  create_table "device_push_tokens", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "disabled_at"
+    t.datetime "last_registered_at", null: false
+    t.string "platform", null: false
+    t.string "token", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["token"], name: "index_device_push_tokens_on_token", unique: true
+    t.index ["user_id", "disabled_at"], name: "index_device_push_tokens_on_user_id_and_disabled_at"
+    t.index ["user_id"], name: "index_device_push_tokens_on_user_id"
   end
 
   create_table "notifications", force: :cascade do |t|
@@ -220,6 +233,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_14_123000) do
   add_foreign_key "cheating_reports", "users", column: "reported_user_id"
   add_foreign_key "cheating_reports", "users", column: "reporter_id"
   add_foreign_key "cheating_reports", "users", column: "reviewed_by_id"
+  add_foreign_key "device_push_tokens", "users"
   add_foreign_key "notifications", "tournament_events"
   add_foreign_key "notifications", "tournaments"
   add_foreign_key "notifications", "users"
