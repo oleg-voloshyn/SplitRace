@@ -87,11 +87,19 @@ class AdminFlowsTest < ActionDispatch::IntegrationTest
     assert_select "form[action='#{admin_tournament_path(tournament)}'][method='post'][data-confirm-modal*='Delete #{tournament.name}']"
     assert_select "form[action='#{admin_tournament_path(tournament)}'] input[name='_method'][value='delete']"
 
+    deleted_tournament_path = admin_tournament_path(tournament)
     assert_difference -> { Tournament.count }, -1 do
       assert_difference -> { CheatingReport.count }, -1 do
-        delete admin_tournament_path(tournament)
+        post deleted_tournament_path, params: { _method: "delete" }
       end
     end
+    assert_redirected_to admin_tournaments_path
+    assert_response :see_other
+    follow_redirect!
+    assert_response :success
+    assert_select "h1", "Tournaments"
+
+    get deleted_tournament_path
     assert_redirected_to admin_tournaments_path
   end
 

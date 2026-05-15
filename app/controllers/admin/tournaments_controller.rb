@@ -61,9 +61,9 @@ module Admin
 
     def destroy
       @tournament.destroy!
-      redirect_to admin_tournaments_path, notice: 'Deleted.'
-    rescue => e
-      redirect_to admin_tournament_path(@tournament), alert: "Tournament could not be deleted: #{e.message}"
+      redirect_to admin_tournaments_path, notice: 'Deleted.', status: :see_other
+    rescue ActiveRecord::InvalidForeignKey, ActiveRecord::RecordNotDestroyed => e
+      redirect_to admin_tournaments_path, alert: "Tournament could not be deleted: #{e.message}", status: :see_other
     end
 
     def activate
@@ -143,7 +143,10 @@ module Admin
     private
 
     def set_tournament
-      @tournament = Tournament.find_by!(slug: params[:id])
+      @tournament = Tournament.find_by(slug: params[:id])
+      return if @tournament
+
+      redirect_to admin_tournaments_path, alert: 'Tournament not found.'
     end
 
     def requested_segment_position(actual_total)
