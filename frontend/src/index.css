@@ -403,6 +403,13 @@ p  { margin: 0; }
   .sr-landing-actions { gap: 0.5rem; }
   .sr-landing-brand { height: 40px; }
   .sr-landing-logo { height: 34px; }
+  .sr-clubs {
+    width: calc(100% - 2rem);
+    padding: 1.35rem;
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .sr-clubs-cta { text-align: center; }
   body.run-recording .sr-bottomnav { display: none; }
 }
 
@@ -561,6 +568,49 @@ p  { margin: 0; }
 }
 .sr-step-title { font-size: 1rem; font-weight: 700; margin: 0 0 0.25rem; }
 .sr-step-text { color: rgba(255,255,255,0.65); line-height: 1.5; font-size: 0.9rem; }
+
+.sr-clubs {
+  width: min(100% - 3rem, 900px);
+  margin: 2rem auto 0;
+  padding: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px;
+  background: rgba(255,255,255,0.05);
+}
+.sr-clubs-kicker {
+  display: block;
+  color: #ff6b70;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 0.55rem;
+}
+.sr-clubs-title {
+  margin: 0 0 0.5rem;
+  font-size: clamp(1.35rem, 3vw, 2rem);
+  line-height: 1.15;
+}
+.sr-clubs-text {
+  color: rgba(255,255,255,0.68);
+  line-height: 1.55;
+  max-width: 560px;
+}
+.sr-clubs-cta {
+  flex-shrink: 0;
+  color: #fff;
+  background: #e53935;
+  text-decoration: none;
+  padding: 0.85rem 1.3rem;
+  border-radius: 6px;
+  font-weight: 800;
+  box-shadow: 0 4px 16px rgba(229,57,53,0.25);
+}
+.sr-clubs-cta:hover { transform: translateY(-1px); }
 
 .sr-cta-final {
   text-align: center;

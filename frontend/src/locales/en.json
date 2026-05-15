@@ -125,6 +125,7 @@
   "landing": {
     "signIn": "Sign In",
     "getStarted": "Get Started",
+    "registerClub": "Register a running club",
     "downloadAndroid": "Download Android APK",
     "heroTitle": "Run. Compete. Win.",
     "heroSubtitle": "Join GPS-based running tournaments. Race against real people on real segments — your phone is your judge.",
@@ -142,6 +143,9 @@
     "step2Text": "Browse active tournaments in your city. One tap to join — no entry fee.",
     "step3Title": "Run the segments",
     "step3Text": "Open the app, tap Start, and run. We match your GPS track to tournament segments automatically and update the leaderboard.",
+    "clubsKicker": "For clubs",
+    "clubsTitle": "Host tournaments for your running community",
+    "clubsText": "Register as a running club, create your own segments and tournaments, then submit them for admin approval before launch.",
     "ctaTitle": "Ready to race?"
   }
 }

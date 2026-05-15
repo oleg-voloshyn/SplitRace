@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 function Login() {
@@ -8,15 +8,18 @@ function Login() {
   const { login, register } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const returnTo = location.state?.from || '/tournaments';
-  const [mode, setMode] = useState('login');
+  const initialMode = searchParams.get('mode') === 'register' ? 'register' : 'login';
+  const initialAccountType = searchParams.get('type') === 'club' ? 'club' : 'user';
+  const [mode, setMode] = useState(initialMode);
   const [form, setForm] = useState({
     email: '',
     password: '',
     first_name: '',
     last_name: '',
     gender: '',
-    account_type: 'user',
+    account_type: initialAccountType,
     club_name: ''
   });
   const [error, setError] = useState(null);

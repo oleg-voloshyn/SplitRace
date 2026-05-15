@@ -32,6 +32,9 @@ function Landing() {
           <Link to="/login" className="sr-hero-cta">
             {t('landing.getStarted')} →
           </Link>
+          <Link to="/login?mode=register&type=club" className="sr-hero-cta-alt">
+            {t('landing.registerClub')}
+          </Link>
           <a href={ANDROID_APK_URL} className="sr-hero-cta-alt" target="_blank" rel="noopener noreferrer">
             <span style={{ fontSize: '1.1rem' }}>⬇</span> {t('landing.downloadAndroid')}
           </a>
@@ -54,6 +57,17 @@ function Landing() {
           <Step n="2" title={t('landing.step2Title')} text={t('landing.step2Text')} />
           <Step n="3" title={t('landing.step3Title')} text={t('landing.step3Text')} />
         </div>
+      </section>
+
+      <section className="sr-clubs">
+        <div className="sr-clubs-copy">
+          <span className="sr-clubs-kicker">{t('landing.clubsKicker')}</span>
+          <h2 className="sr-clubs-title">{t('landing.clubsTitle')}</h2>
+          <p className="sr-clubs-text">{t('landing.clubsText')}</p>
+        </div>
+        <Link to="/login?mode=register&type=club" className="sr-clubs-cta">
+          {t('landing.registerClub')} →
+        </Link>
       </section>
 
       {/* Final CTA */}
