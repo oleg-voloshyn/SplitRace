@@ -1,16 +1,15 @@
 import { useEffect, useState } from 'react';
+import * as Location from 'expo-location';
 import { useTranslation } from 'react-i18next';
 import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { api } from '../api/client';
+import SegmentMapPicker from '../components/SegmentMapPicker';
 
 const initialSegment = {
   name: '',
   city: '',
   country: '',
-  start_lat: '50.45',
-  start_lng: '30.52',
-  end_lat: '50.46',
-  end_lng: '30.53'
+  points: []
 };
 
 const initialTournament = {
@@ -27,9 +26,13 @@ function CreatorScreen() {
   const [tournaments, setTournaments] = useState([]);
   const [segmentForm, setSegmentForm] = useState(initialSegment);
   const [tournamentForm, setTournamentForm] = useState(initialTournament);
+  const [userLocation, setUserLocation] = useState(null);
 
   useEffect(() => {
     refresh();
+    Location.getLastKnownPositionAsync().then((pos) => {
+      if (pos) setUserLocation([pos.coords.latitude, pos.coords.longitude]);
+    }).catch(() => {});
   }, []);
 
   async function refresh() {
@@ -39,6 +42,10 @@ function CreatorScreen() {
   }
 
   async function createSegment() {
+    if (segmentForm.points.length < 2) {
+      Alert.alert(t('common.error'), t('creator.routeRequired'));
+      return;
+    }
     try {
       await api.createSegment(segmentForm);
       setSegmentForm(initialSegment);
@@ -47,6 +54,20 @@ function CreatorScreen() {
     } catch (error) {
       Alert.alert(t('common.error'), error?.errors?.join(', ') || t('creator.failed'));
     }
+  }
+
+  async function handlePointsChange(points) {
+    setSegmentForm((current) => {
+      const next = { ...current, points };
+      if (current.points.length === 0 && points.length === 1) {
+        reverseGeocode(points[0].lat, points[0].lng).then((location) => {
+          if (location.city || location.country) {
+            setSegmentForm((f) => ({ ...f, ...location }));
+          }
+        });
+      }
+      return next;
+    });
   }
 
   async function createTournament() {
@@ -87,13 +108,24 @@ function CreatorScreen() {
     <ScrollView style={s.scroll} contentContainerStyle={s.container}>
       <CreatorForm title={t('creator.newSegment')} action={t('creator.createSegment')} onSubmit={createSegment}>
         <CreatorInput label={t('creator.segmentName')} value={segmentForm.name} onChangeText={setSegment('name')} />
-        <CreatorInput label={t('creator.city')} value={segmentForm.city} onChangeText={setSegment('city')} />
-        <CreatorInput label={t('creator.country')} value={segmentForm.country} onChangeText={setSegment('country')} />
-        <View style={s.grid}>
-          <CreatorInput label="Start lat" value={segmentForm.start_lat} onChangeText={setSegment('start_lat')} />
-          <CreatorInput label="Start lng" value={segmentForm.start_lng} onChangeText={setSegment('start_lng')} />
-          <CreatorInput label="End lat" value={segmentForm.end_lat} onChangeText={setSegment('end_lat')} />
-          <CreatorInput label="End lng" value={segmentForm.end_lng} onChangeText={setSegment('end_lng')} />
+        <Text style={s.mapHint}>{t('creator.mapHint')}</Text>
+        <SegmentMapPicker
+          points={segmentForm.points}
+          onPointsChange={handlePointsChange}
+          initialCenter={userLocation}
+          hint={t('creator.routePoints', { count: segmentForm.points.length })}
+          undoLabel={t('creator.undoPoint')}
+          clearLabel={t('creator.clearRoute')}
+        />
+        <View style={s.routeMeta}>
+          <Text style={s.metaText}>
+            {t('creator.distance')}: <Text style={s.metaBold}>{formatDistance(routeDistance(segmentForm.points))}</Text>
+          </Text>
+          {(segmentForm.city || segmentForm.country) ? (
+            <Text style={s.metaText}>
+              📍 <Text style={s.metaBold}>{[segmentForm.city, segmentForm.country].filter(Boolean).join(', ')}</Text>
+            </Text>
+          ) : null}
         </View>
       </CreatorForm>
 
@@ -186,7 +218,42 @@ function CreatorInput({ label, value, onChangeText }) {
   );
 }
 
+async function reverseGeocode(lat, lng) {
+  try {
+    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&accept-language=en`;
+    const res = await fetch(url);
+    if (!res.ok) return {};
+    const data = await res.json();
+    const address = data?.address || {};
+    return {
+      city: address.city || address.town || address.village || address.municipality || address.county || '',
+      country: (address.country_code || '').toUpperCase() || address.country || ''
+    };
+  } catch {
+    return {};
+  }
+}
+
+function routeDistance(points) {
+  if (points.length < 2) return 0;
+  return points.slice(1).reduce((total, pt, i) => {
+    const a = points[i], b = pt;
+    const R = 6371000, rad = Math.PI / 180;
+    const dlat = (b.lat - a.lat) * rad, dlng = (b.lng - a.lng) * rad;
+    const x = Math.sin(dlat / 2) ** 2 + Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin(dlng / 2) ** 2;
+    return total + R * 2 * Math.asin(Math.sqrt(x));
+  }, 0);
+}
+
+function formatDistance(meters) {
+  return meters ? `${(meters / 1000).toFixed(2)} km` : '-';
+}
+
 const s = StyleSheet.create({
+  mapHint: { color: '#555', fontSize: 12, marginBottom: 6 },
+  routeMeta: { flexDirection: 'row', gap: 12, flexWrap: 'wrap', marginTop: 4, marginBottom: 6 },
+  metaText: { color: '#555', fontSize: 12 },
+  metaBold: { fontWeight: '700', color: '#1a1a2e' },
   scroll: { flex: 1, backgroundColor: '#f5f5f5' },
   container: { padding: 16, paddingBottom: 40 },
   card: {

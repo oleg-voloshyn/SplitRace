@@ -131,7 +131,13 @@
     "status_pending_review": "Очікує перевірки",
     "status_active": "Активний",
     "status_rejected": "Відхилено",
-    "status_completed": "Завершено"
+    "status_completed": "Завершено",
+    "mapHint": "Натисніть на карту щоб накреслити маршрут сегменту",
+    "routePoints": "{{count}} точок маршруту",
+    "distance": "Дистанція",
+    "undoPoint": "↩ Скасувати",
+    "clearRoute": "✕ Очистити",
+    "routeRequired": "Накресліть маршрут — потрібно мінімум 2 точки"
   },
   "notifications": {
     "title": "Сповіщення",

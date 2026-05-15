@@ -131,7 +131,13 @@
     "status_pending_review": "Waiting for review",
     "status_active": "Active",
     "status_rejected": "Rejected",
-    "status_completed": "Completed"
+    "status_completed": "Completed",
+    "mapHint": "Tap the map to draw the segment route",
+    "routePoints": "{{count}} route points",
+    "distance": "Distance",
+    "undoPoint": "↩ Undo",
+    "clearRoute": "✕ Clear",
+    "routeRequired": "Draw a route — at least 2 points required"
   },
   "notifications": {
     "title": "Notifications",
