@@ -217,6 +217,10 @@ class AdminFlowsTest < ActionDispatch::IntegrationTest
     get admin_tournament_path(tournament)
     assert_response :success
     assert_select "select[name='order_number'] option[value='4']", text: "#4"
+    assert_select "button[data-rated-position-toggle][aria-label='Show rated segment position']", count: 3
+    assert_select "span[data-rated-position-value].d-none", text: "#1"
+    assert_select "span[data-rated-position-value].d-none", text: "#2"
+    assert_select "span[data-rated-position-value].d-none", text: "#3"
 
     post remove_segment_admin_tournament_path(tournament, segment_id: segment_one.id)
     assert_redirected_to admin_tournament_path(tournament)

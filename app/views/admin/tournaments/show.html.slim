@@ -1,5 +1,7 @@
 - actual_total = @tournament_segments.count
 - actual_rated = @tournament_segments.count(&:is_rated)
+- rated_position_by_id = {}
+- @tournament_segments.select(&:is_rated).sort_by(&:order_number).each.with_index(1) { |ts, position| rated_position_by_id[ts.id] = position }
 
 .page-header
   h1= @tournament.name
@@ -58,6 +60,12 @@
                 td
                   - if ts.is_rated
                     span.badge.bg-warning.text-dark Rated
+                    button.btn.btn-sm.btn-outline-secondary.ms-2.py-0.px-1 type="button" aria-label="Show rated segment position" data-rated-position-toggle=true
+                      svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
+                        path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"
+                        circle cx="12" cy="12" r="3"
+                    span.badge.bg-secondary.ms-2.d-none data-rated-position-value=true
+                      = "##{rated_position_by_id.fetch(ts.id)}"
                 td.text-end.pe-3
                   = button_to "Remove", remove_segment_admin_tournament_path(@tournament, segment_id: ts.segment_id),
                       form: { data: { confirm_modal: "Remove #{ts.segment.name} from this tournament?", confirm_title: "Remove segment", confirm_text: "Remove" } },
@@ -143,4 +151,15 @@ javascript:
     form.addEventListener('change', refreshSubmit);
     refreshOptions();
     refreshSubmit();
+  });
+
+  document.querySelectorAll('[data-rated-position-toggle]').forEach(function(button) {
+    button.addEventListener('click', function() {
+      const value = button.parentElement?.querySelector('[data-rated-position-value]');
+      value?.classList.toggle('d-none');
+      button.setAttribute(
+        'aria-label',
+        value?.classList.contains('d-none') ? 'Show rated segment position' : 'Hide rated segment position'
+      );
+    });
   });
