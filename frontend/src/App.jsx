@@ -7,6 +7,7 @@ import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Notifications from './pages/Notifications';
 import Profile from './pages/Profile';
+import Segment from './pages/Segment';
 import Tournament from './pages/Tournament';
 import Tournaments from './pages/Tournaments';
 
@@ -56,6 +57,14 @@ function AppRoutes() {
               element={
                 <ProtectedRoute>
                   <Tournament />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/segments/:id"
+              element={
+                <ProtectedRoute>
+                  <Segment />
                 </ProtectedRoute>
               }
             />

@@ -1,12 +1,27 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRoute } from '@react-navigation/native';
 import { Check, Flag } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, Alert, FlatList, Modal, ScrollView, Share, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Modal,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
+} from 'react-native';
+import ViewShot from 'react-native-view-shot';
 import { WEB_URL, api } from '../api/client';
+import EntityShareCard from '../components/EntityShareCard';
 import RichDescription from '../components/RichDescription';
+import { RUN_SHARE_FORMATS } from '../components/RunShareCard';
 import SegmentsMap from '../components/SegmentsMap';
+import ShareFormatButtons from '../components/ShareFormatButtons';
 import { useAuth } from '../contexts/AuthContext';
+import { shareEntityImage, shareEntityLink } from '../utils/entityShare';
 
 function TournamentScreen() {
   const { t } = useTranslation();
@@ -17,6 +32,8 @@ function TournamentScreen() {
   const [tab, setTab] = useState('info');
   const [joining, setJoining] = useState(false);
   const [reportTarget, setReportTarget] = useState(null);
+  const [pendingShare, setPendingShare] = useState(null);
+  const shareCardRef = useRef(null);
 
   useEffect(() => {
     api
@@ -28,6 +45,18 @@ function TournamentScreen() {
       .then(setBoard)
       .catch(() => {});
   }, [slug]);
+
+  useEffect(() => {
+    if (!pendingShare) {
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      shareEntityImage(shareCardRef, pendingShare).finally(() => setPendingShare(null));
+    }, 60);
+
+    return () => clearTimeout(timeout);
+  }, [pendingShare]);
 
   async function join() {
     setJoining(true);
@@ -42,12 +71,56 @@ function TournamentScreen() {
     }
   }
 
-  async function shareTournament() {
+  function shareTournamentLink() {
     const url = `${WEB_URL}/tournaments/${data.slug}`;
-    await Share.share({
+    shareEntityLink({
       title: data.name,
-      message: `${t('tournaments.shareText', { name: data.name })}\n${url}`,
+      message: t('tournaments.shareText', { name: data.name }),
       url
+    });
+  }
+
+  function shareTournamentImage(format) {
+    const url = `${WEB_URL}/tournaments/${data.slug}`;
+    setPendingShare({
+      format,
+      entity: data,
+      kind: 'tournament',
+      title: data.name,
+      message: t('tournaments.shareText', { name: data.name }),
+      url,
+      dialogTitle: t('tournaments.share'),
+      stats: [
+        {
+          label: t('tournaments.participantsLabel', { defaultValue: 'Participants' }),
+          value: String(data.participants_count ?? 0)
+        },
+        { label: t('tournaments.segments'), value: String(data.total_segments_count ?? data.segments?.length ?? 0) },
+        { label: t('tournaments.active'), value: t(`tournaments.${data.status}`) }
+      ]
+    });
+  }
+
+  function shareSegmentImage(segment, format) {
+    const url = `${WEB_URL}/segments/${segment.id}`;
+    setPendingShare({
+      format,
+      entity: segment,
+      kind: 'segment',
+      title: segment.name,
+      message: t('segments.shareText', {
+        name: segment.name,
+        defaultValue: `Try this running segment on SplitRace: ${segment.name}`
+      }),
+      url,
+      dialogTitle: t('segments.shareSegment', { defaultValue: 'Share segment' }),
+      stats: [
+        {
+          label: t('tournaments.distance'),
+          value: segment.distance_meters ? `${(segment.distance_meters / 1000).toFixed(2)} km` : '-'
+        },
+        { label: t('tournaments.location'), value: [segment.city, segment.country].filter(Boolean).join(', ') || '-' }
+      ]
     });
   }
 
@@ -86,10 +159,7 @@ function TournamentScreen() {
 
       {tab === 'info' && (
         <ScrollView className="flex-1" contentContainerClassName="p-4 pb-8">
-          <View
-            className="self-start rounded px-2 py-1 mb-3"
-            style={{ backgroundColor: badgeColor(data.status) }}
-          >
+          <View className="self-start rounded px-2 py-1 mb-3" style={{ backgroundColor: badgeColor(data.status) }}>
             <Text className="text-white text-[11px] font-bold">{t(`tournaments.${data.status}`).toUpperCase()}</Text>
           </View>
           <RichDescription html={data.description} className="mb-3" />
@@ -109,7 +179,11 @@ function TournamentScreen() {
             )}
           </View>
           {canJoin && (
-            <TouchableOpacity className="bg-brand-red rounded-lg p-3.5 items-center mt-5" onPress={join} disabled={joining}>
+            <TouchableOpacity
+              className="bg-brand-red rounded-lg p-3.5 items-center mt-5"
+              onPress={join}
+              disabled={joining}
+            >
               <Text className="text-white font-bold text-base">{joining ? '...' : t('tournaments.join')}</Text>
             </TouchableOpacity>
           )}
@@ -121,10 +195,11 @@ function TournamentScreen() {
           )}
           <TouchableOpacity
             className="self-start border border-gray-300 rounded-lg py-2.5 px-3 bg-white mt-3 mb-3"
-            onPress={shareTournament}
+            onPress={shareTournamentLink}
           >
             <Text className="text-brand-navy font-bold text-sm">{t('tournaments.share')}</Text>
           </TouchableOpacity>
+          <ShareFormatButtons selected={null} compact onShare={shareTournamentImage} />
           {data.feed?.length > 0 && (
             <View className="bg-white rounded-xl p-3 mb-3">
               <Text className="text-base font-bold mb-2">{t('tournaments.feed')}</Text>
@@ -148,22 +223,31 @@ function TournamentScreen() {
               <Text className="text-center text-gray-500 mt-16">{t('tournaments.noSegments')}</Text>
             ) : (
               visibleSegments.map((ts, i) => (
-                <View key={ts.segment.id} className="flex-row items-center bg-white rounded-xl p-3 mb-2 gap-2.5">
-                  <View className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: segColor(i) }} />
-                  <View className="flex-1">
-                    <Text className="text-sm font-semibold text-brand-navy mb-0.5">{ts.segment.name}</Text>
-                    {ts.segment.city || ts.segment.country ? (
-                      <Text className="text-xs text-gray-500">
-                        {[ts.segment.city, ts.segment.country].filter(Boolean).join(', ')}
-                      </Text>
-                    ) : null}
+                <View key={ts.segment.id} className="bg-white rounded-xl p-3 mb-2">
+                  <View className="flex-row items-center gap-2.5">
+                    <View className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: segColor(i) }} />
+                    <View className="flex-1">
+                      <Text className="text-sm font-semibold text-brand-navy mb-0.5">{ts.segment.name}</Text>
+                      {ts.segment.city || ts.segment.country ? (
+                        <Text className="text-xs text-gray-500">
+                          {[ts.segment.city, ts.segment.country].filter(Boolean).join(', ')}
+                        </Text>
+                      ) : null}
+                    </View>
+                    <View className="items-end">
+                      {showSegmentOrder && <Text className="text-xs text-gray-400 font-bold">#{ts.order_number}</Text>}
+                      {ts.segment.distance_meters != null ? (
+                        <Text className="text-xs text-gray-700 mt-0.5">
+                          {(ts.segment.distance_meters / 1000).toFixed(2)} km
+                        </Text>
+                      ) : null}
+                    </View>
                   </View>
-                  <View className="items-end">
-                    {showSegmentOrder && <Text className="text-xs text-gray-400 font-bold">#{ts.order_number}</Text>}
-                    {ts.segment.distance_meters != null ? (
-                      <Text className="text-xs text-gray-700 mt-0.5">{(ts.segment.distance_meters / 1000).toFixed(2)} km</Text>
-                    ) : null}
-                  </View>
+                  <ShareFormatButtons
+                    selected={null}
+                    compact
+                    onShare={(format) => shareSegmentImage(ts.segment, format)}
+                  />
                 </View>
               ))
             )}
@@ -211,6 +295,27 @@ function TournamentScreen() {
       {reportTarget && (
         <ReportModal target={reportTarget} tournamentSlug={slug} onClose={() => setReportTarget(null)} />
       )}
+      {pendingShare && (
+        <ViewShot
+          ref={shareCardRef}
+          options={{ format: 'png', quality: 1 }}
+          style={{
+            position: 'absolute',
+            left: -10000,
+            top: 0,
+            width: RUN_SHARE_FORMATS[pendingShare.format].width,
+            height: RUN_SHARE_FORMATS[pendingShare.format].height
+          }}
+        >
+          <EntityShareCard
+            entity={pendingShare.entity}
+            kind={pendingShare.kind}
+            format={pendingShare.format}
+            url={pendingShare.url}
+            stats={pendingShare.stats}
+          />
+        </ViewShot>
+      )}
     </View>
   );
 }
@@ -257,7 +362,9 @@ function ReportModal({ target, tournamentSlug, onClose }) {
           ) : (
             <>
               <Text className="text-lg font-bold mb-1.5">{t('report.title')}</Text>
-              <Text className="text-gray-600 text-[13px] mb-3.5">{t('report.subtitle', { name: target.full_name })}</Text>
+              <Text className="text-gray-600 text-[13px] mb-3.5">
+                {t('report.subtitle', { name: target.full_name })}
+              </Text>
               <TextInput
                 value={reason}
                 onChangeText={setReason}
@@ -269,11 +376,21 @@ function ReportModal({ target, tournamentSlug, onClose }) {
               />
               {error && <Text className="text-brand-red text-[13px] mt-2">{error}</Text>}
               <View className="flex-row gap-2.5 justify-end mt-4">
-                <TouchableOpacity onPress={onClose} disabled={submitting} className="py-2.5 px-4 rounded-md border border-gray-300">
+                <TouchableOpacity
+                  onPress={onClose}
+                  disabled={submitting}
+                  className="py-2.5 px-4 rounded-md border border-gray-300"
+                >
                   <Text className="text-gray-700">{t('report.cancel')}</Text>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={submit} disabled={submitting} className="py-2.5 px-4 rounded-md bg-brand-red">
-                  <Text className="text-white font-bold">{submitting ? t('report.submitting') : t('report.submit')}</Text>
+                <TouchableOpacity
+                  onPress={submit}
+                  disabled={submitting}
+                  className="py-2.5 px-4 rounded-md bg-brand-red"
+                >
+                  <Text className="text-white font-bold">
+                    {submitting ? t('report.submitting') : t('report.submit')}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </>

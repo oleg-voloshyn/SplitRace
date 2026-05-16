@@ -90,6 +90,17 @@
     "shareResult": "Поділитися результатом",
     "shareTitle": "Моя пробіжка у SplitRace"
   },
+  "share": {
+    "image": "Поділитися картинкою",
+    "tournament": "Турнір",
+    "segment": "Сегмент",
+    "tournamentSubtitle": "Турнір SplitRace",
+    "segmentSubtitle": "Сегмент SplitRace"
+  },
+  "segments": {
+    "shareSegment": "Поділитися сегментом",
+    "shareText": "Спробуй цей біговий сегмент у SplitRace: {{name}}"
+  },
   "report": {
     "title": "Поскаржитися на читерство",
     "subtitle": "Скарга на {{name}}. Опишіть, що видається підозрілим у їхньому результаті.",

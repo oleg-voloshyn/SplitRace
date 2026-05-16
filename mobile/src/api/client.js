@@ -28,7 +28,10 @@ const api = {
   login: (email, password) => request('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
   googleLogin: (idToken) => request('/auth/google', { method: 'POST', body: JSON.stringify({ id_token: idToken }) }),
   appleLogin: (identityToken, firstName, lastName) =>
-    request('/auth/apple', { method: 'POST', body: JSON.stringify({ identity_token: identityToken, first_name: firstName, last_name: lastName }) }),
+    request('/auth/apple', {
+      method: 'POST',
+      body: JSON.stringify({ identity_token: identityToken, first_name: firstName, last_name: lastName })
+    }),
   register: (params) => request('/auth/register', { method: 'POST', body: JSON.stringify(params) }),
   me: () => request('/me'),
   updateMe: (params) => request('/me', { method: 'PATCH', body: JSON.stringify(params) }),
@@ -37,6 +40,7 @@ const api = {
   registerPushToken: (params) =>
     request('/push_tokens', { method: 'POST', body: JSON.stringify({ push_token: params }) }),
   unregisterPushToken: (token) => request('/push_tokens', { method: 'DELETE', body: JSON.stringify({ token }) }),
+  segment: (id) => request(`/segments/${id}`),
   mySegments: () => request('/segments?mine=1'),
   createSegment: (params) => request('/segments', { method: 'POST', body: JSON.stringify(params) }),
   tournaments: () => request('/tournaments'),

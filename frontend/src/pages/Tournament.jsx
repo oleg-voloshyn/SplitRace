@@ -2,6 +2,7 @@ import { useEffect, useReducer, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams } from 'react-router-dom';
 import { api } from '../api/client';
+import { SegmentShare } from '../components/EntityShare';
 import MapView from '../components/MapView';
 import RichDescription from '../components/RichDescription';
 import TournamentShare from '../components/TournamentShare';
@@ -76,30 +77,25 @@ function Tournament() {
 
           <div className="sr-card sr-spaced-card">
             <h3>{t('tournaments.segmentsHeader')}</h3>
-            <table className="sr-segment-table">
-              <thead>
-                <tr>
-                  {showSegmentOrder && <th>#</th>}
-                  <th>{t('tournaments.segmentName')}</th>
-                  <th>{t('tournaments.distance')}</th>
-                  <th>{t('tournaments.location')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {visibleSegments.map((ts) => (
-                  <tr key={ts.segment.id}>
-                    {showSegmentOrder && <td className="sr-seg-num">#{ts.order_number}</td>}
-                    <td className="sr-seg-name">{ts.segment.name}</td>
-                    <td className="sr-seg-dist">
+            <div className="sr-public-segment-list">
+              {visibleSegments.map((ts) => (
+                <div key={ts.segment.id} className="sr-public-segment-card">
+                  <div className="sr-public-segment-main">
+                    {showSegmentOrder && <span className="sr-seg-num">#{ts.order_number}</span>}
+                    <div>
+                      <strong className="sr-seg-name">{ts.segment.name}</strong>
+                      <span className="sr-seg-loc">
+                        {[ts.segment.city, ts.segment.country].filter(Boolean).join(', ') || '—'}
+                      </span>
+                    </div>
+                    <span className="sr-seg-dist">
                       {ts.segment.distance_meters ? `${(ts.segment.distance_meters / 1000).toFixed(2)} km` : '—'}
-                    </td>
-                    <td className="sr-seg-loc">
-                      {[ts.segment.city, ts.segment.country].filter(Boolean).join(', ') || '—'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </span>
+                  </div>
+                  <SegmentShare segment={ts.segment} />
+                </div>
+              ))}
+            </div>
           </div>
         </>
       )}

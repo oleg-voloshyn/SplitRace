@@ -14,6 +14,7 @@ import NewTournamentScreen from '../screens/NewTournamentScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import RunTrackerScreen from '../screens/RunTrackerScreen';
+import SegmentScreen from '../screens/SegmentScreen';
 import TournamentScreen from '../screens/TournamentScreen';
 import TournamentsScreen from '../screens/TournamentsScreen';
 
@@ -35,6 +36,11 @@ function TournamentsStack() {
         name="Tournament"
         component={TournamentScreen}
         options={({ route }) => ({ title: route.params?.slug || t('nav.tournaments') })}
+      />
+      <Stack.Screen
+        name="Segment"
+        component={SegmentScreen}
+        options={({ route }) => ({ title: route.params?.id || 'Segment' })}
       />
     </Stack.Navigator>
   );

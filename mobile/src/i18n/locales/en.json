@@ -47,6 +47,7 @@
     "noTournaments": "No tournaments yet",
     "participants_one": "{{count}} participant",
     "participants_other": "{{count}} participants",
+    "participantsLabel": "Participants",
     "info": "Info",
     "leaderboard": "Leaderboard",
     "join": "Join Tournament",
@@ -61,6 +62,10 @@
     "share": "Share tournament",
     "shareText": "Join {{name}} on SplitRace",
     "feed": "News"
+  },
+  "segments": {
+    "shareSegment": "Share segment",
+    "shareText": "Try this running segment on SplitRace: {{name}}"
   },
   "run": {
     "ready": "Ready to run",

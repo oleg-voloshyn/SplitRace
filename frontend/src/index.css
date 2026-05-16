@@ -1693,12 +1693,56 @@
   @apply mb-4 flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-3;
 }
 
+.sr-share-preview {
+  @apply flex items-center gap-3 rounded-md bg-[#0d1124] p-3 text-white;
+}
+
+.sr-share-preview-art {
+  @apply flex h-16 w-20 shrink-0 items-center justify-center rounded-md bg-white/5 text-red-500;
+}
+
+.sr-share-preview-art svg {
+  @apply h-14 w-16;
+}
+
+.sr-share-preview strong {
+  @apply block text-base font-extrabold;
+}
+
+.sr-share-preview small {
+  @apply mt-1 block text-xs text-white/60;
+}
+
+.sr-share-kicker {
+  @apply mb-1 block text-[10px] font-extrabold uppercase tracking-widest text-red-300;
+}
+
 .sr-share-link {
   @apply min-w-0 overflow-hidden text-ellipsis whitespace-nowrap rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600;
 }
 
 .sr-share-actions {
   @apply flex flex-wrap gap-2;
+}
+
+.sr-public-segment-list {
+  @apply flex flex-col gap-3;
+}
+
+.sr-public-segment-card {
+  @apply rounded-lg border border-slate-200 bg-white p-3;
+}
+
+.sr-public-segment-main {
+  @apply mb-3 grid grid-cols-[auto_1fr_auto] items-center gap-3;
+}
+
+.sr-public-segment-main .sr-seg-name {
+  @apply block;
+}
+
+.sr-public-segment-main .sr-seg-loc {
+  @apply mt-1 block text-xs text-slate-500;
 }
 
 .sr-login-link {

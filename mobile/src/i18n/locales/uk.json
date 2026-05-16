@@ -47,6 +47,7 @@
     "noTournaments": "Турнірів поки що немає",
     "participants_one": "{{count}} учасник",
     "participants_other": "{{count}} учасників",
+    "participantsLabel": "Учасники",
     "info": "Інфо",
     "leaderboard": "Таблиця лідерів",
     "join": "Долучитися до турніру",
@@ -61,6 +62,10 @@
     "share": "Поділитися турніром",
     "shareText": "Долучайся до {{name}} у SplitRace",
     "feed": "Новини"
+  },
+  "segments": {
+    "shareSegment": "Поділитися сегментом",
+    "shareText": "Спробуй цей біговий сегмент у SplitRace: {{name}}"
   },
   "run": {
     "ready": "Готові до пробіжки",

@@ -90,6 +90,17 @@
     "shareResult": "Share result",
     "shareTitle": "My SplitRace run"
   },
+  "share": {
+    "image": "Share image",
+    "tournament": "Tournament",
+    "segment": "Segment",
+    "tournamentSubtitle": "SplitRace tournament",
+    "segmentSubtitle": "SplitRace segment"
+  },
+  "segments": {
+    "shareSegment": "Share segment",
+    "shareText": "Try this running segment on SplitRace: {{name}}"
+  },
   "report": {
     "title": "Report cheating",
     "subtitle": "Reporting {{name}}. Describe what makes their performance look suspicious.",
