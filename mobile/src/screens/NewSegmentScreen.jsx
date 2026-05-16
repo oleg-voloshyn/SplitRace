@@ -3,7 +3,7 @@ import { useNavigation } from '@react-navigation/native';
 import * as Location from 'expo-location';
 import { MapPin } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
-import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { api } from '../api/client';
 import SegmentMapPicker from '../components/SegmentMapPicker';
 import { formatDistance, reverseGeocode, routeDistance } from '../utils/geoUtils';
@@ -68,13 +68,17 @@ function NewSegmentScreen() {
   }
 
   return (
-    <ScrollView style={s.scroll} contentContainerStyle={s.container}>
-      <View style={s.field}>
-        <Text style={s.label}>{t('creator.segmentName')}</Text>
-        <TextInput style={s.input} value={form.name} onChangeText={setField('name')} />
+    <ScrollView className="flex-1 bg-gray-100" contentContainerClassName="p-4 pb-10">
+      <View className="mb-3">
+        <Text className="text-xs text-gray-600 mb-1">{t('creator.segmentName')}</Text>
+        <TextInput
+          className="border border-gray-300 rounded-lg p-2.5 text-sm bg-white"
+          value={form.name}
+          onChangeText={setField('name')}
+        />
       </View>
 
-      <Text style={s.mapHint}>{t('creator.mapHint')}</Text>
+      <Text className="text-gray-700 text-xs mb-1.5">{t('creator.mapHint')}</Text>
       <SegmentMapPicker
         points={form.points}
         onPointsChange={handlePointsChange}
@@ -84,46 +88,27 @@ function NewSegmentScreen() {
         clearLabel={t('creator.clearRoute')}
       />
 
-      <View style={s.routeMeta}>
-        <Text style={s.metaText}>
-          {t('creator.distance')}: <Text style={s.metaBold}>{formatDistance(routeDistance(form.points))}</Text>
+      <View className="flex-row flex-wrap gap-3 mt-2 mb-4">
+        <Text className="text-gray-700 text-[13px]">
+          {t('creator.distance')}: <Text className="font-bold text-brand-navy">{formatDistance(routeDistance(form.points))}</Text>
         </Text>
         {form.city || form.country ? (
-          <View style={s.metaRow}>
+          <View className="flex-row items-center gap-1">
             <MapPin size={14} color="#555" />
-            <Text style={s.metaBold}>{[form.city, form.country].filter(Boolean).join(', ')}</Text>
+            <Text className="font-bold text-brand-navy">{[form.city, form.country].filter(Boolean).join(', ')}</Text>
           </View>
         ) : null}
       </View>
 
-      <TouchableOpacity style={[s.primaryBtn, submitting && s.disabled]} onPress={handleSubmit} disabled={submitting}>
-        <Text style={s.primaryBtnText}>{submitting ? '...' : t('creator.createSegment')}</Text>
+      <TouchableOpacity
+        className={`bg-brand-red rounded-lg p-3.5 items-center ${submitting ? 'opacity-60' : ''}`}
+        onPress={handleSubmit}
+        disabled={submitting}
+      >
+        <Text className="text-white font-bold text-[15px]">{submitting ? '...' : t('creator.createSegment')}</Text>
       </TouchableOpacity>
     </ScrollView>
   );
 }
-
-const s = StyleSheet.create({
-  scroll: { flex: 1, backgroundColor: '#f5f5f5' },
-  container: { padding: 16, paddingBottom: 40 },
-  field: { marginBottom: 12 },
-  label: { color: '#666', fontSize: 12, marginBottom: 4 },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 10,
-    fontSize: 14,
-    backgroundColor: '#fff'
-  },
-  mapHint: { color: '#555', fontSize: 12, marginBottom: 6 },
-  routeMeta: { flexDirection: 'row', gap: 12, flexWrap: 'wrap', marginTop: 8, marginBottom: 16 },
-  metaText: { color: '#555', fontSize: 13 },
-  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  metaBold: { fontWeight: '700', color: '#1a1a2e' },
-  primaryBtn: { backgroundColor: '#e53935', borderRadius: 8, padding: 14, alignItems: 'center' },
-  primaryBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
-  disabled: { opacity: 0.6 }
-});
 
 export default NewSegmentScreen;

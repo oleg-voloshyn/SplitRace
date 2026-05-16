@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
-import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { api } from '../api/client';
 
 const initialTournament = {
@@ -36,58 +36,50 @@ function NewTournamentScreen() {
   }
 
   return (
-    <ScrollView style={s.scroll} contentContainerStyle={s.container}>
+    <ScrollView className="flex-1 bg-gray-100" contentContainerClassName="p-4 pb-10">
       <Field label={t('creator.tournamentName')} value={form.name} onChangeText={setField('name')} />
       <Field label={t('creator.city')} value={form.city} onChangeText={setField('city')} />
       <Field label={t('creator.country')} value={form.country} onChangeText={setField('country')} />
-      <View style={s.grid}>
+      <View className="flex-row flex-wrap gap-2">
         <Field
           label={t('creator.totalSegments')}
           value={form.total_segments_count}
           onChangeText={setField('total_segments_count')}
           keyboardType="numeric"
+          className="flex-grow basis-[47%]"
         />
         <Field
           label={t('creator.ratedSegments')}
           value={form.rated_segments_count}
           onChangeText={setField('rated_segments_count')}
           keyboardType="numeric"
+          className="flex-grow basis-[47%]"
         />
       </View>
 
-      <TouchableOpacity style={[s.primaryBtn, submitting && s.disabled]} onPress={handleSubmit} disabled={submitting}>
-        <Text style={s.primaryBtnText}>{submitting ? '...' : t('creator.createTournament')}</Text>
+      <TouchableOpacity
+        className={`bg-brand-red rounded-lg p-3.5 items-center mt-2 ${submitting ? 'opacity-60' : ''}`}
+        onPress={handleSubmit}
+        disabled={submitting}
+      >
+        <Text className="text-white font-bold text-[15px]">{submitting ? '...' : t('creator.createTournament')}</Text>
       </TouchableOpacity>
     </ScrollView>
   );
 }
 
-function Field({ label, value, onChangeText, keyboardType }) {
+function Field({ label, value, onChangeText, keyboardType, className = '' }) {
   return (
-    <View style={s.field}>
-      <Text style={s.label}>{label}</Text>
-      <TextInput style={s.input} value={value} onChangeText={onChangeText} keyboardType={keyboardType} />
+    <View className={`mb-3 ${className}`}>
+      <Text className="text-xs text-gray-600 mb-1">{label}</Text>
+      <TextInput
+        className="border border-gray-300 rounded-lg p-2.5 text-sm bg-white"
+        value={value}
+        onChangeText={onChangeText}
+        keyboardType={keyboardType}
+      />
     </View>
   );
 }
-
-const s = StyleSheet.create({
-  scroll: { flex: 1, backgroundColor: '#f5f5f5' },
-  container: { padding: 16, paddingBottom: 40 },
-  field: { marginBottom: 12, flexGrow: 1, flexBasis: '47%' },
-  label: { color: '#666', fontSize: 12, marginBottom: 4 },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 10,
-    fontSize: 14,
-    backgroundColor: '#fff'
-  },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  primaryBtn: { backgroundColor: '#e53935', borderRadius: 8, padding: 14, alignItems: 'center', marginTop: 8 },
-  primaryBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
-  disabled: { opacity: 0.6 }
-});
 
 export default NewTournamentScreen;
