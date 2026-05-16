@@ -10,9 +10,27 @@ import { SUPPORTED_LANGS } from '../i18n';
 
 WebBrowser.maybeCompleteAuthSession();
 
+function googleOAuthConfig() {
+  return Constants.expoConfig?.extra?.googleOAuth || {};
+}
+
+// Returns true only if there is a clientId usable for the current platform.
+// Calling `Google.useIdTokenAuthRequest` without the right platform-specific
+// clientId throws at render time (e.g. "androidClientId must be defined").
+function googleConfiguredForPlatform() {
+  const cfg = googleOAuthConfig();
+  if (Platform.OS === 'android') {
+    return Boolean(cfg.androidClientId || cfg.expoClientId);
+  }
+  if (Platform.OS === 'ios') {
+    return Boolean(cfg.iosClientId || cfg.expoClientId);
+  }
+  return Boolean(cfg.webClientId || cfg.expoClientId);
+}
+
 function LoginScreen() {
   const { t, i18n } = useTranslation();
-  const { login, loginWithGoogle, loginWithApple, register } = useAuth();
+  const { login, loginWithApple, register } = useAuth();
   const [mode, setMode] = useState('login');
   const [form, setForm] = useState({
     email: '',
@@ -25,19 +43,8 @@ function LoginScreen() {
   });
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
-  const handledGoogleTokenRef = useRef(null);
   const isClubRegistration = mode === 'register' && form.account_type === 'club';
-  const googleOAuth = Constants.expoConfig?.extra?.googleOAuth || {};
-  const googleConfigured = Boolean(
-    googleOAuth.expoClientId || googleOAuth.iosClientId || googleOAuth.androidClientId || googleOAuth.webClientId
-  );
-  const [googleRequest, googleResponse, promptGoogleAsync] = Google.useIdTokenAuthRequest({
-    clientId: googleOAuth.expoClientId || googleOAuth.webClientId || undefined,
-    iosClientId: googleOAuth.iosClientId || undefined,
-    androidClientId: googleOAuth.androidClientId || undefined,
-    webClientId: googleOAuth.webClientId || undefined
-  });
+  const googleAvailable = googleConfiguredForPlatform();
 
   const set = (key) => (val) => setForm((f) => ({ ...f, [key]: val }));
   const setAccountType = (accountType) =>
@@ -70,29 +77,6 @@ function LoginScreen() {
     };
   }
 
-  useEffect(() => {
-    if (googleResponse?.type !== 'success') {
-      return;
-    }
-
-    const idToken = googleResponse.params?.id_token;
-    if (!idToken) {
-      queueMicrotask(() => {
-        setError(t('auth.googleFailed'));
-        setGoogleLoading(false);
-      });
-      return;
-    }
-    if (handledGoogleTokenRef.current === idToken) {
-      return;
-    }
-
-    handledGoogleTokenRef.current = idToken;
-    loginWithGoogle(idToken)
-      .catch((e) => setError(e?.errors?.join(', ') || e?.error || t('auth.googleFailed')))
-      .finally(() => setGoogleLoading(false));
-  }, [googleResponse, loginWithGoogle, t]);
-
   async function submit() {
     setError(null);
     setLoading(true);
@@ -111,20 +95,6 @@ function LoginScreen() {
       setError(e?.errors?.join(', ') || e?.error || t('auth.somethingWrong'));
     } finally {
       setLoading(false);
-    }
-  }
-
-  async function submitGoogle() {
-    setError(null);
-    if (!googleConfigured) {
-      setError(t('auth.googleNotConfigured'));
-      return;
-    }
-
-    setGoogleLoading(true);
-    const response = await promptGoogleAsync().catch(() => ({ type: 'error' }));
-    if (response?.type !== 'success') {
-      setGoogleLoading(false);
     }
   }
 
@@ -276,24 +246,14 @@ function LoginScreen() {
             </Text>
           </TouchableOpacity>
 
-          {!isClubRegistration && (
+          {!isClubRegistration && (googleAvailable || Platform.OS === 'ios') && (
             <>
               <View className="flex-row items-center gap-2.5 my-4">
                 <View className="flex-1 h-px bg-gray-200" />
                 <Text className="text-gray-500 text-xs">{t('auth.orContinueWith')}</Text>
                 <View className="flex-1 h-px bg-gray-200" />
               </View>
-              <TouchableOpacity
-                className={`border border-gray-300 rounded-lg p-3.5 items-center bg-white ${
-                  !googleRequest || googleLoading ? 'opacity-60' : ''
-                }`}
-                onPress={submitGoogle}
-                disabled={!googleRequest || googleLoading}
-              >
-                <Text className="text-brand-navy font-bold text-[15px]">
-                  {googleLoading ? '...' : t('auth.continueWithGoogle')}
-                </Text>
-              </TouchableOpacity>
+              {googleAvailable && <GoogleSignInButton onError={setError} />}
               {Platform.OS === 'ios' && (
                 <AppleAuthentication.AppleAuthenticationButton
                   buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
@@ -308,6 +268,68 @@ function LoginScreen() {
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
+  );
+}
+
+// Google hook (`useIdTokenAuthRequest`) throws when the platform-specific
+// clientId is missing — keep it inside a separate component that's only
+// mounted when we know we have config. That way LoginScreen still renders
+// fine on devices without any Google credentials.
+function GoogleSignInButton({ onError }) {
+  const { t } = useTranslation();
+  const { loginWithGoogle } = useAuth();
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const handledTokenRef = useRef(null);
+  const cfg = googleOAuthConfig();
+  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
+    clientId: cfg.expoClientId || cfg.webClientId || undefined,
+    iosClientId: cfg.iosClientId || undefined,
+    androidClientId: cfg.androidClientId || undefined,
+    webClientId: cfg.webClientId || undefined
+  });
+
+  useEffect(() => {
+    if (response?.type !== 'success') {
+      return;
+    }
+    const idToken = response.params?.id_token;
+    if (!idToken) {
+      queueMicrotask(() => {
+        onError(t('auth.googleFailed'));
+        setGoogleLoading(false);
+      });
+      return;
+    }
+    if (handledTokenRef.current === idToken) {
+      return;
+    }
+    handledTokenRef.current = idToken;
+    loginWithGoogle(idToken)
+      .catch((e) => onError(e?.errors?.join(', ') || e?.error || t('auth.googleFailed')))
+      .finally(() => setGoogleLoading(false));
+  }, [response, loginWithGoogle, onError, t]);
+
+  async function submitGoogle() {
+    onError(null);
+    setGoogleLoading(true);
+    const result = await promptAsync().catch(() => ({ type: 'error' }));
+    if (result?.type !== 'success') {
+      setGoogleLoading(false);
+    }
+  }
+
+  return (
+    <TouchableOpacity
+      className={`border border-gray-300 rounded-lg p-3.5 items-center bg-white ${
+        !request || googleLoading ? 'opacity-60' : ''
+      }`}
+      onPress={submitGoogle}
+      disabled={!request || googleLoading}
+    >
+      <Text className="text-brand-navy font-bold text-[15px]">
+        {googleLoading ? '...' : t('auth.continueWithGoogle')}
+      </Text>
+    </TouchableOpacity>
   );
 }
 
