@@ -8,7 +8,6 @@ import { Text } from 'react-native';
 import { api } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
 import CreatorScreen from '../screens/CreatorScreen';
-import CreatorTournamentScreen from '../screens/CreatorTournamentScreen';
 import LoginScreen from '../screens/LoginScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
@@ -44,11 +43,6 @@ function CreatorStack() {
   return (
     <Stack.Navigator screenOptions={stackScreenOptions}>
       <Stack.Screen name="CreatorHome" component={CreatorScreen} options={{ title: t('nav.creator') }} />
-      <Stack.Screen
-        name="CreatorTournament"
-        component={CreatorTournamentScreen}
-        options={({ route }) => ({ title: route.params?.name || t('nav.creator') })}
-      />
     </Stack.Navigator>
   );
 }

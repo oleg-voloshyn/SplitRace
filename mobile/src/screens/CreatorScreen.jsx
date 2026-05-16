@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { useNavigation } from '@react-navigation/native';
 import * as Location from 'expo-location';
 import { useTranslation } from 'react-i18next';
 import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
@@ -24,14 +23,11 @@ const initialTournament = {
 
 function CreatorScreen() {
   const { t } = useTranslation();
-  const navigation = useNavigation();
-  const [tournaments, setTournaments] = useState([]);
   const [segmentForm, setSegmentForm] = useState(initialSegment);
   const [tournamentForm, setTournamentForm] = useState(initialTournament);
   const [userLocation, setUserLocation] = useState(null);
 
   useEffect(() => {
-    refresh();
     Location.getLastKnownPositionAsync()
       .then((pos) => {
         if (pos) {
@@ -41,11 +37,6 @@ function CreatorScreen() {
       .catch(() => {});
   }, []);
 
-  async function refresh() {
-    const myTournaments = await api.myTournaments();
-    setTournaments(myTournaments);
-  }
-
   async function createSegment() {
     if (segmentForm.points.length < 2) {
       Alert.alert(t('common.error'), t('creator.routeRequired'));
@@ -54,7 +45,6 @@ function CreatorScreen() {
     try {
       await api.createSegment(segmentForm);
       setSegmentForm(initialSegment);
-      await refresh();
       Alert.alert(t('creator.title'), t('creator.segmentCreated'));
     } catch (error) {
       Alert.alert(t('common.error'), error?.errors?.join(', ') || t('creator.failed'));
@@ -79,7 +69,6 @@ function CreatorScreen() {
     try {
       await api.createTournament(tournamentForm);
       setTournamentForm(initialTournament);
-      await refresh();
       Alert.alert(t('creator.title'), t('creator.tournamentCreated'));
     } catch (error) {
       Alert.alert(t('common.error'), error?.errors?.join(', ') || t('creator.failed'));
@@ -140,27 +129,6 @@ function CreatorScreen() {
           />
         </View>
       </CreatorForm>
-
-      <Text style={s.sectionTitle}>{t('creator.myTournaments')}</Text>
-      {tournaments.length === 0 && <Text style={s.muted}>{t('creator.noTournaments')}</Text>}
-      {tournaments.map((tournament) => (
-        <TouchableOpacity
-          key={tournament.id}
-          style={s.card}
-          onPress={() => navigation.navigate('CreatorTournament', { slug: tournament.slug, name: tournament.name })}
-        >
-          <View style={s.tournamentRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={s.cardTitle}>{tournament.name}</Text>
-              <Text style={s.statusLabel}>{t(`creator.status_${tournament.status}`)}</Text>
-              <Text style={s.muted}>
-                {tournament.segments?.length || 0}/{tournament.total_segments_count} {t('creator.segments')}
-              </Text>
-            </View>
-            <Text style={s.chevron}>›</Text>
-          </View>
-        </TouchableOpacity>
-      ))}
     </ScrollView>
   );
 
@@ -224,10 +192,7 @@ const s = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   muted: { color: '#777', fontSize: 13, marginBottom: 4 },
   primaryBtn: { backgroundColor: '#1a1a2e', borderRadius: 8, padding: 12, alignItems: 'center', marginTop: 4 },
-  primaryBtnText: { color: '#fff', fontWeight: '700' },
-  tournamentRow: { flexDirection: 'row', alignItems: 'center' },
-  statusLabel: { color: '#666', fontSize: 12, marginBottom: 2 },
-  chevron: { fontSize: 22, color: '#bbb', marginLeft: 8 }
+  primaryBtnText: { color: '#fff', fontWeight: '700' }
 });
 
 export default CreatorScreen;
