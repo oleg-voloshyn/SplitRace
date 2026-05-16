@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CircleMarker, MapContainer, Polyline, TileLayer, useMap, useMapEvents } from 'react-leaflet';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 
 const DEFAULT_CENTER = [50.45, 30.52];
@@ -25,7 +26,13 @@ const initialTournament = {
 
 function Creator() {
   const { t } = useTranslation();
-  const [activeForm, setActiveForm] = useState(null);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const path = location.pathname.replace(/\/$/, '');
+  const isSegmentNew = path === '/creator/segments/new';
+  const isTournamentNew = path === '/creator/tournaments/new';
+  const isHub = !isSegmentNew && !isTournamentNew;
+  const routeMessage = location.state?.creatorMessage;
   const [segments, setSegments] = useState([]);
   const [tournaments, setTournaments] = useState([]);
   const [segmentDefaults, setSegmentDefaults] = useState(defaultSegment);
@@ -92,9 +99,7 @@ function Creator() {
     try {
       await api.createSegment(segmentForm);
       setSegmentForm(segmentDefaults);
-      setActiveForm(null);
-      setMessage(t('creator.segmentCreated'));
-      await refreshCreatorData();
+      navigate('/creator', { state: { creatorMessage: t('creator.segmentCreated') } });
     } catch (error) {
       setMessage(error?.errors?.join(', ') || t('creator.failed'));
     }
@@ -106,9 +111,7 @@ function Creator() {
     try {
       await api.createTournament(tournamentForm);
       setTournamentForm(initialTournament);
-      setActiveForm(null);
-      setMessage(t('creator.tournamentCreated'));
-      await refreshCreatorData();
+      navigate('/creator', { state: { creatorMessage: t('creator.tournamentCreated') } });
     } catch (error) {
       setMessage(error?.errors?.join(', ') || t('creator.failed'));
     }
@@ -170,152 +173,202 @@ function Creator() {
 
   return (
     <div>
-      <div className="sr-page-heading">
-        <h2>{t('creator.title')}</h2>
-        <div className="sr-creator-actions">
-          <button
-            type="button"
-            className={`sr-flow-card ${activeForm === 'segment' ? 'active' : ''}`}
-            aria-pressed={activeForm === 'segment'}
-            onClick={() => setActiveForm(activeForm === 'segment' ? null : 'segment')}
-          >
-            <span className="sr-flow-card-media">
-              <SegmentCardIcon />
-            </span>
-            <span className="sr-flow-card-body">
-              <span className="sr-flow-card-badge">{t('creator.segments')}</span>
-              <span className="sr-flow-card-title">{t('creator.newSegment')}</span>
-              <span className="sr-flow-card-cta" aria-hidden="true">
-                {t('creator.createSegment')} →
-              </span>
-            </span>
-          </button>
-          <button
-            type="button"
-            className={`sr-flow-card ${activeForm === 'tournament' ? 'active' : ''}`}
-            aria-pressed={activeForm === 'tournament'}
-            onClick={() => setActiveForm(activeForm === 'tournament' ? null : 'tournament')}
-          >
-            <span className="sr-flow-card-media">
-              <TournamentCardIcon />
-            </span>
-            <span className="sr-flow-card-body">
-              <span className="sr-flow-card-badge">{t('nav.tournaments')}</span>
-              <span className="sr-flow-card-title">{t('creator.newTournament')}</span>
-              <span className="sr-flow-card-cta" aria-hidden="true">
-                {t('creator.createTournament')} →
-              </span>
-            </span>
-          </button>
-        </div>
-      </div>
-
-      {message && <p className="sr-alert sr-alert-success sr-spaced-card">{message}</p>}
-
-      {activeForm === 'segment' && (
-        <form className="sr-card sr-creator-form sr-creator-form-wide" onSubmit={createSegment}>
-          <div className="sr-creator-card-head">
-            <h3>{t('creator.newSegment')}</h3>
-            <button type="button" className="sr-creator-ghost-btn" onClick={() => setActiveForm(null)}>
-              {t('profile.cancel')}
-            </button>
-          </div>
-          <input
-            required
-            maxLength={120}
-            placeholder={t('creator.segmentName')}
-            value={segmentForm.name}
-            onChange={setSegment('name')}
-          />
-          <RichTextEditor
-            value={segmentForm.description}
-            onChange={(description) => setSegmentForm((current) => ({ ...current, description }))}
-            placeholder={t('creator.description')}
-          />
-          <p className="sr-creator-map-hint">{t('creator.mapHint')}</p>
-          <SegmentRouteMap
-            center={mapCenter}
-            userLocation={userLocation}
-            points={segmentForm.points}
-            onAddPoint={addRoutePoint}
-            onRemoveLast={undoRoutePoint}
-          />
-          <div className="sr-creator-route-meta">
-            <span>
-              {t('creator.routePoints')}: <strong>{segmentForm.points.length}</strong>
-            </span>
-            <span>
-              {t('creator.distance')}: <strong>{formatDistance(routeDistance(segmentForm.points))}</strong>
-            </span>
-            <span>
-              {t('creator.detectedLocation')}:{' '}
-              <strong>{[segmentForm.city, segmentForm.country].filter(Boolean).join(', ') || '-'}</strong>
-            </span>
-          </div>
-          <div className="sr-creator-route-actions">
-            <button type="button" onClick={undoRoutePoint} disabled={segmentForm.points.length === 0}>
-              {t('creator.undoPoint')}
-            </button>
-            <button type="button" onClick={clearRoute} disabled={segmentForm.points.length === 0}>
-              {t('creator.clearRoute')}
-            </button>
-          </div>
-          <button type="submit">{t('creator.createSegment')}</button>
-        </form>
+      {(message || routeMessage) && (
+        <p className="sr-alert sr-alert-success sr-spaced-card">{message || routeMessage}</p>
       )}
 
-      {activeForm === 'tournament' && (
-        <form className="sr-card sr-creator-form sr-creator-form-wide" onSubmit={createTournament}>
-          <div className="sr-creator-card-head">
-            <h3>{t('creator.newTournament')}</h3>
-            <button type="button" className="sr-creator-ghost-btn" onClick={() => setActiveForm(null)}>
-              {t('profile.cancel')}
-            </button>
+      {isHub && (
+        <>
+          <div className="sr-page-heading sr-creator-hub-heading">
+            <h2>{t('creator.title')}</h2>
+            <div className="sr-creator-actions">
+              <Link to="/creator/segments/new" className="sr-flow-card">
+                <span className="sr-flow-card-media">
+                  <SegmentCardIcon />
+                </span>
+                <span className="sr-flow-card-body">
+                  <span className="sr-flow-card-badge">{t('creator.segments')}</span>
+                  <span className="sr-flow-card-title">{t('creator.newSegment')}</span>
+                  <span className="sr-flow-card-cta" aria-hidden="true">
+                    {t('creator.createSegment')} →
+                  </span>
+                </span>
+              </Link>
+              <Link to="/creator/tournaments/new" className="sr-flow-card">
+                <span className="sr-flow-card-media">
+                  <TournamentCardIcon />
+                </span>
+                <span className="sr-flow-card-body">
+                  <span className="sr-flow-card-badge">{t('nav.tournaments')}</span>
+                  <span className="sr-flow-card-title">{t('creator.newTournament')}</span>
+                  <span className="sr-flow-card-cta" aria-hidden="true">
+                    {t('creator.createTournament')} →
+                  </span>
+                </span>
+              </Link>
+            </div>
           </div>
-          <input
-            required
-            maxLength={120}
-            placeholder={t('creator.tournamentName')}
-            value={tournamentForm.name}
-            onChange={setTournament('name')}
+
+          <CreatorTournamentsList
+            loading={loading}
+            tournaments={tournaments}
+            segmentOptions={segmentOptions}
+            expandedAdd={expandedAdd}
+            setExpandedAdd={setExpandedAdd}
+            addSegment={addSegment}
+            submitForReview={submitForReview}
+            t={t}
           />
-          <RichTextEditor
-            value={tournamentForm.description}
-            onChange={(description) => setTournamentForm((current) => ({ ...current, description }))}
-            placeholder={t('creator.description')}
-          />
-          <input
-            maxLength={120}
-            placeholder={t('creator.city')}
-            value={tournamentForm.city}
-            onChange={setTournament('city')}
-          />
-          <input
-            maxLength={120}
-            placeholder={t('creator.country')}
-            value={tournamentForm.country}
-            onChange={setTournament('country')}
-          />
-          <div className="sr-creator-two">
-            <input
-              min="2"
-              max="100"
-              type="number"
-              value={tournamentForm.total_segments_count}
-              onChange={setTournament('total_segments_count')}
-            />
-            <input
-              min="1"
-              max="99"
-              type="number"
-              value={tournamentForm.rated_segments_count}
-              onChange={setTournament('rated_segments_count')}
-            />
-          </div>
-          <button type="submit">{t('creator.createTournament')}</button>
-        </form>
+        </>
       )}
 
+      {isSegmentNew && (
+        <>
+          <CreatorBreadcrumbs current={t('creator.newSegment')} />
+          <div className="sr-page-heading">
+            <h2>{t('creator.newSegment')}</h2>
+            <Link to="/creator" className="sr-btn sr-btn-ghost">
+              {t('profile.cancel')}
+            </Link>
+          </div>
+
+          <form className="sr-card sr-creator-form sr-creator-form-wide" onSubmit={createSegment}>
+            <input
+              required
+              maxLength={120}
+              placeholder={t('creator.segmentName')}
+              value={segmentForm.name}
+              onChange={setSegment('name')}
+            />
+            <RichTextEditor
+              value={segmentForm.description}
+              onChange={(description) => setSegmentForm((current) => ({ ...current, description }))}
+              placeholder={t('creator.description')}
+            />
+            <p className="sr-creator-map-hint">{t('creator.mapHint')}</p>
+            <SegmentRouteMap
+              center={mapCenter}
+              userLocation={userLocation}
+              points={segmentForm.points}
+              onAddPoint={addRoutePoint}
+              onRemoveLast={undoRoutePoint}
+            />
+            <div className="sr-creator-route-meta">
+              <span>
+                {t('creator.routePoints')}: <strong>{segmentForm.points.length}</strong>
+              </span>
+              <span>
+                {t('creator.distance')}: <strong>{formatDistance(routeDistance(segmentForm.points))}</strong>
+              </span>
+              <span>
+                {t('creator.detectedLocation')}:{' '}
+                <strong>{[segmentForm.city, segmentForm.country].filter(Boolean).join(', ') || '-'}</strong>
+              </span>
+            </div>
+            <div className="sr-creator-route-actions">
+              <button type="button" onClick={undoRoutePoint} disabled={segmentForm.points.length === 0}>
+                {t('creator.undoPoint')}
+              </button>
+              <button type="button" onClick={clearRoute} disabled={segmentForm.points.length === 0}>
+                {t('creator.clearRoute')}
+              </button>
+            </div>
+            <button type="submit">{t('creator.createSegment')}</button>
+          </form>
+        </>
+      )}
+
+      {isTournamentNew && (
+        <>
+          <CreatorBreadcrumbs current={t('creator.newTournament')} />
+          <div className="sr-page-heading">
+            <h2>{t('creator.newTournament')}</h2>
+            <Link to="/creator" className="sr-btn sr-btn-ghost">
+              {t('profile.cancel')}
+            </Link>
+          </div>
+
+          <form className="sr-card sr-creator-form sr-creator-form-wide" onSubmit={createTournament}>
+            <input
+              required
+              maxLength={120}
+              placeholder={t('creator.tournamentName')}
+              value={tournamentForm.name}
+              onChange={setTournament('name')}
+            />
+            <RichTextEditor
+              value={tournamentForm.description}
+              onChange={(description) => setTournamentForm((current) => ({ ...current, description }))}
+              placeholder={t('creator.description')}
+            />
+            <input
+              maxLength={120}
+              placeholder={t('creator.city')}
+              value={tournamentForm.city}
+              onChange={setTournament('city')}
+            />
+            <input
+              maxLength={120}
+              placeholder={t('creator.country')}
+              value={tournamentForm.country}
+              onChange={setTournament('country')}
+            />
+            <div className="sr-creator-two">
+              <input
+                min="2"
+                max="100"
+                type="number"
+                value={tournamentForm.total_segments_count}
+                onChange={setTournament('total_segments_count')}
+              />
+              <input
+                min="1"
+                max="99"
+                type="number"
+                value={tournamentForm.rated_segments_count}
+                onChange={setTournament('rated_segments_count')}
+              />
+            </div>
+            <button type="submit">{t('creator.createTournament')}</button>
+          </form>
+        </>
+      )}
+    </div>
+  );
+
+  function setSegment(key) {
+    return (event) => setSegmentForm((current) => ({ ...current, [key]: event.target.value }));
+  }
+
+  function setTournament(key) {
+    return (event) => setTournamentForm((current) => ({ ...current, [key]: event.target.value }));
+  }
+}
+
+function CreatorBreadcrumbs({ current }) {
+  const { t } = useTranslation();
+
+  return (
+    <nav className="sr-breadcrumbs" aria-label="Breadcrumb">
+      <Link to="/creator">{t('nav.creator')}</Link>
+      <span aria-hidden="true">/</span>
+      <span>{current}</span>
+    </nav>
+  );
+}
+
+function CreatorTournamentsList({
+  loading,
+  tournaments,
+  segmentOptions,
+  expandedAdd,
+  setExpandedAdd,
+  addSegment,
+  submitForReview,
+  t
+}) {
+  return (
+    <>
       <h3 className="sr-section-heading">{t('creator.myTournaments')}</h3>
       {loading && <p>{t('common.loading')}</p>}
       {!loading && tournaments.length === 0 && <p className="sr-card">{t('creator.noTournaments')}</p>}
@@ -403,16 +456,8 @@ function Creator() {
           );
         })}
       </div>
-    </div>
+    </>
   );
-
-  function setSegment(key) {
-    return (event) => setSegmentForm((current) => ({ ...current, [key]: event.target.value }));
-  }
-
-  function setTournament(key) {
-    return (event) => setTournamentForm((current) => ({ ...current, [key]: event.target.value }));
-  }
 }
 
 function SegmentCardIcon() {

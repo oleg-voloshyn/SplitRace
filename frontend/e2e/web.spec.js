@@ -82,8 +82,11 @@ test('creator can draw a segment on the map and submit rich text description', a
 
   await page.goto('/creator');
   await expect(page.getByRole('heading', { name: 'Create' })).toBeVisible();
+  await expect(page.getByRole('link', { name: /New tournament/i })).toHaveAttribute('href', '/creator/tournaments/new');
 
-  await page.getByRole('button', { name: 'New segment' }).click();
+  await page.getByRole('link', { name: /New segment/i }).click();
+  await expect(page).toHaveURL(/\/creator\/segments\/new/);
+  await expect(page.getByLabel('Breadcrumb').getByRole('link', { name: 'Create' })).toBeVisible();
   await page.getByPlaceholder('Segment name').fill(`E2E Map Segment ${Date.now()}`);
   await page.locator('[contenteditable="true"]').fill('Safe rich text from Playwright');
 

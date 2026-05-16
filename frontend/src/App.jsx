@@ -68,7 +68,7 @@ function AppRoutes() {
               }
             />
             <Route
-              path="/creator"
+              path="/creator/*"
               element={
                 <ProtectedRoute>
                   <Creator />
