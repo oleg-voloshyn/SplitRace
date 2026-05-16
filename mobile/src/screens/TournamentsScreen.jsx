@@ -204,7 +204,9 @@ function MyTournamentsList({
                       >
                         <Text className="flex-1 text-sm text-brand-navy">{seg.name}</Text>
                         {seg.distance_meters != null ? (
-                          <Text className="text-gray-500 text-xs mr-2">{(seg.distance_meters / 1000).toFixed(2)} km</Text>
+                          <Text className="text-gray-500 text-xs mr-2">
+                            {(seg.distance_meters / 1000).toFixed(2)} km
+                          </Text>
                         ) : null}
                         <Plus size={18} color="#1a1a2e" strokeWidth={2.4} />
                       </TouchableOpacity>

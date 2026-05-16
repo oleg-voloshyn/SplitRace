@@ -198,9 +198,7 @@ function LoginScreen() {
                     onPress={() => setAccountType(type)}
                   >
                     <Text
-                      className={`text-sm ${
-                        form.account_type === type ? 'text-white font-semibold' : 'text-gray-700'
-                      }`}
+                      className={`text-sm ${form.account_type === type ? 'text-white font-semibold' : 'text-gray-700'}`}
                     >
                       {t(`auth.account_${type}`)}
                     </Text>
@@ -239,11 +237,7 @@ function LoginScreen() {
                         }`}
                         onPress={() => set('gender')(g)}
                       >
-                        <Text
-                          className={`text-sm ${
-                            form.gender === g ? 'text-white font-semibold' : 'text-gray-700'
-                          }`}
-                        >
+                        <Text className={`text-sm ${form.gender === g ? 'text-white font-semibold' : 'text-gray-700'}`}>
                           {t(`auth.gender_${g}`)}
                         </Text>
                       </TouchableOpacity>

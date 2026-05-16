@@ -21,10 +21,7 @@ function NotificationsScreen() {
       <View className="flex-row items-center justify-between p-3.5 bg-white border-b border-gray-200">
         <Text className="text-lg font-bold">{t('notifications.title')}</Text>
         {data.unread_count > 0 && (
-          <TouchableOpacity
-            onPress={markAllRead}
-            className="rounded-lg border border-brand-navy px-2.5 py-1.5"
-          >
+          <TouchableOpacity onPress={markAllRead} className="rounded-lg border border-brand-navy px-2.5 py-1.5">
             <Text className="text-brand-navy font-bold text-xs">{t('notifications.markAllRead')}</Text>
           </TouchableOpacity>
         )}

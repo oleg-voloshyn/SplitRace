@@ -90,7 +90,8 @@ function NewSegmentScreen() {
 
       <View className="flex-row flex-wrap gap-3 mt-2 mb-4">
         <Text className="text-gray-700 text-[13px]">
-          {t('creator.distance')}: <Text className="font-bold text-brand-navy">{formatDistance(routeDistance(form.points))}</Text>
+          {t('creator.distance')}:{' '}
+          <Text className="font-bold text-brand-navy">{formatDistance(routeDistance(form.points))}</Text>
         </Text>
         {form.city || form.country ? (
           <View className="flex-row items-center gap-1">
