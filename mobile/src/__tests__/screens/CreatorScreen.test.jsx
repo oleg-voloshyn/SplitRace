@@ -1,55 +1,24 @@
 import React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { fireEvent, render, screen } from '@testing-library/react-native';
 import CreatorScreen from '../../screens/CreatorScreen';
 
-jest.mock('../../api/client', () => ({
-  api: {
-    mySegments: jest.fn().mockResolvedValue([]),
-    myTournaments: jest.fn().mockResolvedValue([]),
-    createSegment: jest.fn(),
-    createTournament: jest.fn(),
-    addTournamentSegment: jest.fn(),
-    submitTournamentForReview: jest.fn()
-  }
-}));
+const mockNavigate = jest.fn();
 
 jest.mock('@react-navigation/native', () => ({
-  useNavigation: () => ({
-    navigate: jest.fn()
-  })
+  useNavigation: () => ({ navigate: mockNavigate })
 }));
 
-jest.mock('../../utils/geoUtils', () => ({
-  reverseGeocode: jest.fn().mockResolvedValue({ city: 'Kyiv', country: 'UA' }),
-  routeDistance: jest.fn().mockReturnValue(0),
-  formatDistance: jest.fn().mockReturnValue('-')
-}));
-
-const mockT = (key, opts) => {
+const mockT = (key) => {
   const map = {
+    'creator.hubIntro': 'What would you like to create?',
+    'creator.segments': 'Segments',
     'creator.newSegment': 'New segment',
-    'creator.segmentName': 'Segment name',
+    'creator.newSegmentSubtitle': 'Draw a route on the map',
     'creator.createSegment': 'Create segment',
     'creator.newTournament': 'New tournament',
-    'creator.tournamentName': 'Tournament name',
+    'creator.newTournamentSubtitle': 'Combine segments into a tournament',
     'creator.createTournament': 'Create tournament',
-    'creator.myTournaments': 'My tournaments',
-    'creator.mapHint': 'Tap the map to draw the segment route',
-    'creator.routePoints': `${opts?.count ?? 0} route points`,
-    'creator.distance': 'Distance',
-    'creator.undoPoint': 'Undo',
-    'creator.clearRoute': 'Clear',
-    'creator.routeRequired': 'Draw a route — at least 2 points required',
-    'creator.segmentCreated': 'Segment created',
-    'creator.failed': 'Something went wrong',
-    'creator.city': 'City',
-    'creator.country': 'Country',
-    'creator.totalSegments': 'Total',
-    'creator.ratedSegments': 'Rated',
-    'creator.noSegments': 'No segments',
-    'creator.addSegment': 'Add segment',
-    'creator.submitReview': 'Submit',
-    'common.error': 'Error'
+    'nav.tournaments': 'Tournaments'
   };
   return map[key] ?? key;
 };
@@ -58,114 +27,37 @@ jest.mock('react-i18next', () => ({
   useTranslation: () => ({ t: mockT })
 }));
 
-jest.mock('../../components/SegmentMapPicker', () => {
-  const React = require('react');
-  const { View, Text, TouchableOpacity } = require('react-native');
-  return ({ onPointsChange, hint, undoLabel, clearLabel }) =>
-    React.createElement(
-      View,
-      { testID: 'segment-map' },
-      React.createElement(Text, null, hint),
-      React.createElement(
-        TouchableOpacity,
-        {
-          testID: 'add-point-btn',
-          onPress: () =>
-            onPointsChange([
-              { lat: 50.45, lng: 30.52 },
-              { lat: 50.46, lng: 30.53 }
-            ])
-        },
-        React.createElement(Text, null, 'Add Points')
-      )
-    );
+beforeEach(() => {
+  mockNavigate.mockReset();
 });
 
-describe('CreatorScreen', () => {
-  it('renders segment name label', async () => {
+describe('CreatorScreen — hub', () => {
+  it('shows intro prompt', () => {
     render(<CreatorScreen />);
-    await waitFor(() => {
-      expect(screen.getByText('Segment name')).toBeTruthy();
-    });
+    expect(screen.getByText('What would you like to create?')).toBeTruthy();
   });
 
-  it('renders map hint', async () => {
+  it('renders the New segment card', () => {
     render(<CreatorScreen />);
-    await waitFor(() => {
-      expect(screen.getByText('Tap the map to draw the segment route')).toBeTruthy();
-    });
+    expect(screen.getByText('New segment')).toBeTruthy();
+    expect(screen.getByText('Draw a route on the map')).toBeTruthy();
   });
 
-  it('renders the map picker', async () => {
+  it('renders the New tournament card', () => {
     render(<CreatorScreen />);
-    await waitFor(() => {
-      expect(screen.getByTestId('segment-map')).toBeTruthy();
-    });
+    expect(screen.getByText('New tournament')).toBeTruthy();
+    expect(screen.getByText('Combine segments into a tournament')).toBeTruthy();
   });
 
-  it('shows error when creating segment without route', async () => {
-    const { Alert } = require('react-native');
-    const alertSpy = jest.spyOn(Alert, 'alert');
-
+  it('navigates to NewSegment when segment card is pressed', () => {
     render(<CreatorScreen />);
-    await waitFor(() => screen.getByText('Create segment'));
-
-    fireEvent.press(screen.getByText('Create segment'));
-
-    await waitFor(() => {
-      expect(alertSpy).toHaveBeenCalledWith('Error', 'Draw a route — at least 2 points required');
-    });
+    fireEvent.press(screen.getByText('New segment'));
+    expect(mockNavigate).toHaveBeenCalledWith('NewSegment');
   });
 
-  it('calls createSegment API when route has 2+ points', async () => {
-    const { api } = require('../../api/client');
-    api.createSegment.mockResolvedValueOnce({ id: 1 });
-
+  it('navigates to NewTournament when tournament card is pressed', () => {
     render(<CreatorScreen />);
-    await waitFor(() => screen.getByTestId('add-point-btn'));
-
-    fireEvent.press(screen.getByTestId('add-point-btn'));
-
-    // Find the TextInput after label (no placeholder — CreatorInput uses a label Text)
-    const inputs = screen.UNSAFE_getAllByType(require('react-native').TextInput);
-    const nameInput = inputs[0];
-    fireEvent.changeText(nameInput, 'Test Hill');
-    fireEvent.press(screen.getByText('Create segment'));
-
-    await waitFor(() => {
-      expect(api.createSegment).toHaveBeenCalledWith(
-        expect.objectContaining({
-          name: 'Test Hill',
-          points: expect.arrayContaining([expect.objectContaining({ lat: 50.45 })])
-        })
-      );
-    });
-  });
-
-  it('renders My tournaments section', async () => {
-    render(<CreatorScreen />);
-    await waitFor(() => {
-      expect(screen.getByText('My tournaments')).toBeTruthy();
-    });
-  });
-
-  it('renders tournament list when tournaments exist', async () => {
-    const { api } = require('../../api/client');
-    api.myTournaments.mockResolvedValueOnce([
-      {
-        id: 1,
-        name: 'Spring Race',
-        status: 'draft',
-        slug: 'spring-race',
-        total_segments_count: 2,
-        segments: []
-      }
-    ]);
-    api.mySegments.mockResolvedValueOnce([]);
-
-    render(<CreatorScreen />);
-    await waitFor(() => {
-      expect(screen.getByText('Spring Race')).toBeTruthy();
-    });
+    fireEvent.press(screen.getByText('New tournament'));
+    expect(mockNavigate).toHaveBeenCalledWith('NewTournament');
   });
 });
