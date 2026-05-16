@@ -4,6 +4,12 @@ import { CircleMarker, MapContainer, Polyline, TileLayer, useMap } from 'react-l
 import { api } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
 
+const SHARE_FORMATS = {
+  story: { label: 'Story', ratio: '9:16', width: 1080, height: 1920, maxSegments: 6 },
+  post: { label: 'Post', ratio: '4:5', width: 1080, height: 1350, maxSegments: 5 },
+  square: { label: 'Square', ratio: '1:1', width: 1080, height: 1080, maxSegments: 4 }
+};
+
 function Profile() {
   const { t } = useTranslation();
   const { user, setUser } = useAuth();
@@ -199,9 +205,19 @@ function Profile() {
                     )}
                   </div>
                   <ActivitySegmentSummary activity={a} t={t} />
-                  <button type="button" onClick={() => shareActivity(a, t)} className="sr-btn sr-btn-danger sr-btn-sm">
-                    {t('run.shareResult')}
-                  </button>
+                  <div className="sr-share-format-row" aria-label={t('run.shareResult')}>
+                    {Object.entries(SHARE_FORMATS).map(([format, config]) => (
+                      <button
+                        key={format}
+                        type="button"
+                        onClick={() => shareActivity(a, t, format)}
+                        className="sr-share-format-btn"
+                      >
+                        <strong>{config.label}</strong>
+                        <span>{config.ratio}</span>
+                      </button>
+                    ))}
+                  </div>
 
                   {a.gps_points?.length > 1 && (
                     <button
@@ -246,11 +262,18 @@ function ActivitySegmentSummary({ activity, t }) {
   );
 }
 
-async function shareActivity(activity, t) {
+async function shareActivity(activity, t, format = 'story') {
   const text = buildActivityShareText(activity, t);
-  if (navigator.share) {
-    await navigator.share({ text }).catch(() => {});
-    return;
+  const blob = await createActivityShareBlob(activity, t, format).catch(() => null);
+
+  if (blob) {
+    const file = new File([blob], `splitrace-run-${format}.png`, { type: 'image/png' });
+    if (navigator.share && navigator.canShare?.({ files: [file] })) {
+      await navigator.share({ files: [file], text, title: t('run.shareTitle') }).catch(() => {});
+      return;
+    }
+
+    downloadBlob(file);
   }
 
   await navigator.clipboard?.writeText(text).catch(() => {});
@@ -272,6 +295,184 @@ function buildActivityShareText(activity, t) {
     segmentLines,
     'SplitRace'
   ].join('\n');
+}
+
+async function createActivityShareBlob(activity, t, formatKey) {
+  const format = SHARE_FORMATS[formatKey] || SHARE_FORMATS.story;
+  const canvas = document.createElement('canvas');
+  canvas.width = format.width;
+  canvas.height = format.height;
+  const ctx = canvas.getContext('2d');
+  const scale = format.width / 1080;
+  const pad = 80 * scale;
+  const segmentCount = activity.segment_efforts_count || activity.segment_efforts?.length || 0;
+  const segments = activity.segment_efforts || [];
+
+  const gradient = ctx.createLinearGradient(0, 0, format.width, format.height);
+  gradient.addColorStop(0, '#0d1124');
+  gradient.addColorStop(0.62, '#151a30');
+  gradient.addColorStop(1, '#080b18');
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, format.width, format.height);
+
+  drawCircle(ctx, format.width - 100 * scale, 120 * scale, 250 * scale, 'rgba(229, 57, 53, 0.13)');
+  drawCircle(ctx, 60 * scale, format.height - 120 * scale, 260 * scale, 'rgba(59, 130, 246, 0.1)');
+
+  ctx.fillStyle = '#ffffff';
+  ctx.font = `${36 * scale}px Inter, system-ui, sans-serif`;
+  ctx.letterSpacing = `${4 * scale}px`;
+  ctx.fillText('SPLITRACE', pad, pad + 20 * scale);
+  ctx.letterSpacing = '0px';
+  ctx.fillStyle = 'rgba(255,255,255,0.48)';
+  ctx.font = `${24 * scale}px Inter, system-ui, sans-serif`;
+  ctx.fillText('Run • Compete • Improve', pad, pad + 62 * scale);
+
+  ctx.fillStyle = 'rgba(255,255,255,0.12)';
+  ctx.fillRect(pad, pad + 105 * scale, format.width - pad * 2, 2 * scale);
+
+  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  ctx.font = `700 ${28 * scale}px Inter, system-ui, sans-serif`;
+  ctx.fillText(t('run.shareTitle'), pad, pad + 180 * scale);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = `900 ${formatKey === 'square' ? 58 : 76 * scale}px Inter, system-ui, sans-serif`;
+  wrapCanvasText(
+    ctx,
+    segmentCount ? 'Segment unlocked' : 'Run complete',
+    pad,
+    pad + 270 * scale,
+    format.width - pad * 2,
+    84 * scale
+  );
+
+  const statsY = formatKey === 'story' ? 590 * scale : 390 * scale;
+  drawRoundRect(ctx, pad, statsY, format.width - pad * 2, 210 * scale, 34 * scale, '#151a30');
+  drawStat(
+    ctx,
+    t('run.distance'),
+    fmtDist(activity.distance_meters),
+    pad + 58 * scale,
+    statsY + 82 * scale,
+    scale,
+    true
+  );
+  drawStat(ctx, t('run.time'), fmtTime(activity.elapsed_time_seconds), pad + 380 * scale, statsY + 82 * scale, scale);
+  drawStat(
+    ctx,
+    t('run.pace'),
+    `${fmtPace(activity.elapsed_time_seconds, activity.distance_meters)} /km`,
+    pad + 685 * scale,
+    statsY + 82 * scale,
+    scale
+  );
+
+  const listY = statsY + 270 * scale;
+  drawRoundRect(
+    ctx,
+    pad,
+    listY,
+    format.width - pad * 2,
+    Math.min(500 * scale, format.height - listY - 190 * scale),
+    34 * scale,
+    '#151a30'
+  );
+  ctx.fillStyle = '#ffffff';
+  ctx.font = `900 ${34 * scale}px Inter, system-ui, sans-serif`;
+  ctx.fillText(t('run.segmentsCompleted', { count: segmentCount }), pad + 38 * scale, listY + 68 * scale);
+
+  if (segments.length) {
+    ctx.font = `700 ${26 * scale}px Inter, system-ui, sans-serif`;
+    segments.slice(0, format.maxSegments).forEach((effort, index) => {
+      const y = listY + 130 * scale + index * 58 * scale;
+      ctx.fillStyle = '#e53935';
+      ctx.fillText('›', pad + 42 * scale, y);
+      ctx.fillStyle = 'rgba(255,255,255,0.78)';
+      truncateCanvasText(ctx, effort.segment?.name || 'Segment', pad + 76 * scale, y, 560 * scale);
+      ctx.fillStyle = '#ff6b66';
+      ctx.fillText(effort.formatted_time || '', format.width - pad - 180 * scale, y);
+    });
+  } else {
+    ctx.fillStyle = 'rgba(255,255,255,0.68)';
+    ctx.font = `${28 * scale}px Inter, system-ui, sans-serif`;
+    wrapCanvasText(
+      ctx,
+      t('run.noSegmentsCompleted'),
+      pad + 38 * scale,
+      listY + 130 * scale,
+      format.width - pad * 2 - 76 * scale,
+      38 * scale
+    );
+  }
+
+  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  ctx.font = `700 ${24 * scale}px Inter, system-ui, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.fillText('splitrace.app', format.width / 2, format.height - 80 * scale);
+  ctx.textAlign = 'left';
+
+  return new Promise((resolve) => canvas.toBlob(resolve, 'image/png', 1));
+}
+
+function drawStat(ctx, label, value, x, y, scale, accent = false) {
+  ctx.fillStyle = accent ? '#ff4b45' : '#ffffff';
+  ctx.font = `900 ${42 * scale}px Inter, system-ui, sans-serif`;
+  ctx.fillText(value, x, y);
+  ctx.fillStyle = 'rgba(255,255,255,0.45)';
+  ctx.font = `800 ${18 * scale}px Inter, system-ui, sans-serif`;
+  ctx.fillText(label.toUpperCase(), x, y + 46 * scale);
+}
+
+function drawCircle(ctx, x, y, radius, color) {
+  ctx.beginPath();
+  ctx.arc(x, y, radius, 0, Math.PI * 2);
+  ctx.fillStyle = color;
+  ctx.fill();
+}
+
+function drawRoundRect(ctx, x, y, width, height, radius, color) {
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.arcTo(x + width, y, x + width, y + height, radius);
+  ctx.arcTo(x + width, y + height, x, y + height, radius);
+  ctx.arcTo(x, y + height, x, y, radius);
+  ctx.arcTo(x, y, x + width, y, radius);
+  ctx.closePath();
+  ctx.fillStyle = color;
+  ctx.fill();
+}
+
+function wrapCanvasText(ctx, text, x, y, maxWidth, lineHeight) {
+  const words = String(text).split(' ');
+  let line = '';
+  words.forEach((word) => {
+    const test = line ? `${line} ${word}` : word;
+    if (ctx.measureText(test).width > maxWidth && line) {
+      ctx.fillText(line, x, y);
+      y += lineHeight;
+      line = word;
+    } else {
+      line = test;
+    }
+  });
+  if (line) {
+    ctx.fillText(line, x, y);
+  }
+}
+
+function truncateCanvasText(ctx, text, x, y, maxWidth) {
+  let output = String(text);
+  while (ctx.measureText(output).width > maxWidth && output.length > 4) {
+    output = `${output.slice(0, -4)}...`;
+  }
+  ctx.fillText(output, x, y);
+}
+
+function downloadBlob(file) {
+  const url = URL.createObjectURL(file);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = file.name;
+  link.click();
+  URL.revokeObjectURL(url);
 }
 
 function profileFormFromUser(user) {

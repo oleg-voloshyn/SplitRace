@@ -8,9 +8,7 @@ jest.mock('../../api/client', () => ({
 }));
 
 jest.mock('../../components/LeafletMap', () => {
-  const React = require('react');
-  const { View } = require('react-native');
-  return () => React.createElement(View, { testID: 'leaflet-map' });
+  return () => null;
 });
 
 const mockT = (key, opts) => {

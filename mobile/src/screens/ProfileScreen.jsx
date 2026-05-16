@@ -1,11 +1,16 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import * as Sharing from 'expo-sharing';
 import { AlertTriangle, Check, Pencil } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { Alert, Image, ScrollView, Share, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import ViewShot from 'react-native-view-shot';
 import { api } from '../api/client';
 import LeafletMap from '../components/LeafletMap';
+import { RUN_SHARE_FORMATS, RunShareCard } from '../components/RunShareCard';
+import ShareFormatButtons from '../components/ShareFormatButtons';
 import { useAuth } from '../contexts/AuthContext';
 import { SUPPORTED_LANGS } from '../i18n';
+import { buildShareText } from '../utils/runUtils';
 
 function ProfileScreen() {
   const { t, i18n } = useTranslation();
@@ -14,6 +19,8 @@ function ProfileScreen() {
   const [form, setForm] = useState(() => profileFormFromUser(user));
   const [activities, setActivities] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
+  const [pendingShare, setPendingShare] = useState(null);
+  const shareCardRef = useRef(null);
   const isClub = user?.account_type === 'club';
 
   useEffect(() => {
@@ -22,6 +29,18 @@ function ProfileScreen() {
       .then(setActivities)
       .catch(() => setActivities([]));
   }, []);
+
+  useEffect(() => {
+    if (!pendingShare) {
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      shareActivityImage(shareCardRef, pendingShare.activity, t).finally(() => setPendingShare(null));
+    }, 60);
+
+    return () => clearTimeout(timeout);
+  }, [pendingShare, t]);
 
   function startEdit() {
     setForm(profileFormFromUser(user));
@@ -141,7 +160,9 @@ function ProfileScreen() {
                         onPress={() => setForm((f) => ({ ...f, gender: g }))}
                       >
                         {active && <Check size={13} color="#e53935" strokeWidth={2.5} />}
-                        <Text className={`text-sm font-medium ${active ? 'text-brand-red font-bold' : 'text-gray-700'}`}>
+                        <Text
+                          className={`text-sm font-medium ${active ? 'text-brand-red font-bold' : 'text-gray-700'}`}
+                        >
                           {t(`auth.gender_${g}`)}
                         </Text>
                       </TouchableOpacity>
@@ -202,9 +223,7 @@ function ProfileScreen() {
 
       {/* Language */}
       <View className="bg-white rounded-xl p-4 mb-4 border border-gray-200">
-        <Text className="text-xs text-gray-500 uppercase tracking-wider font-bold mb-2.5">
-          {t('profile.language')}
-        </Text>
+        <Text className="text-xs text-gray-500 uppercase tracking-wider font-bold mb-2.5">{t('profile.language')}</Text>
         {SUPPORTED_LANGS.map((l) => {
           const active = i18n.language === l.code;
           return (
@@ -249,12 +268,12 @@ function ProfileScreen() {
             )}
           </View>
           <RunSegmentSummary activity={a} t={t} />
-          <TouchableOpacity
-            className="mt-2.5 self-start bg-brand-red rounded-lg px-3 py-1.5"
-            onPress={() => shareActivity(a, t)}
-          >
-            <Text className="text-white font-extrabold text-xs">{t('run.shareResult')}</Text>
-          </TouchableOpacity>
+          <Text className="text-gray-500 text-xs font-bold mt-2.5 mb-1">{t('run.shareResult')}</Text>
+          <ShareFormatButtons
+            selected={pendingShare?.activity?.id === a.id ? pendingShare.format : null}
+            compact
+            onShare={(format) => setPendingShare({ activity: a, format })}
+          />
           {a.gps_points?.length > 1 && (
             <TouchableOpacity
               onPress={() => setExpandedId(expandedId === a.id ? null : a.id)}
@@ -272,6 +291,21 @@ function ProfileScreen() {
           )}
         </View>
       ))}
+      {pendingShare && (
+        <ViewShot
+          ref={shareCardRef}
+          options={{ format: 'png', quality: 1 }}
+          style={{
+            position: 'absolute',
+            left: -10000,
+            top: 0,
+            width: RUN_SHARE_FORMATS[pendingShare.format].width,
+            height: RUN_SHARE_FORMATS[pendingShare.format].height
+          }}
+        >
+          <RunShareCard activity={pendingShare.activity} format={pendingShare.format} />
+        </ViewShot>
+      )}
     </ScrollView>
   );
 }
@@ -320,28 +354,24 @@ function InfoRow({ label, value }) {
   );
 }
 
-function shareActivity(activity, t) {
-  Share.share({ message: buildActivityShareText(activity, t) }).catch(() => {
-    // Native share can be cancelled or unavailable.
-  });
+async function shareActivityImage(cardRef, activity, t) {
+  try {
+    const isAvailable = await Sharing.isAvailableAsync();
+    if (!isAvailable || !cardRef.current) {
+      shareActivityText(activity, t);
+      return;
+    }
+    const uri = await cardRef.current.capture();
+    await Sharing.shareAsync(uri, { mimeType: 'image/png', dialogTitle: t('run.shareResult') });
+  } catch {
+    shareActivityText(activity, t);
+  }
 }
 
-function buildActivityShareText(activity, t) {
-  const segmentCount = activity.segment_efforts_count || activity.segment_efforts?.length || 0;
-  const segments = activity.segment_efforts || [];
-  const segmentLines = segments.length
-    ? segments.map((effort) => `• ${effort.segment?.name} — ${effort.formatted_time}`).join('\n')
-    : t('run.noSegmentsCompleted');
-
-  return [
-    t('run.shareTitle'),
-    `${t('run.distance')}: ${fmtDist(activity.distance_meters)}`,
-    `${t('run.time')}: ${fmtTime(activity.elapsed_time_seconds)}`,
-    `${t('run.pace')}: ${fmtPace(activity.elapsed_time_seconds, activity.distance_meters)} /km`,
-    `${t('run.segmentsCompleted', { count: segmentCount })}`,
-    segmentLines,
-    'SplitRace'
-  ].join('\n');
+function shareActivityText(activity, t) {
+  Share.share({ message: buildShareText(activity, t) }).catch(() => {
+    // Native share can be cancelled or unavailable.
+  });
 }
 
 function profileFormFromUser(user) {

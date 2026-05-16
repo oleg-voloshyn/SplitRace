@@ -1609,6 +1609,22 @@
   @apply mt-2 text-slate-600;
 }
 
+.sr-share-format-row {
+  @apply mt-3 flex flex-wrap gap-2;
+}
+
+.sr-share-format-btn {
+  @apply cursor-pointer rounded-md border border-red-100 bg-red-50 px-3 py-2 text-left text-xs text-red-600 transition hover:border-red-300 hover:bg-red-100;
+}
+
+.sr-share-format-btn strong {
+  @apply block text-xs;
+}
+
+.sr-share-format-btn span {
+  @apply block text-[10px] font-semibold text-red-400;
+}
+
 .sr-route-toggle {
   @apply ml-2;
 }

@@ -65,7 +65,7 @@ describe('RunShareCard', () => {
     expect(screen.getByText('Сегменти не пройдені')).toBeTruthy();
   });
 
-  it('limits displayed segments to 3', () => {
+  it('limits square format displayed segments to 3', () => {
     const activity = {
       ...baseActivity,
       segment_efforts_count: 5,
@@ -75,7 +75,7 @@ describe('RunShareCard', () => {
         formatted_time: '1:00'
       }))
     };
-    render(<RunShareCard activity={activity} />);
+    render(<RunShareCard activity={activity} format="square" />);
     expect(screen.getByText('Segment 1')).toBeTruthy();
     expect(screen.getByText('Segment 3')).toBeTruthy();
     expect(screen.queryByText('Segment 4')).toBeNull();

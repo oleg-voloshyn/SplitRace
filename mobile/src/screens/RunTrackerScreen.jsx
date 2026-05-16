@@ -9,7 +9,8 @@ import { Alert, Platform, ScrollView, Share, StyleSheet, Text, TouchableOpacity,
 import ViewShot from 'react-native-view-shot';
 import { api } from '../api/client';
 import LeafletMap from '../components/LeafletMap';
-import { RunShareCard } from '../components/RunShareCard';
+import { RUN_SHARE_FORMATS, RunShareCard } from '../components/RunShareCard';
+import ShareFormatButtons from '../components/ShareFormatButtons';
 import { buildShareText, calcDistance, fmtDist, fmtPace, fmtTime } from '../utils/runUtils';
 
 const LOCATION_TASK = 'splitrace-location-task';
@@ -42,6 +43,7 @@ function RunTrackerScreen() {
   const [duration, setDuration] = useState(0);
   const [error, setError] = useState(null);
   const [savedActivity, setSavedActivity] = useState(null);
+  const [shareFormat, setShareFormat] = useState('story');
 
   const startTime = useRef(null);
   const segmentStart = useRef(null);
@@ -261,6 +263,7 @@ function RunTrackerScreen() {
     };
     const segmentCount = activity.segment_efforts_count || activity.segment_efforts?.length || 0;
     const hasSegments = segmentCount > 0;
+    const cardFormat = RUN_SHARE_FORMATS[shareFormat] || RUN_SHARE_FORMATS.story;
 
     return (
       <ScrollView className="flex-1 bg-brand-navy" contentContainerClassName="p-5 pb-9 items-center">
@@ -270,9 +273,15 @@ function RunTrackerScreen() {
         <ViewShot
           ref={shareCardRef}
           options={{ format: 'png', quality: 1 }}
-          style={{ width: 360, marginBottom: 20, borderRadius: 24, overflow: 'hidden' }}
+          style={{
+            width: cardFormat.width,
+            height: cardFormat.height,
+            marginBottom: 20,
+            borderRadius: 24,
+            overflow: 'hidden'
+          }}
         >
-          <RunShareCard activity={activity} />
+          <RunShareCard activity={activity} format={shareFormat} />
         </ViewShot>
 
         <View className="w-full bg-white rounded-2xl p-4 shadow-lg">
@@ -293,10 +302,7 @@ function RunTrackerScreen() {
             </Text>
             {hasSegments ? (
               activity.segment_efforts.map((effort) => (
-                <View
-                  key={effort.id}
-                  className="flex-row justify-between gap-3 py-2 border-b border-gray-100"
-                >
+                <View key={effort.id} className="flex-row justify-between gap-3 py-2 border-b border-gray-100">
                   <Text className="text-gray-800 text-sm font-semibold flex-1">{effort.segment?.name}</Text>
                   <Text className="text-brand-red text-sm font-extrabold">{effort.formatted_time}</Text>
                 </View>
@@ -307,6 +313,7 @@ function RunTrackerScreen() {
           </View>
         </View>
         <View className="w-full gap-2.5 mt-4">
+          <ShareFormatButtons selected={shareFormat} onSelect={setShareFormat} />
           <TouchableOpacity
             className="bg-brand-red rounded-2xl p-4 items-center"
             onPress={() => shareActivityImage(shareCardRef, activity, t)}
@@ -327,7 +334,9 @@ function RunTrackerScreen() {
 
   return (
     <View className="flex-1 bg-brand-navy">
-      <View className={`flex-row items-center justify-around py-3.5 px-4 ${isPaused ? 'bg-amber-400' : 'bg-brand-navy'}`}>
+      <View
+        className={`flex-row items-center justify-around py-3.5 px-4 ${isPaused ? 'bg-amber-400' : 'bg-brand-navy'}`}
+      >
         {isPaused ? (
           <Text className="text-brand-navy font-extrabold text-[11px] tracking-widest">{t('run.paused')}</Text>
         ) : (
