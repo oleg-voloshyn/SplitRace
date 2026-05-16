@@ -26,8 +26,26 @@ function TournamentsScreen() {
   }, []);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    let cancelled = false;
+    (async () => {
+      try {
+        const [all, mine, segments] = await Promise.all([api.tournaments(), api.myTournaments(), api.mySegments()]);
+        if (cancelled) {
+          return;
+        }
+        setTournaments(all);
+        setMyTournaments(mine);
+        setMySegments(segments);
+      } catch {
+        if (!cancelled) {
+          setTournaments([]);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function onRefresh() {
     setRefreshing(true);

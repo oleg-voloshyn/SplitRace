@@ -104,7 +104,7 @@ class ApiLifecycleTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :unprocessable_content
-    assert_includes response.parsed_body['errors'], 'Google sign-in is only available for runners'
+    assert_includes response.parsed_body['errors'], 'Social sign-in is only available for runners, not clubs'
   end
 
   test 'protected api endpoints require bearer token' do
