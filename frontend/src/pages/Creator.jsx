@@ -175,21 +175,37 @@ function Creator() {
         <div className="sr-creator-actions">
           <button
             type="button"
-            className={activeForm === 'segment' ? 'active' : ''}
+            className={`sr-flow-card ${activeForm === 'segment' ? 'active' : ''}`}
             aria-pressed={activeForm === 'segment'}
             onClick={() => setActiveForm(activeForm === 'segment' ? null : 'segment')}
           >
-            <SegmentCardIcon />
-            <span>{t('creator.newSegment')}</span>
+            <span className="sr-flow-card-media">
+              <SegmentCardIcon />
+            </span>
+            <span className="sr-flow-card-body">
+              <span className="sr-flow-card-badge">{t('creator.segments')}</span>
+              <span className="sr-flow-card-title">{t('creator.newSegment')}</span>
+              <span className="sr-flow-card-cta" aria-hidden="true">
+                {t('creator.createSegment')} →
+              </span>
+            </span>
           </button>
           <button
             type="button"
-            className={activeForm === 'tournament' ? 'active' : ''}
+            className={`sr-flow-card ${activeForm === 'tournament' ? 'active' : ''}`}
             aria-pressed={activeForm === 'tournament'}
             onClick={() => setActiveForm(activeForm === 'tournament' ? null : 'tournament')}
           >
-            <TournamentCardIcon />
-            <span>{t('creator.newTournament')}</span>
+            <span className="sr-flow-card-media">
+              <TournamentCardIcon />
+            </span>
+            <span className="sr-flow-card-body">
+              <span className="sr-flow-card-badge">{t('nav.tournaments')}</span>
+              <span className="sr-flow-card-title">{t('creator.newTournament')}</span>
+              <span className="sr-flow-card-cta" aria-hidden="true">
+                {t('creator.createTournament')} →
+              </span>
+            </span>
           </button>
         </div>
       </div>
