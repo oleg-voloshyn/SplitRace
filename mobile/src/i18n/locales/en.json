@@ -27,6 +27,7 @@
     "orContinueWith": "Or continue with",
     "googleFailed": "Google sign-in failed",
     "googleNotConfigured": "Google sign-in is not configured",
+    "appleFailed": "Apple sign-in failed",
     "selectGender": "Please select gender",
     "somethingWrong": "Something went wrong",
     "subtitle": "GPS Tournament Running"

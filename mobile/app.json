@@ -37,7 +37,8 @@
         "NSMotionUsageDescription": "SplitRace uses motion data to improve run tracking accuracy.",
         "UIBackgroundModes": ["location", "fetch"],
         "ITSAppUsesNonExemptEncryption": false
-      }
+      },
+      "usesAppleSignIn": true
     },
     "plugins": [
       [
@@ -53,7 +54,8 @@
       "expo-notifications",
       "expo-secure-store",
       "expo-localization",
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-apple-authentication"
     ],
     "extra": {
       "eas": {

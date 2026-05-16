@@ -33,6 +33,18 @@ module Api
         render json: { errors: e.record.errors.full_messages }, status: :unprocessable_content
       end
 
+      def apple
+        payload = AppleIdentityTokenVerifier.new.verify!(params[:identity_token])
+        user = find_or_create_apple_user!(payload, params.slice(:first_name, :last_name))
+        token = JwtService.encode(user_id: user.id)
+
+        render json: { token:, user: user_json(user) }
+      rescue AppleIdentityTokenVerifier::Error => e
+        render json: { error: e.message }, status: :unauthorized
+      rescue ActiveRecord::RecordInvalid => e
+        render json: { errors: e.record.errors.full_messages }, status: :unprocessable_content
+      end
+
       private
 
       def register_params
@@ -70,10 +82,36 @@ module Api
         user
       end
 
+      def find_or_create_apple_user!(payload, name_params = {})
+        identity = OauthIdentity.find_by(provider: 'apple', uid: payload['sub'])
+        return ensure_runner!(identity.user) if identity
+
+        email = payload['email']&.downcase
+        user = User.find_by(email:) if email
+        user = ensure_runner!(user) if user
+        user ||= User.new(
+          email:,
+          first_name: name_params[:first_name].presence,
+          last_name: name_params[:last_name].presence,
+          account_type: 'user'
+        )
+
+        identity_attrs = { provider: 'apple', uid: payload['sub'], token_expires_at: token_expires_at(payload) }
+
+        if user.new_record?
+          user.oauth_identities.build(identity_attrs)
+          user.save!
+        else
+          user.oauth_identities.create!(identity_attrs)
+        end
+
+        user
+      end
+
       def ensure_runner!(user)
         return user unless user.club?
 
-        user.errors.add(:base, 'Google sign-in is only available for runners')
+        user.errors.add(:base, 'Social sign-in is only available for runners, not clubs')
         raise ActiveRecord::RecordInvalid, user
       end
 

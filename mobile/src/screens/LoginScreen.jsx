@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import * as Google from 'expo-auth-session/providers/google';
 import Constants from 'expo-constants';
 import * as WebBrowser from 'expo-web-browser';
@@ -20,7 +21,7 @@ WebBrowser.maybeCompleteAuthSession();
 
 function LoginScreen() {
   const { t, i18n } = useTranslation();
-  const { login, loginWithGoogle, register } = useAuth();
+  const { login, loginWithGoogle, loginWithApple, register } = useAuth();
   const [mode, setMode] = useState('login');
   const [form, setForm] = useState({
     email: '',
@@ -133,6 +134,25 @@ function LoginScreen() {
     const response = await promptGoogleAsync().catch(() => ({ type: 'error' }));
     if (response?.type !== 'success') {
       setGoogleLoading(false);
+    }
+  }
+
+  async function submitApple() {
+    setError(null);
+    try {
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL
+        ]
+      });
+      const firstName = credential.fullName?.givenName || null;
+      const lastName = credential.fullName?.familyName || null;
+      await loginWithApple(credential.identityToken, firstName, lastName);
+    } catch (e) {
+      if (e.code !== 'ERR_REQUEST_CANCELED') {
+        setError(e?.error || t('auth.appleFailed'));
+      }
     }
   }
 
@@ -264,6 +284,15 @@ function LoginScreen() {
               >
                 <Text style={s.googleBtnText}>{googleLoading ? '...' : t('auth.continueWithGoogle')}</Text>
               </TouchableOpacity>
+              {Platform.OS === 'ios' && (
+                <AppleAuthentication.AppleAuthenticationButton
+                  buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+                  buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+                  cornerRadius={8}
+                  style={s.appleBtn}
+                  onPress={submitApple}
+                />
+              )}
             </>
           )}
         </View>
@@ -316,7 +345,8 @@ const s = StyleSheet.create({
     backgroundColor: '#fff'
   },
   disabledBtn: { opacity: 0.6 },
-  googleBtnText: { color: '#1a1a2e', fontWeight: '700', fontSize: 15 }
+  googleBtnText: { color: '#1a1a2e', fontWeight: '700', fontSize: 15 },
+  appleBtn: { width: '100%', height: 50, marginTop: 12 }
 });
 
 export default LoginScreen;

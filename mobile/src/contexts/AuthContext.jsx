@@ -33,6 +33,13 @@ function AuthProvider({ children }) {
     registerForPushNotificationsAsync().catch(() => {});
   }
 
+  async function loginWithApple(identityToken, firstName, lastName) {
+    const { token, user } = await api.appleLogin(identityToken, firstName, lastName);
+    await tokenStore.set(token);
+    setUser(user);
+    registerForPushNotificationsAsync().catch(() => {});
+  }
+
   async function register(params) {
     const { token, user } = await api.register(params);
     await tokenStore.set(token);
@@ -47,7 +54,7 @@ function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, loginWithGoogle, register, logout, setUser }}>
+    <AuthContext.Provider value={{ user, loading, login, loginWithGoogle, loginWithApple, register, logout, setUser }}>
       {children}
     </AuthContext.Provider>
   );
