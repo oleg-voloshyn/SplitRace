@@ -63,8 +63,23 @@ class Tournament < ApplicationRecord
 
   private
 
+  CYRILLIC_TRANSLITERATION = {
+    'а' => 'a', 'б' => 'b', 'в' => 'v', 'г' => 'h', 'ґ' => 'g', 'д' => 'd',
+    'е' => 'e', 'є' => 'ye', 'ж' => 'zh', 'з' => 'z', 'и' => 'y', 'і' => 'i',
+    'ї' => 'yi', 'й' => 'y', 'к' => 'k', 'л' => 'l', 'м' => 'm', 'н' => 'n',
+    'о' => 'o', 'п' => 'p', 'р' => 'r', 'с' => 's', 'т' => 't', 'у' => 'u',
+    'ф' => 'f', 'х' => 'kh', 'ц' => 'ts', 'ч' => 'ch', 'ш' => 'sh', 'щ' => 'shch',
+    'ь' => '', 'ю' => 'yu', 'я' => 'ya', 'ы' => 'y', 'э' => 'e', 'ё' => 'yo',
+    'ъ' => ''
+  }.freeze
+
   def generate_slug
-    base = name.parameterize
+    # `parameterize` drops non-Latin characters silently, so a Cyrillic name
+    # would yield an empty slug. Transliterate first, then fall back to a
+    # random token if there's still nothing usable (e.g. emoji-only name).
+    base = transliterate_to_latin(name).parameterize
+    base = "tournament-#{SecureRandom.hex(4)}" if base.blank?
+
     candidate = base
     n = 2
     while Tournament.where(slug: candidate).where.not(id:).exists?
@@ -72,6 +87,10 @@ class Tournament < ApplicationRecord
       n += 1
     end
     self.slug = candidate
+  end
+
+  def transliterate_to_latin(string)
+    string.to_s.chars.map { |ch| CYRILLIC_TRANSLITERATION[ch.downcase] || ch }.join
   end
 
   def rated_count_within_total

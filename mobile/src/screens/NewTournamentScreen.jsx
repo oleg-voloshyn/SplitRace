@@ -1,11 +1,12 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { City, Country } from 'country-state-city';
-import { ChevronLeft, ChevronRight, MapPin, Plus, Star } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight, Info, MapPin, Plus, Search, Star } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Alert, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { api } from '../api/client';
 import SearchableListModal from '../components/SearchableListModal';
+import SegmentPreviewModal from '../components/SegmentPreviewModal';
 
 const TOTAL_STEPS = 5;
 
@@ -172,6 +173,7 @@ function NewTournamentScreen() {
             ratedTarget={ratedTarget}
             selectedCount={selectedCount}
             ratedSelected={ratedSelected}
+            tournamentCity={form.city}
             onToggle={toggleSegment}
             onToggleRated={toggleSegmentRated}
             onCreateNew={() => navigation.navigate('NewSegment')}
@@ -352,11 +354,49 @@ function PickSegmentsStep({
   ratedTarget,
   selectedCount,
   ratedSelected,
+  tournamentCity,
   onToggle,
   onToggleRated,
   onCreateNew,
   t
 }) {
+  const [query, setQuery] = useState('');
+  const [filterByCity, setFilterByCity] = useState(Boolean(tournamentCity));
+  const [previewSegment, setPreviewSegment] = useState(null);
+
+  // Rated entries sorted by insertion order — used to display "#N" ordinal on each rated segment.
+  const ratedOrder = useMemo(() => {
+    const ratedEntries = Object.entries(selectedSegments)
+      .filter(([, meta]) => meta.rated)
+      .sort(([, a], [, b]) => a.order - b.order);
+    return ratedEntries.reduce((acc, [id], i) => {
+      acc[id] = i + 1;
+      return acc;
+    }, {});
+  }, [selectedSegments]);
+
+  const cityMatcher = tournamentCity?.trim().toLowerCase();
+  const visibleSegments = useMemo(() => {
+    if (!mySegments) {
+      return [];
+    }
+    const normalizedQuery = query.trim().toLowerCase();
+    return mySegments.filter((s) => {
+      if (filterByCity && cityMatcher) {
+        if (!s.city || s.city.toLowerCase() !== cityMatcher) {
+          return false;
+        }
+      }
+      if (normalizedQuery) {
+        const haystack = [s.name, s.city, s.country].filter(Boolean).join(' ').toLowerCase();
+        if (!haystack.includes(normalizedQuery)) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [mySegments, query, filterByCity, cityMatcher]);
+
   if (mySegments === null) {
     return (
       <View className="items-center py-8">
@@ -379,7 +419,32 @@ function PickSegmentsStep({
             ratedTotal: ratedTarget
           })}
         </Text>
+        <Text className="text-[11px] text-gray-500 mt-1.5 leading-[16px]">{t('creator.segmentRatedHint')}</Text>
       </View>
+
+      <View className="flex-row items-center bg-white border border-gray-300 rounded-lg px-3 mb-2">
+        <Search size={16} color="#888" />
+        <TextInput
+          value={query}
+          onChangeText={setQuery}
+          placeholder={t('creator.searchSegments')}
+          placeholderTextColor="#9ca3af"
+          className="flex-1 py-2.5 px-2 text-[15px] text-brand-navy"
+        />
+      </View>
+
+      {cityMatcher ? (
+        <TouchableOpacity
+          onPress={() => setFilterByCity((v) => !v)}
+          className={`self-start px-3 py-1.5 rounded-full border mb-3 ${
+            filterByCity ? 'border-brand-red bg-red-50' : 'border-gray-300 bg-white'
+          }`}
+        >
+          <Text className={`text-xs font-semibold ${filterByCity ? 'text-brand-red' : 'text-gray-700'}`}>
+            {filterByCity ? t('creator.showAllCities') : t('creator.showCityOnly', { city: tournamentCity })}
+          </Text>
+        </TouchableOpacity>
+      ) : null}
 
       <TouchableOpacity
         onPress={onCreateNew}
@@ -389,40 +454,56 @@ function PickSegmentsStep({
         <Text className="text-white font-bold">{t('creator.createNewSegment')}</Text>
       </TouchableOpacity>
 
-      {mySegments.length === 0 ? (
-        <Text className="text-gray-500 text-center py-4">{t('creator.noSegmentsYet')}</Text>
+      {visibleSegments.length === 0 ? (
+        <Text className="text-gray-500 text-center py-4">
+          {mySegments.length === 0 ? t('creator.noSegmentsYet') : t('creator.noMatchingSegments')}
+        </Text>
       ) : (
-        mySegments.map((segment) => {
+        visibleSegments.map((segment) => {
           const entry = selectedSegments[segment.id];
           const isSelected = Boolean(entry);
           const isRated = isSelected && entry.rated;
+          const ratedPosition = isRated ? ratedOrder[segment.id] : null;
           return (
             <View
               key={segment.id}
               className={`bg-white border rounded-lg mb-2 ${isSelected ? 'border-brand-red' : 'border-gray-200'}`}
             >
-              <TouchableOpacity onPress={() => onToggle(segment)} className="flex-row items-center p-3">
-                <View
-                  className={`w-5 h-5 rounded mr-3 items-center justify-center ${
-                    isSelected ? 'bg-brand-red' : 'border-2 border-gray-300'
-                  }`}
-                >
-                  {isSelected && <Text className="text-white text-xs font-bold">✓</Text>}
-                </View>
-                <View className="flex-1">
+              <View className="flex-row items-center p-3">
+                <TouchableOpacity onPress={() => onToggle(segment)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                  <View
+                    className={`w-5 h-5 rounded items-center justify-center ${
+                      isSelected ? 'bg-brand-red' : 'border-2 border-gray-300'
+                    }`}
+                  >
+                    {isSelected && <Text className="text-white text-xs font-bold">✓</Text>}
+                  </View>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => onToggle(segment)} className="flex-1 ml-3">
                   <Text className="text-[15px] font-semibold text-brand-navy">{segment.name}</Text>
-                  {segment.distance_meters != null && (
-                    <Text className="text-xs text-gray-500 mt-0.5">
-                      {(segment.distance_meters / 1000).toFixed(2)} km
-                    </Text>
-                  )}
-                </View>
+                  <View className="flex-row gap-2 mt-0.5">
+                    {segment.distance_meters != null && (
+                      <Text className="text-xs text-gray-500">{(segment.distance_meters / 1000).toFixed(2)} km</Text>
+                    )}
+                    {segment.city ? <Text className="text-xs text-gray-500">· {segment.city}</Text> : null}
+                  </View>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setPreviewSegment(segment)}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  className="p-1.5 mr-1"
+                >
+                  <Info size={18} color="#1a1a2e" />
+                </TouchableOpacity>
                 {isSelected && (
                   <TouchableOpacity
                     onPress={() => onToggleRated(segment)}
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    className="ml-2"
+                    className="flex-row items-center"
                   >
+                    {ratedPosition != null && (
+                      <Text className="text-amber-700 font-extrabold text-xs mr-1">#{ratedPosition}</Text>
+                    )}
                     <Star
                       size={20}
                       color={isRated ? '#c97c00' : '#cbd5e1'}
@@ -430,11 +511,17 @@ function PickSegmentsStep({
                     />
                   </TouchableOpacity>
                 )}
-              </TouchableOpacity>
+              </View>
             </View>
           );
         })
       )}
+
+      <SegmentPreviewModal
+        segment={previewSegment}
+        visible={Boolean(previewSegment)}
+        onClose={() => setPreviewSegment(null)}
+      />
     </View>
   );
 }
