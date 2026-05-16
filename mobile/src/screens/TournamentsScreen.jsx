@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
+import { ChevronDown, ChevronUp, Plus, Star } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
@@ -159,7 +160,7 @@ function MyTournamentsList({ myTournaments, mySegments, expandedAdd, setExpanded
                   <Text style={s.segNum}>#{ts.order_number}</Text>
                   <Text style={s.segName}>{ts.segment.name}</Text>
                   <View style={s.segRight}>
-                    {ts.is_rated ? <Text style={s.star}>★</Text> : null}
+                    {ts.is_rated ? <Star size={13} color="#c97c00" fill="#c97c00" /> : null}
                     {ts.segment.distance_meters != null ? (
                       <Text style={s.segDist}>{(ts.segment.distance_meters / 1000).toFixed(2)} km</Text>
                     ) : null}
@@ -171,6 +172,7 @@ function MyTournamentsList({ myTournaments, mySegments, expandedAdd, setExpanded
             {isEditable && (
               <>
                 <TouchableOpacity style={s.addToggle} onPress={() => setExpandedAdd(isExpanded ? null : tournament.id)}>
+                  {isExpanded ? <ChevronUp size={16} color="#1a1a2e" /> : <ChevronDown size={16} color="#1a1a2e" />}
                   <Text style={s.addToggleText}>{isExpanded ? t('creator.cancelAdd') : t('creator.addSegmentBtn')}</Text>
                 </TouchableOpacity>
                 {isExpanded &&
@@ -183,7 +185,7 @@ function MyTournamentsList({ myTournaments, mySegments, expandedAdd, setExpanded
                         {seg.distance_meters != null ? (
                           <Text style={s.availSegDist}>{(seg.distance_meters / 1000).toFixed(2)} km</Text>
                         ) : null}
-                        <Text style={s.addIcon}>＋</Text>
+                        <Plus size={18} color="#1a1a2e" strokeWidth={2.4} />
                       </TouchableOpacity>
                     ))
                   ))}
@@ -245,7 +247,7 @@ const s = StyleSheet.create({
   star: { color: '#c97c00', fontSize: 13 },
   segDist: { color: '#888', fontSize: 12 },
   muted: { color: '#888', fontSize: 13 },
-  addToggle: { borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 10, alignItems: 'center', marginTop: 10 },
+  addToggle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 10, marginTop: 10 },
   addToggleText: { color: '#1a1a2e', fontWeight: '600', fontSize: 14 },
   availSeg: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 4, borderBottomWidth: 1, borderBottomColor: '#f4f4f4', marginTop: 4 },
   availSegName: { flex: 1, fontSize: 14, color: '#1a1a2e' },

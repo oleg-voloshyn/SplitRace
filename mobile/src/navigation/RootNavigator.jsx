@@ -3,8 +3,8 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { NavigationContainer, useNavigation } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import * as Notifications from 'expo-notifications';
+import { Bell, Play, Plus, Trophy, User } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
-import { Text } from 'react-native';
 import { api } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
 import CreatorScreen from '../screens/CreatorScreen';
@@ -55,9 +55,9 @@ function CreatorStack() {
   );
 }
 
-function TabIcon({ name, focused }) {
-  const icons = { Tournaments: '🏆', Run: '▶', Creator: '＋', Notifications: '🔔', Profile: '👤' };
-  return <Text style={{ fontSize: focused ? 22 : 18 }}>{icons[name]}</Text>;
+function TabIcon({ name, focused, color }) {
+  const Icon = { Tournaments: Trophy, Run: Play, Creator: Plus, Notifications: Bell, Profile: User }[name];
+  return <Icon size={focused ? 24 : 20} color={color} strokeWidth={focused ? 2.4 : 2} />;
 }
 
 function AppTabs() {
@@ -104,7 +104,7 @@ function AppTabs() {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
-        tabBarIcon: ({ focused }) => <TabIcon name={route.name} focused={focused} />,
+        tabBarIcon: ({ focused, color }) => <TabIcon name={route.name} focused={focused} color={color} />,
         tabBarActiveTintColor: '#e53935',
         tabBarInactiveTintColor: '#888',
         tabBarStyle: { backgroundColor: '#fff', borderTopColor: '#eee' },

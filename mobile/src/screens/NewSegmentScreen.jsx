@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import * as Location from 'expo-location';
+import { MapPin } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { api } from '../api/client';
@@ -88,9 +89,10 @@ function NewSegmentScreen() {
           {t('creator.distance')}: <Text style={s.metaBold}>{formatDistance(routeDistance(form.points))}</Text>
         </Text>
         {form.city || form.country ? (
-          <Text style={s.metaText}>
-            📍 <Text style={s.metaBold}>{[form.city, form.country].filter(Boolean).join(', ')}</Text>
-          </Text>
+          <View style={s.metaRow}>
+            <MapPin size={14} color="#555" />
+            <Text style={s.metaBold}>{[form.city, form.country].filter(Boolean).join(', ')}</Text>
+          </View>
         ) : null}
       </View>
 
@@ -117,6 +119,7 @@ const s = StyleSheet.create({
   mapHint: { color: '#555', fontSize: 12, marginBottom: 6 },
   routeMeta: { flexDirection: 'row', gap: 12, flexWrap: 'wrap', marginTop: 8, marginBottom: 16 },
   metaText: { color: '#555', fontSize: 13 },
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   metaBold: { fontWeight: '700', color: '#1a1a2e' },
   primaryBtn: { backgroundColor: '#e53935', borderRadius: 8, padding: 14, alignItems: 'center' },
   primaryBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
