@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Text, TouchableOpacity, View } from 'react-native';
 import { WebView } from 'react-native-webview';
 
 const DEFAULT_CENTER = [50.45, 30.52];
@@ -38,12 +38,12 @@ function SegmentMapPicker({ points = [], onPointsChange, initialCenter, hint, un
   const disabled = points.length === 0;
 
   return (
-    <View style={s.wrap}>
+    <View className="rounded-xl overflow-hidden mb-2.5">
       <WebView
         ref={webRef}
         source={{ html }}
         onMessage={handleMessage}
-        style={s.map}
+        style={{ height: 260 }}
         originWhitelist={['*']}
         javaScriptEnabled
         domStorageEnabled
@@ -52,14 +52,22 @@ function SegmentMapPicker({ points = [], onPointsChange, initialCenter, hint, un
         showsVerticalScrollIndicator={false}
         androidLayerType="hardware"
       />
-      <View style={s.footer}>
-        <Text style={s.hint}>{hint}</Text>
-        <View style={s.btns}>
-          <TouchableOpacity style={[s.btn, disabled && s.btnDisabled]} onPress={undo} disabled={disabled}>
-            <Text style={[s.btnText, disabled && s.btnTextDim]}>{undoLabel}</Text>
+      <View className="bg-gray-100 px-3 py-2 gap-1.5">
+        <Text className="text-gray-700 text-xs text-center">{hint}</Text>
+        <View className="flex-row gap-2">
+          <TouchableOpacity
+            className={`flex-1 rounded-lg py-2 items-center ${disabled ? 'bg-gray-300' : 'bg-brand-navy'}`}
+            onPress={undo}
+            disabled={disabled}
+          >
+            <Text className={`text-[13px] font-bold ${disabled ? 'text-gray-400' : 'text-white'}`}>{undoLabel}</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[s.btn, disabled && s.btnDisabled]} onPress={clear} disabled={disabled}>
-            <Text style={[s.btnText, disabled && s.btnTextDim]}>{clearLabel}</Text>
+          <TouchableOpacity
+            className={`flex-1 rounded-lg py-2 items-center ${disabled ? 'bg-gray-300' : 'bg-brand-navy'}`}
+            onPress={clear}
+            disabled={disabled}
+          >
+            <Text className={`text-[13px] font-bold ${disabled ? 'text-gray-400' : 'text-white'}`}>{clearLabel}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -134,28 +142,5 @@ function buildHtml(center) {
 </body>
 </html>`;
 }
-
-const s = StyleSheet.create({
-  wrap: { borderRadius: 12, overflow: 'hidden', marginBottom: 10 },
-  map: { height: 260 },
-  footer: {
-    backgroundColor: '#f0f0f0',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    gap: 6
-  },
-  hint: { color: '#555', fontSize: 12, textAlign: 'center' },
-  btns: { flexDirection: 'row', gap: 8 },
-  btn: {
-    flex: 1,
-    backgroundColor: '#1a1a2e',
-    borderRadius: 8,
-    paddingVertical: 8,
-    alignItems: 'center'
-  },
-  btnDisabled: { backgroundColor: '#ddd' },
-  btnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
-  btnTextDim: { color: '#aaa' }
-});
 
 export default SegmentMapPicker;

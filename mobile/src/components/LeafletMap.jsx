@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 import { WebView } from 'react-native-webview';
 
 /**
@@ -22,11 +22,11 @@ function LeafletMap({ points = [], follow = false, style }) {
   }, [points, follow]);
 
   return (
-    <View style={[s.wrap, style]}>
+    <View className="flex-1 bg-brand-navy" style={style}>
       <WebView
         ref={webRef}
         source={{ html }}
-        style={s.web}
+        style={{ flex: 1, backgroundColor: 'transparent' }}
         originWhitelist={['*']}
         javaScriptEnabled
         domStorageEnabled
@@ -89,10 +89,5 @@ function buildHtml(initialPoints, initialFollow) {
 </body>
 </html>`;
 }
-
-const s = StyleSheet.create({
-  wrap: { flex: 1, backgroundColor: '#1a1a2e' },
-  web: { flex: 1, backgroundColor: 'transparent' }
-});
 
 export default LeafletMap;

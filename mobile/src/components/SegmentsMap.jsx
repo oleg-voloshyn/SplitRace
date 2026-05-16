@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 import { WebView } from 'react-native-webview';
 
 const SEGMENT_COLORS = ['#e53935', '#1976d2', '#388e3c', '#f57c00', '#7b1fa2', '#0097a7', '#c2185b', '#5d4037'];
@@ -12,10 +12,10 @@ function SegmentsMap({ segments = [], style }) {
   }
 
   return (
-    <View style={[s.wrap, style]}>
+    <View className="h-[260px] bg-brand-navy" style={style}>
       <WebView
         source={{ html }}
-        style={s.web}
+        style={{ flex: 1, backgroundColor: 'transparent' }}
         originWhitelist={['*']}
         javaScriptEnabled
         domStorageEnabled
@@ -108,10 +108,5 @@ function buildHtml(segments) {
 </body>
 </html>`;
 }
-
-const s = StyleSheet.create({
-  wrap: { height: 260, backgroundColor: '#1a1a2e' },
-  web: { flex: 1, backgroundColor: 'transparent' }
-});
 
 export default SegmentsMap;

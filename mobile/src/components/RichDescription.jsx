@@ -1,7 +1,7 @@
 import { View } from 'react-native';
 import { WebView } from 'react-native-webview';
 
-function RichDescription({ html, style }) {
+function RichDescription({ html, style, className }) {
   if (!html) {
     return null;
   }
@@ -30,7 +30,7 @@ function RichDescription({ html, style }) {
 </html>`;
 
   return (
-    <View style={style}>
+    <View style={style} className={className}>
       <WebView
         source={{ html: document, baseUrl: 'about:blank' }}
         javaScriptEnabled={false}
