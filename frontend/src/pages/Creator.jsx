@@ -173,11 +173,23 @@ function Creator() {
       <div className="sr-page-heading">
         <h2>{t('creator.title')}</h2>
         <div className="sr-creator-actions">
-          <button type="button" onClick={() => setActiveForm(activeForm === 'segment' ? null : 'segment')}>
-            {t('creator.newSegment')}
+          <button
+            type="button"
+            className={activeForm === 'segment' ? 'active' : ''}
+            aria-pressed={activeForm === 'segment'}
+            onClick={() => setActiveForm(activeForm === 'segment' ? null : 'segment')}
+          >
+            <SegmentCardIcon />
+            <span>{t('creator.newSegment')}</span>
           </button>
-          <button type="button" onClick={() => setActiveForm(activeForm === 'tournament' ? null : 'tournament')}>
-            {t('creator.newTournament')}
+          <button
+            type="button"
+            className={activeForm === 'tournament' ? 'active' : ''}
+            aria-pressed={activeForm === 'tournament'}
+            onClick={() => setActiveForm(activeForm === 'tournament' ? null : 'tournament')}
+          >
+            <TournamentCardIcon />
+            <span>{t('creator.newTournament')}</span>
           </button>
         </div>
       </div>
@@ -392,6 +404,37 @@ function Creator() {
   function setTournament(key) {
     return (event) => setTournamentForm((current) => ({ ...current, [key]: event.target.value }));
   }
+}
+
+function SegmentCardIcon() {
+  return (
+    <svg className="sr-creator-action-icon" viewBox="0 0 120 84" aria-hidden="true" focusable="false">
+      <path className="sr-creator-action-route-shadow" d="M18 62 C34 66, 48 52, 62 52 S82 68, 101 48" />
+      <path className="sr-creator-action-route" d="M17 56 C34 62, 49 43, 62 45 S81 63, 101 41" />
+      <circle className="sr-creator-action-node" cx="17" cy="56" r="7" />
+      <circle className="sr-creator-action-node sr-creator-action-node-end" cx="101" cy="41" r="7" />
+      <path
+        className="sr-creator-action-pin"
+        d="M75 13c-10 0-18 8-18 18 0 14 18 33 18 33s18-19 18-33c0-10-8-18-18-18z"
+      />
+      <circle className="sr-creator-action-pin-hole" cx="75" cy="31" r="6" />
+    </svg>
+  );
+}
+
+function TournamentCardIcon() {
+  return (
+    <svg className="sr-creator-action-icon" viewBox="0 0 120 84" aria-hidden="true" focusable="false">
+      <path className="sr-creator-action-cup" d="M47 17h26v11c0 16-7 26-13 26s-13-10-13-26V17z" />
+      <path className="sr-creator-action-handle" d="M47 24H33c0 16 8 23 19 24" />
+      <path className="sr-creator-action-handle" d="M73 24h14c0 16-8 23-19 24" />
+      <path className="sr-creator-action-stem" d="M60 54v12" />
+      <path className="sr-creator-action-base" d="M43 70h34" />
+      <path className="sr-creator-action-podium" d="M18 71h20V55h18v16h20V45h20v26" />
+      <circle className="sr-creator-action-spark" cx="31" cy="29" r="3" />
+      <circle className="sr-creator-action-spark" cx="91" cy="19" r="3" />
+    </svg>
+  );
 }
 
 function SegmentRouteMap({ center, userLocation, points, onAddPoint, onRemoveLast }) {
