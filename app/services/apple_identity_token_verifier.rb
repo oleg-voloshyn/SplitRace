@@ -4,8 +4,8 @@ require 'json'
 
 class AppleIdentityTokenVerifier
   APPLE_KEYS_URL = URI('https://appleid.apple.com/auth/keys').freeze
-  APPLE_ISSUER   = 'https://appleid.apple.com'
-  BUNDLE_ID      = 'com.splitrace.app'
+  APPLE_ISSUER   = 'https://appleid.apple.com'.freeze
+  BUNDLE_ID      = 'com.splitrace.app'.freeze
 
   class Error < StandardError; end
 
