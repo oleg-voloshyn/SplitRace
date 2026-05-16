@@ -77,17 +77,15 @@ function Login() {
   }
 
   return (
-    <div
-      style={{ maxWidth: '400px', margin: '4rem auto', padding: '2rem', border: '1px solid #ddd', borderRadius: '8px' }}
-    >
+    <div className="sr-card sr-auth-card">
       <h2>{t(`auth.${mode}`)}</h2>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+      {error && <p className="sr-alert sr-alert-error">{error}</p>}
+      <form onSubmit={handleSubmit} className="sr-form">
         {isRegister && (
           <>
-            <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <div className="sr-radio-row">
               {['user', 'club'].map((type) => (
-                <label key={type} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <label key={type} className="sr-radio-label">
                   <input
                     type="radio"
                     name="account_type"
@@ -105,7 +103,7 @@ function Login() {
                 value={form.club_name}
                 onChange={(e) => setForm({ ...form, club_name: e.target.value })}
                 required
-                style={inputStyle}
+                className="sr-input"
               />
             )}
             {form.account_type === 'user' && (
@@ -114,22 +112,19 @@ function Login() {
                   placeholder={t('auth.firstName')}
                   value={form.first_name}
                   onChange={(e) => setForm({ ...form, first_name: e.target.value })}
-                  style={inputStyle}
+                  className="sr-input"
                 />
                 <input
                   placeholder={t('auth.lastName')}
                   value={form.last_name}
                   onChange={(e) => setForm({ ...form, last_name: e.target.value })}
-                  style={inputStyle}
+                  className="sr-input"
                 />
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                  <span style={{ fontSize: '0.85rem', color: '#555' }}>{t('auth.gender')} *</span>
-                  <div style={{ display: 'flex', gap: '1.5rem' }}>
+                <div className="sr-form-field">
+                  <span className="sr-label">{t('auth.gender')} *</span>
+                  <div className="sr-radio-row">
                     {['male', 'female', 'other'].map((g) => (
-                      <label
-                        key={g}
-                        style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer' }}
-                      >
+                      <label key={g} className="sr-radio-label">
                         <input
                           type="radio"
                           name="gender"
@@ -153,7 +148,7 @@ function Login() {
           value={form.email}
           onChange={(e) => setForm({ ...form, email: e.target.value })}
           required
-          style={inputStyle}
+          className="sr-input"
         />
         <input
           type="password"
@@ -161,85 +156,39 @@ function Login() {
           value={form.password}
           onChange={(e) => setForm({ ...form, password: e.target.value })}
           required
-          style={inputStyle}
+          className="sr-input"
         />
-        <button type="submit" disabled={loading} style={btnStyle}>
+        <button type="submit" disabled={loading} className="sr-btn sr-btn-primary sr-btn-block">
           {loading ? '...' : t(`auth.${mode}`)}
         </button>
       </form>
 
       {!isClubRegistration && (
-        <div style={oauthBlockStyle}>
-          <div style={dividerStyle}>
-            <span style={dividerLineStyle} />
-            <span style={dividerTextStyle}>{t('auth.orContinueWith')}</span>
-            <span style={dividerLineStyle} />
+        <div className="sr-oauth-block">
+          <div className="sr-divider">
+            <span />
+            <span>{t('auth.orContinueWith')}</span>
+            <span />
           </div>
-          <div style={providerGridStyle}>
-            <a
-              href="/auth/google_oauth2"
-              style={{
-                ...providerBtnStyle,
-                borderColor: '#d8e2ff',
-                background: '#fff',
-                color: '#1f1f2f',
-                textDecoration: 'none'
-              }}
-            >
+          <div className="sr-provider-grid">
+            <a href="/auth/google_oauth2" className="sr-provider-btn sr-provider-google">
               Google
             </a>
-            <a
-              href="/auth/apple"
-              style={{
-                ...providerBtnStyle,
-                borderColor: '#111',
-                background: '#111',
-                color: '#fff',
-                textDecoration: 'none'
-              }}
-            >
+            <a href="/auth/apple" className="sr-provider-btn sr-provider-apple">
               Apple
             </a>
           </div>
         </div>
       )}
 
-      <p style={{ textAlign: 'center', marginTop: '1rem' }}>
+      <p className="sr-auth-switch">
         {mode === 'login' ? t('auth.noAccount') : t('auth.hasAccount')}{' '}
-        <button
-          onClick={() => setMode(mode === 'login' ? 'register' : 'login')}
-          style={{ background: 'none', border: 'none', color: '#4285f4', cursor: 'pointer' }}
-        >
+        <button type="button" onClick={() => setMode(mode === 'login' ? 'register' : 'login')}>
           {mode === 'login' ? t('auth.register') : t('auth.login')}
         </button>
       </p>
     </div>
   );
 }
-
-const inputStyle = { padding: '0.6rem', border: '1px solid #ccc', borderRadius: '4px', fontSize: '1rem' };
-const btnStyle = {
-  padding: '0.6rem 1.2rem',
-  background: '#1a1a2e',
-  color: '#fff',
-  border: 'none',
-  borderRadius: '4px',
-  cursor: 'pointer',
-  fontSize: '1rem'
-};
-const oauthBlockStyle = { marginTop: '1.25rem' };
-const dividerStyle = { display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' };
-const dividerLineStyle = { flex: 1, height: '1px', background: '#e5e7eb' };
-const dividerTextStyle = { color: '#666', fontSize: '0.875rem', whiteSpace: 'nowrap' };
-const providerGridStyle = { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '0.75rem' };
-const providerBtnStyle = {
-  padding: '0.7rem 1rem',
-  border: '1px solid',
-  borderRadius: '6px',
-  cursor: 'pointer',
-  fontSize: '0.95rem',
-  fontWeight: 700,
-  textAlign: 'center'
-};
 
 export default Login;

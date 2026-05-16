@@ -1,34 +1,124 @@
+@import 'tailwindcss';
 @import 'leaflet/dist/leaflet.css';
 
-* {
-  box-sizing: border-box;
+@layer base {
+  body {
+    @apply m-0 bg-slate-50 font-sans text-[#1a1a2e];
+  }
+
+  #root {
+    @apply flex min-h-svh flex-col;
+  }
+
+  h2 {
+    @apply mb-5 text-2xl font-bold;
+  }
+
+  h3 {
+    @apply mb-3 text-lg font-semibold;
+  }
+
+  p {
+    @apply m-0;
+  }
 }
 
-body {
-  margin: 0;
-  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
-  color: #1a1a2e;
-  background: #f8f9fa;
-}
+@layer components {
+  .sr-page-wrap {
+    @apply mx-auto w-full max-w-6xl px-6 py-6 md:px-8 md:py-8;
+  }
 
-#root {
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
-}
+  .sr-page-heading {
+    @apply mb-4 flex items-center justify-between gap-4 max-sm:flex-col max-sm:items-stretch;
+  }
 
-h2 {
-  font-weight: 700;
-  margin: 0 0 1.25rem;
-  font-size: 1.5rem;
-}
-h3 {
-  font-weight: 600;
-  margin: 0 0 0.75rem;
-  font-size: 1.15rem;
-}
-p {
-  margin: 0;
+  .sr-page-heading h2 {
+    @apply mb-0;
+  }
+
+  .sr-card {
+    @apply rounded-lg border border-slate-200 bg-white p-5 shadow-sm;
+  }
+
+  .sr-card-clickable {
+    @apply cursor-pointer transition hover:-translate-y-0.5 hover:shadow-lg;
+  }
+
+  .sr-btn {
+    @apply inline-flex cursor-pointer items-center justify-center rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-[#1a1a2e] no-underline transition hover:border-slate-400 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .sr-btn-primary {
+    @apply border-[#1a1a2e] bg-[#1a1a2e] text-white hover:border-[#1a1a2e] hover:bg-[#24243d];
+  }
+
+  .sr-btn-danger {
+    @apply border-red-600 bg-red-600 text-white hover:border-red-700 hover:bg-red-700;
+  }
+
+  .sr-btn-ghost {
+    @apply border-slate-300 bg-white text-slate-700 hover:border-slate-400 hover:bg-slate-50;
+  }
+
+  .sr-input {
+    @apply w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-base text-[#1a1a2e] outline-none transition placeholder:text-slate-400 focus:border-red-500 focus:ring-3 focus:ring-red-100;
+  }
+
+  .sr-label {
+    @apply text-sm font-semibold text-slate-600;
+  }
+
+  .sr-form {
+    @apply flex flex-col gap-3;
+  }
+
+  .sr-radio-row {
+    @apply flex flex-wrap gap-5;
+  }
+
+  .sr-radio-label {
+    @apply flex cursor-pointer items-center gap-2 text-sm text-[#1a1a2e];
+  }
+
+  .sr-alert {
+    @apply rounded-md border px-4 py-3 text-sm;
+  }
+
+  .sr-alert-error {
+    @apply border-red-200 bg-red-50 text-red-700;
+  }
+
+  .sr-alert-warning {
+    @apply border-amber-300 bg-amber-50 text-amber-800;
+  }
+
+  .sr-alert-success {
+    @apply border-green-200 bg-green-50 text-green-700;
+  }
+
+  .sr-muted {
+    @apply text-sm text-slate-500;
+  }
+
+  .sr-table {
+    @apply w-full border-collapse text-sm;
+  }
+
+  .sr-table thead tr {
+    @apply border-b-2 border-slate-200;
+  }
+
+  .sr-table th {
+    @apply px-2 py-2 text-left text-xs font-bold uppercase tracking-wide text-slate-500;
+  }
+
+  .sr-table td {
+    @apply border-b border-slate-100 px-2 py-2 align-middle;
+  }
+
+  .sr-table tbody tr:last-child td {
+    @apply border-b-0;
+  }
 }
 
 /* ── Navbar ─────────────────────────────────────────────────────────────── */
@@ -1161,5 +1251,459 @@ p {
   100% {
     box-shadow: 0 0 0 0 rgba(33, 150, 243, 0);
     opacity: 1;
+  }
+}
+
+/* ── Tailwind UI primitives and overrides ─────────────────────────────── */
+.sr-page-wrap {
+  @apply mx-auto w-full max-w-6xl px-6 py-6 md:px-8 md:py-8;
+}
+
+.sr-page-heading {
+  @apply mb-4 flex items-center justify-between gap-4 max-sm:flex-col max-sm:items-stretch;
+}
+
+.sr-page-heading h2 {
+  @apply mb-0;
+}
+
+.sr-card {
+  @apply rounded-lg border border-slate-200 bg-white p-5 shadow-sm;
+}
+
+.sr-card-clickable {
+  @apply cursor-pointer transition hover:-translate-y-0.5 hover:shadow-lg;
+}
+
+.sr-auth-card {
+  @apply mx-auto mt-16 w-full max-w-md p-8;
+}
+
+.sr-form,
+.sr-form-field {
+  @apply flex flex-col gap-3;
+}
+
+.sr-form-field {
+  @apply gap-1.5;
+}
+
+.sr-input {
+  @apply w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-base text-[#1a1a2e] outline-none transition placeholder:text-slate-400 focus:border-red-500 focus:ring-3 focus:ring-red-100;
+}
+
+.sr-textarea {
+  @apply min-h-32 resize-y font-sans text-sm;
+}
+
+.sr-label {
+  @apply text-sm font-semibold text-slate-600;
+}
+
+.sr-radio-row {
+  @apply flex flex-wrap gap-5;
+}
+
+.sr-radio-label {
+  @apply flex cursor-pointer items-center gap-2 text-sm text-[#1a1a2e];
+}
+
+.sr-btn,
+.sr-share-btn,
+.sr-share-icon {
+  @apply inline-flex cursor-pointer items-center justify-center rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-bold leading-none text-[#1a1a2e] no-underline transition hover:border-slate-400 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50;
+}
+
+.sr-btn-primary,
+.sr-share-btn-primary {
+  @apply border-[#1a1a2e] bg-[#1a1a2e] text-white hover:border-[#1a1a2e] hover:bg-[#24243d];
+}
+
+.sr-btn-danger {
+  @apply border-red-600 bg-red-600 text-white hover:border-red-700 hover:bg-red-700;
+}
+
+.sr-btn-ghost {
+  @apply border-slate-300 bg-white text-slate-700 hover:border-slate-400 hover:bg-slate-50;
+}
+
+.sr-btn-block {
+  @apply w-full;
+}
+
+.sr-btn-sm {
+  @apply mt-2 px-3 py-1.5 text-xs;
+}
+
+.sr-alert {
+  @apply rounded-md border px-4 py-3 text-sm;
+}
+
+.sr-alert-error {
+  @apply border-red-200 bg-red-50 text-red-700;
+}
+
+.sr-alert-warning {
+  @apply border-amber-300 bg-amber-50 text-amber-800;
+}
+
+.sr-alert-success {
+  @apply border-green-200 bg-green-50 text-green-700;
+}
+
+.sr-muted {
+  @apply text-sm text-slate-500;
+}
+
+.sr-form-error {
+  @apply mt-2 text-sm text-red-600;
+}
+
+.sr-loading-state {
+  @apply p-8 text-center text-slate-500;
+}
+
+.sr-oauth-block {
+  @apply mt-5;
+}
+
+.sr-divider {
+  @apply mb-3 flex items-center gap-3;
+}
+
+.sr-divider span:first-child,
+.sr-divider span:last-child {
+  @apply h-px flex-1 bg-slate-200;
+}
+
+.sr-divider span:nth-child(2) {
+  @apply whitespace-nowrap text-sm text-slate-500;
+}
+
+.sr-provider-grid {
+  @apply grid grid-cols-2 gap-3;
+}
+
+.sr-provider-btn {
+  @apply rounded-md border px-4 py-3 text-center text-sm font-bold no-underline transition hover:-translate-y-0.5 hover:shadow-sm;
+}
+
+.sr-provider-google {
+  @apply border-blue-100 bg-white text-slate-900;
+}
+
+.sr-provider-apple {
+  @apply border-black bg-black text-white;
+}
+
+.sr-auth-switch {
+  @apply mt-4 text-center text-sm text-slate-600;
+}
+
+.sr-auth-switch button {
+  @apply cursor-pointer border-0 bg-transparent p-0 font-semibold text-blue-600;
+}
+
+.sr-tournament-card {
+  @apply flex flex-col gap-3 text-inherit no-underline;
+}
+
+.sr-card-head {
+  @apply flex items-start justify-between gap-3;
+}
+
+.sr-card-head h3,
+.sr-creator-card-head h3 {
+  @apply mb-0 flex-1 text-base font-bold;
+}
+
+.sr-card-footer {
+  @apply mt-auto pt-2;
+}
+
+.sr-meta-row {
+  @apply flex flex-wrap gap-4 text-sm text-slate-500;
+}
+
+.sr-success-text {
+  @apply text-sm font-bold text-green-600;
+}
+
+.sr-status-badge {
+  @apply inline-flex rounded px-2 py-1 text-xs font-extrabold uppercase tracking-wide;
+}
+
+.sr-status-draft {
+  @apply bg-amber-100 text-amber-800;
+}
+
+.sr-status-pending_review {
+  @apply bg-blue-100 text-blue-800;
+}
+
+.sr-status-active {
+  @apply bg-green-100 text-green-800;
+}
+
+.sr-status-rejected {
+  @apply bg-red-100 text-red-800;
+}
+
+.sr-status-completed {
+  @apply bg-slate-200 text-slate-700;
+}
+
+.sr-table {
+  @apply w-full border-collapse text-sm;
+}
+
+.sr-table thead tr,
+.sr-segment-table thead tr {
+  @apply border-b-2 border-slate-200;
+}
+
+.sr-table th,
+.sr-segment-table th {
+  @apply px-2 py-2 text-left text-xs font-bold uppercase tracking-wide text-slate-500;
+}
+
+.sr-table td,
+.sr-segment-table td {
+  @apply border-b border-slate-100 px-2 py-2 align-middle;
+}
+
+.sr-table tbody tr:last-child td,
+.sr-segment-table tbody tr:last-child td {
+  @apply border-b-0;
+}
+
+.sr-text-right {
+  @apply text-right;
+}
+
+.sr-muted-cell {
+  @apply font-semibold text-slate-500;
+}
+
+.sr-strong-cell {
+  @apply font-bold;
+}
+
+.sr-icon-btn {
+  @apply cursor-pointer rounded border-0 bg-transparent px-2 py-1 text-sm text-slate-400 hover:bg-slate-100 hover:text-red-600;
+}
+
+.sr-spaced-card {
+  @apply mb-4;
+}
+
+.sr-section-heading {
+  @apply mt-6;
+}
+
+.sr-rich-description-spaced {
+  @apply mb-4;
+}
+
+.sr-feed-body {
+  @apply mt-1 text-sm text-slate-600;
+}
+
+.sr-feed-date {
+  @apply text-xs text-slate-500;
+}
+
+.sr-modal-backdrop {
+  @apply fixed inset-0 z-[1000] flex items-center justify-center bg-black/50 p-4;
+}
+
+.sr-modal-card {
+  @apply w-full max-w-md rounded-lg bg-white p-6 shadow-xl;
+}
+
+.sr-modal-card h3 {
+  @apply mb-2;
+}
+
+.sr-modal-subtitle {
+  @apply mb-4 text-sm text-slate-600;
+}
+
+.sr-modal-actions {
+  @apply mt-4 flex justify-end gap-2;
+}
+
+.sr-modal-success {
+  @apply py-4 text-center;
+}
+
+.sr-modal-success div {
+  @apply mb-2 text-3xl text-green-600;
+}
+
+.sr-modal-success p:first-of-type {
+  @apply font-bold text-green-600;
+}
+
+.sr-modal-success p:last-of-type {
+  @apply mt-2 text-sm text-slate-500;
+}
+
+.sr-profile-head {
+  @apply mb-4 flex items-center gap-4;
+}
+
+.sr-profile-head h3 {
+  @apply mb-0 text-lg font-bold;
+}
+
+.sr-profile-head p {
+  @apply mt-1 text-sm text-slate-500;
+}
+
+.sr-avatar {
+  @apply shrink-0 rounded-full bg-slate-100 object-cover;
+}
+
+.sr-profile-row {
+  @apply flex justify-between gap-4 border-b border-slate-100 py-3;
+}
+
+.sr-profile-row span {
+  @apply text-sm text-slate-500;
+}
+
+.sr-profile-row strong {
+  @apply text-right text-sm font-bold;
+}
+
+.sr-inline-actions {
+  @apply flex gap-3;
+}
+
+.sr-card-stack {
+  @apply flex flex-col gap-3;
+}
+
+.sr-run-card {
+  @apply px-4 py-3;
+}
+
+.sr-run-card-head {
+  @apply flex items-center justify-between gap-3;
+}
+
+.sr-run-card-head > span:first-child {
+  @apply text-sm font-bold;
+}
+
+.sr-pill {
+  @apply rounded px-2 py-1 text-xs font-semibold;
+}
+
+.sr-pill-warning {
+  @apply bg-amber-100 text-amber-800;
+}
+
+.sr-run-meta {
+  @apply mt-2 text-slate-600;
+}
+
+.sr-route-toggle {
+  @apply ml-2;
+}
+
+.sr-activity-segments {
+  @apply mt-3 rounded-md border border-slate-200 bg-slate-50 p-3;
+}
+
+.sr-activity-segments > strong {
+  @apply mb-2 block text-sm;
+}
+
+.sr-activity-segment-list {
+  @apply flex flex-col gap-1;
+}
+
+.sr-activity-segment-list > div {
+  @apply flex justify-between gap-4 text-xs;
+}
+
+.sr-activity-segment-list span:first-child {
+  @apply font-semibold text-slate-700;
+}
+
+.sr-activity-segment-list span:last-child {
+  @apply font-extrabold text-red-600;
+}
+
+.sr-route-map {
+  @apply relative mt-3 h-52 overflow-hidden rounded-md;
+}
+
+.sr-creator-form {
+  @apply flex flex-col gap-3;
+}
+
+.sr-creator-form input,
+.sr-creator-form textarea,
+.sr-creator-form select,
+.sr-creator-add-row input,
+.sr-creator-add-row select {
+  @apply w-full rounded-md border border-slate-300 bg-white px-3 py-2 font-sans text-base outline-none transition focus:border-red-500 focus:ring-3 focus:ring-red-100;
+}
+
+.sr-creator-form textarea {
+  @apply min-h-24 resize-y;
+}
+
+.sr-creator-form button,
+.sr-creator-card-head button,
+.sr-creator-add-row button {
+  @apply inline-flex cursor-pointer items-center justify-center rounded-md border border-[#1a1a2e] bg-[#1a1a2e] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#24243d] disabled:cursor-not-allowed disabled:opacity-50;
+}
+
+.sr-creator-card-head .sr-creator-ghost-btn,
+.sr-creator-route-actions button,
+.sr-rich-toolbar button {
+  @apply border-slate-300 bg-white text-[#1a1a2e] hover:border-slate-400 hover:bg-slate-50;
+}
+
+.sr-creator-add-row-expanded {
+  @apply mt-3;
+}
+
+.sr-share-panel {
+  @apply mb-4 flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-3;
+}
+
+.sr-share-link {
+  @apply min-w-0 overflow-hidden text-ellipsis whitespace-nowrap rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600;
+}
+
+.sr-share-actions {
+  @apply flex flex-wrap gap-2;
+}
+
+.sr-login-link {
+  @apply ml-auto;
+}
+
+.sr-download-icon {
+  @apply text-lg;
+}
+
+@media (max-width: 640px) {
+  .sr-page-wrap {
+    @apply px-4 pb-20 pt-4;
+  }
+
+  .sr-auth-card {
+    @apply mt-6 p-5;
+  }
+
+  .sr-inline-actions,
+  .sr-modal-actions {
+    @apply flex-col;
   }
 }

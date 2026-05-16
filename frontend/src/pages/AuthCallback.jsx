@@ -21,7 +21,7 @@ function AuthCallback() {
       .catch(() => navigate('/login?error=oauth_failed'));
   }, [loginWithToken, navigate, params]);
 
-  return <div style={{ padding: '2rem', textAlign: 'center' }}>Signing in...</div>;
+  return <div className="sr-loading-state">Signing in...</div>;
 }
 
 export default AuthCallback;

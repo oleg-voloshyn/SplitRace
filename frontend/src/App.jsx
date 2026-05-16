@@ -14,7 +14,7 @@ function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
   const location = useLocation();
   if (loading) {
-    return <div style={{ padding: '2rem', textAlign: 'center' }}>Loading...</div>;
+    return <div className="sr-loading-state">Loading...</div>;
   }
   return user ? children : <Navigate to="/login" replace state={{ from: location.pathname }} />;
 }

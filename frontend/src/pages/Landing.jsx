@@ -36,7 +36,7 @@ function Landing() {
             {t('landing.registerClub')}
           </Link>
           <a href={ANDROID_APK_URL} className="sr-hero-cta-alt" target="_blank" rel="noopener noreferrer">
-            <span style={{ fontSize: '1.1rem' }}>⬇</span> {t('landing.downloadAndroid')}
+            <span className="sr-download-icon">⬇</span> {t('landing.downloadAndroid')}
           </a>
         </div>
         <p className="sr-hero-note">{t('landing.heroNote')}</p>

@@ -194,11 +194,7 @@ function Creator() {
         </div>
       </div>
 
-      {message && (
-        <p className="sr-card" style={{ marginBottom: '1rem' }}>
-          {message}
-        </p>
-      )}
+      {message && <p className="sr-alert sr-alert-success sr-spaced-card">{message}</p>}
 
       {activeForm === 'segment' && (
         <form className="sr-card sr-creator-form sr-creator-form-wide" onSubmit={createSegment}>
@@ -304,7 +300,7 @@ function Creator() {
         </form>
       )}
 
-      <h3 style={{ marginTop: '1.5rem' }}>{t('creator.myTournaments')}</h3>
+      <h3 className="sr-section-heading">{t('creator.myTournaments')}</h3>
       {loading && <p>{t('common.loading')}</p>}
       {!loading && tournaments.length === 0 && <p className="sr-card">{t('creator.noTournaments')}</p>}
       <div className="sr-creator-list">
@@ -316,7 +312,7 @@ function Creator() {
             <div key={tournament.id} className="sr-card">
               <div className="sr-creator-card-head">
                 <div>
-                  <h3 style={{ marginBottom: '0.4rem' }}>{tournament.name}</h3>
+                  <h3>{tournament.name}</h3>
                   <span className={`sr-status-badge sr-status-${tournament.status}`}>
                     {t(`creator.status_${tournament.status}`)}
                   </span>
@@ -348,9 +344,7 @@ function Creator() {
                   ))}
                 </div>
               ) : (
-                <p style={{ color: '#888', fontSize: '0.9rem', marginBottom: '0.75rem' }}>
-                  {t('creator.noSegmentsAdded')}
-                </p>
+                <p className="sr-muted sr-spaced-card">{t('creator.noSegmentsAdded')}</p>
               )}
 
               {isEditable && (
@@ -364,8 +358,7 @@ function Creator() {
                   </button>
                   {expandedAdd === tournament.id && (
                     <form
-                      className="sr-creator-add-row"
-                      style={{ marginTop: '0.6rem' }}
+                      className="sr-creator-add-row sr-creator-add-row-expanded"
                       onSubmit={async (event) => {
                         const ok = await addSegment(tournament, event);
                         if (ok) {

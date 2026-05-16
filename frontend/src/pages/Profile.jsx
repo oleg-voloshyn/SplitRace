@@ -57,34 +57,16 @@ function Profile() {
 
       <div className="sr-profile-grid">
         <div className="sr-card">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-            <img
-              src={user?.avatar_url}
-              alt=""
-              width="72"
-              height="72"
-              style={{ borderRadius: '50%', background: '#f0f0f0', objectFit: 'cover', flex: '0 0 auto' }}
-            />
+          <div className="sr-profile-head">
+            <img src={user?.avatar_url} alt="" width="72" height="72" className="sr-avatar" />
             <div>
-              <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{fullName}</h3>
-              <p style={{ color: '#888', margin: '0.25rem 0 0', fontSize: '0.9rem' }}>{user?.email}</p>
+              <h3>{fullName}</h3>
+              <p>{user?.email}</p>
             </div>
           </div>
 
           {!isClub && !user?.gender && (
-            <div
-              style={{
-                background: '#fff3cd',
-                border: '1px solid #ffc107',
-                borderRadius: '6px',
-                padding: '0.6rem 0.9rem',
-                marginBottom: '1rem',
-                fontSize: '0.85rem',
-                color: '#856404'
-              }}
-            >
-              ⚠ {t('profile.genderWarning')}
-            </div>
+            <div className="sr-alert sr-alert-warning sr-spaced-card">⚠ {t('profile.genderWarning')}</div>
           )}
 
           {!editing ? (
@@ -105,18 +87,18 @@ function Profile() {
               <ProfileRow label={t('profile.country')} value={user?.country || '—'} />
               <ProfileRow label={t('profile.city')} value={user?.city || '—'} />
 
-              <button type="button" onClick={startEdit} style={primaryButtonStyle}>
+              <button type="button" onClick={startEdit} className="sr-btn sr-btn-primary sr-btn-block">
                 {saved ? `✓ ${t('profile.saved')}` : t('profile.editInfo')}
               </button>
             </div>
           ) : (
-            <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <form onSubmit={handleSave} className="sr-form">
               {isClub ? (
                 <input
                   placeholder={t('auth.clubName')}
                   value={form.club_name}
                   onChange={(e) => setForm({ ...form, club_name: e.target.value })}
-                  style={inputStyle}
+                  className="sr-input"
                 />
               ) : (
                 <>
@@ -124,23 +106,20 @@ function Profile() {
                     placeholder={t('auth.firstName')}
                     value={form.first_name}
                     onChange={(e) => setForm({ ...form, first_name: e.target.value })}
-                    style={inputStyle}
+                    className="sr-input"
                   />
                   <input
                     placeholder={t('auth.lastName')}
                     value={form.last_name}
                     onChange={(e) => setForm({ ...form, last_name: e.target.value })}
-                    style={inputStyle}
+                    className="sr-input"
                   />
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-                    <span style={{ fontSize: '0.85rem', color: '#555' }}>{t('auth.gender')}</span>
-                    <div style={{ display: 'flex', gap: '1.5rem' }}>
+                  <div className="sr-form-field">
+                    <span className="sr-label">{t('auth.gender')}</span>
+                    <div className="sr-radio-row">
                       {['male', 'female', 'other'].map((g) => (
-                        <label
-                          key={g}
-                          style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer' }}
-                        >
+                        <label key={g} className="sr-radio-label">
                           <input
                             type="radio"
                             name="gender"
@@ -156,12 +135,12 @@ function Profile() {
                 </>
               )}
 
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                {t('profile.units')}:
+              <label className="sr-form-field">
+                <span className="sr-label">{t('profile.units')}:</span>
                 <select
                   value={form.units}
                   onChange={(e) => setForm({ ...form, units: e.target.value })}
-                  style={inputStyle}
+                  className="sr-input"
                 >
                   <option value="km">{t('profile.km')}</option>
                   <option value="miles">{t('profile.miles')}</option>
@@ -172,22 +151,22 @@ function Profile() {
                 placeholder={t('profile.country')}
                 value={form.country}
                 onChange={(e) => setForm({ ...form, country: e.target.value })}
-                style={inputStyle}
+                className="sr-input"
               />
               <input
                 placeholder={t('profile.city')}
                 value={form.city}
                 onChange={(e) => setForm({ ...form, city: e.target.value })}
-                style={inputStyle}
+                className="sr-input"
               />
 
-              {saveError && <p style={{ color: '#c62828', margin: 0, fontSize: '0.85rem' }}>{saveError}</p>}
+              {saveError && <p className="sr-form-error">{saveError}</p>}
 
-              <div style={{ display: 'flex', gap: '0.75rem' }}>
-                <button type="button" onClick={() => setEditing(false)} style={secondaryButtonStyle}>
+              <div className="sr-inline-actions">
+                <button type="button" onClick={() => setEditing(false)} className="sr-btn sr-btn-ghost sr-btn-block">
                   {t('profile.cancel')}
                 </button>
-                <button type="submit" disabled={saving} style={primaryButtonStyle}>
+                <button type="submit" disabled={saving} className="sr-btn sr-btn-primary sr-btn-block">
                   {saving ? t('profile.saving') : t('profile.save')}
                 </button>
               </div>
@@ -196,33 +175,23 @@ function Profile() {
         </div>
 
         <div>
-          <h3 style={{ marginBottom: '0.75rem' }}>{t('profile.recentRuns')}</h3>
+          <h3>{t('profile.recentRuns')}</h3>
 
-          {activities === null && <p style={{ color: '#888', fontSize: '0.9rem' }}>{t('profile.loading')}</p>}
-          {activities?.length === 0 && <p style={{ color: '#888', fontSize: '0.9rem' }}>{t('profile.noRuns')}</p>}
+          {activities === null && <p className="sr-muted">{t('profile.loading')}</p>}
+          {activities?.length === 0 && <p className="sr-muted">{t('profile.noRuns')}</p>}
           {activities?.length > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+            <div className="sr-card-stack">
               {activities.map((a) => (
-                <div key={a.id} className="sr-card" style={{ padding: '0.85rem 1rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontWeight: '600', fontSize: '0.95rem' }}>{fmtDate(a.started_at)}</span>
+                <div key={a.id} className="sr-card sr-run-card">
+                  <div className="sr-run-card-head">
+                    <span>{fmtDate(a.started_at)}</span>
                     {a.segment_efforts_count > 0 && (
-                      <span
-                        style={{
-                          fontSize: '0.75rem',
-                          background: '#fff3cd',
-                          color: '#856404',
-                          borderRadius: '4px',
-                          padding: '0.15rem 0.5rem'
-                        }}
-                      >
+                      <span className="sr-pill sr-pill-warning">
                         {a.segment_efforts_count} segment{a.segment_efforts_count !== 1 ? 's' : ''}
                       </span>
                     )}
                   </div>
-                  <div
-                    style={{ display: 'flex', gap: '1.5rem', marginTop: '0.4rem', color: '#555', fontSize: '0.88rem' }}
-                  >
+                  <div className="sr-meta-row sr-run-meta">
                     <span>{fmtDist(a.distance_meters)}</span>
                     <span>{fmtTime(a.elapsed_time_seconds)}</span>
                     {a.distance_meters > 0 && a.elapsed_time_seconds > 0 && (
@@ -230,37 +199,14 @@ function Profile() {
                     )}
                   </div>
                   <ActivitySegmentSummary activity={a} t={t} />
-                  <button
-                    type="button"
-                    onClick={() => shareActivity(a, t)}
-                    style={{
-                      marginTop: '0.55rem',
-                      background: '#e53935',
-                      border: 'none',
-                      borderRadius: '6px',
-                      padding: '0.35rem 0.8rem',
-                      fontSize: '0.8rem',
-                      cursor: 'pointer',
-                      color: '#fff',
-                      fontWeight: 700
-                    }}
-                  >
+                  <button type="button" onClick={() => shareActivity(a, t)} className="sr-btn sr-btn-danger sr-btn-sm">
                     {t('run.shareResult')}
                   </button>
 
                   {a.gps_points?.length > 1 && (
                     <button
                       onClick={() => setExpanded(expanded === a.id ? null : a.id)}
-                      style={{
-                        marginTop: '0.5rem',
-                        background: 'none',
-                        border: '1px solid #ccc',
-                        borderRadius: '4px',
-                        padding: '0.25rem 0.7rem',
-                        fontSize: '0.8rem',
-                        cursor: 'pointer',
-                        color: '#555'
-                      }}
+                      className="sr-btn sr-btn-ghost sr-btn-sm sr-route-toggle"
                     >
                       {expanded === a.id ? t('profile.hideRoute') : t('profile.showRoute')}
                     </button>
@@ -282,32 +228,19 @@ function ActivitySegmentSummary({ activity, t }) {
   const count = activity.segment_efforts_count || efforts.length || 0;
 
   return (
-    <div
-      style={{
-        marginTop: '0.65rem',
-        padding: '0.65rem',
-        borderRadius: '6px',
-        background: '#fafafa',
-        border: '1px solid #eee'
-      }}
-    >
-      <strong style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.86rem' }}>
-        {t('run.segmentsCompleted', { count })}
-      </strong>
+    <div className="sr-activity-segments">
+      <strong>{t('run.segmentsCompleted', { count })}</strong>
       {efforts.length > 0 ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+        <div className="sr-activity-segment-list">
           {efforts.map((effort) => (
-            <div
-              key={effort.id}
-              style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', fontSize: '0.82rem' }}
-            >
-              <span style={{ color: '#444', fontWeight: 600 }}>{effort.segment?.name}</span>
-              <span style={{ color: '#e53935', fontWeight: 800 }}>{effort.formatted_time}</span>
+            <div key={effort.id}>
+              <span>{effort.segment?.name}</span>
+              <span>{effort.formatted_time}</span>
             </div>
           ))}
         </div>
       ) : (
-        <span style={{ color: '#888', fontSize: '0.82rem' }}>{t('run.noSegmentsCompleted')}</span>
+        <span className="sr-muted">{t('run.noSegmentsCompleted')}</span>
       )}
     </div>
   );
@@ -368,17 +301,9 @@ function profilePayload(form, isClub) {
 
 function ProfileRow({ label, value }) {
   return (
-    <div
-      style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        gap: '1rem',
-        padding: '0.65rem 0',
-        borderBottom: '1px solid #f0f0f0'
-      }}
-    >
-      <span style={{ color: '#777', fontSize: '0.9rem' }}>{label}</span>
-      <strong style={{ textAlign: 'right', fontSize: '0.95rem' }}>{value}</strong>
+    <div className="sr-profile-row">
+      <span>{label}</span>
+      <strong>{value}</strong>
     </div>
   );
 }
@@ -405,9 +330,7 @@ function ActivityRouteMap({ points }) {
   const last = positions[positions.length - 1];
 
   return (
-    <div
-      style={{ position: 'relative', height: '200px', borderRadius: '6px', overflow: 'hidden', marginTop: '0.6rem' }}
-    >
+    <div className="sr-route-map">
       <MapContainer
         center={first}
         zoom={14}
@@ -459,27 +382,5 @@ function fmtPace(secs, meters) {
   return `${m}:${pad(s)}`;
 }
 const pad = (n) => String(n).padStart(2, '0');
-
-const inputStyle = { padding: '0.6rem', border: '1px solid #ccc', borderRadius: '4px', fontSize: '1rem' };
-const primaryButtonStyle = {
-  background: '#1a1a2e',
-  color: '#fff',
-  border: 'none',
-  borderRadius: '4px',
-  padding: '0.6rem',
-  cursor: 'pointer',
-  fontWeight: 600,
-  width: '100%'
-};
-const secondaryButtonStyle = {
-  background: '#fff',
-  color: '#1a1a2e',
-  border: '1px solid #1a1a2e',
-  borderRadius: '4px',
-  padding: '0.6rem',
-  cursor: 'pointer',
-  fontWeight: 600,
-  width: '100%'
-};
 
 export default Profile;

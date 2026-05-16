@@ -22,7 +22,7 @@ function Tournaments() {
   return (
     <div>
       <h2>{t('tournaments.title')}</h2>
-      {tournaments.length === 0 && <p style={{ color: '#888' }}>{t('tournaments.noTournaments')}</p>}
+      {tournaments.length === 0 && <p className="sr-muted">{t('tournaments.noTournaments')}</p>}
       <div className="sr-grid-tournaments">
         {tournaments.map((tn) => (
           <TournamentCard
@@ -54,67 +54,32 @@ function TournamentCard({ tournament, onUpdate }) {
     setLoading(false);
   }
 
-  const statusColor =
-    tournament.status === 'active' ? '#4caf50' : tournament.status === 'completed' ? '#9e9e9e' : '#ff9800';
-
   return (
-    <Link
-      to={`/tournaments/${tournament.slug}`}
-      className="sr-card sr-card-clickable"
-      style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', textDecoration: 'none', color: 'inherit' }}
-    >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
-        <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 600, flex: 1 }}>{tournament.name}</h3>
-        <span
-          style={{
-            background: statusColor,
-            color: '#fff',
-            padding: '0.15rem 0.55rem',
-            borderRadius: 4,
-            fontSize: '0.7rem',
-            fontWeight: 700,
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em'
-          }}
-        >
-          {tournament.status}
-        </span>
+    <Link to={`/tournaments/${tournament.slug}`} className="sr-card sr-card-clickable sr-tournament-card">
+      <div className="sr-card-head">
+        <h3>{tournament.name}</h3>
+        <span className={`sr-status-badge sr-status-${tournament.status}`}>{tournament.status}</span>
       </div>
 
       {(tournament.city || tournament.country) && (
-        <p style={{ color: '#666', fontSize: '0.85rem', margin: 0 }}>
+        <p className="sr-muted">
           {tournament.city && `${tournament.city}, `}
           {tournament.country}
         </p>
       )}
 
-      <div style={{ display: 'flex', gap: '1rem', fontSize: '0.8rem', color: '#888' }}>
+      <div className="sr-meta-row">
         <span>{t('tournaments.participants', { count: tournament.participants_count })}</span>
         <span>{t('tournaments.segments', { count: tournament.total_segments_count })}</span>
       </div>
 
-      <div style={{ marginTop: 'auto', paddingTop: '0.5rem' }}>
+      <div className="sr-card-footer">
         {tournament.status === 'active' && canParticipate && !tournament.is_participating && (
-          <button
-            onClick={handleJoin}
-            disabled={loading}
-            style={{
-              background: '#1a1a2e',
-              color: '#fff',
-              border: 'none',
-              borderRadius: 4,
-              padding: '0.5rem 1rem',
-              cursor: 'pointer',
-              fontSize: '0.85rem',
-              width: '100%'
-            }}
-          >
+          <button onClick={handleJoin} disabled={loading} className="sr-btn sr-btn-primary sr-btn-block">
             {t('tournaments.join')}
           </button>
         )}
-        {tournament.is_participating && (
-          <span style={{ color: '#4caf50', fontWeight: 600, fontSize: '0.85rem' }}>✓ {t('tournaments.joined')}</span>
-        )}
+        {tournament.is_participating && <span className="sr-success-text">✓ {t('tournaments.joined')}</span>}
       </div>
     </Link>
   );

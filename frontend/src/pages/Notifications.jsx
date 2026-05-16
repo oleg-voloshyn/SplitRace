@@ -37,8 +37,8 @@ function Notifications() {
           <div key={notification.id} className={`sr-card sr-notification ${notification.read_at ? '' : 'unread'}`}>
             <div>
               <strong>{notification.title}</strong>
-              {notification.body && <p style={{ color: '#666', marginTop: '0.25rem' }}>{notification.body}</p>}
-              <small style={{ color: '#888' }}>{new Date(notification.created_at).toLocaleString()}</small>
+              {notification.body && <p className="sr-feed-body">{notification.body}</p>}
+              <small className="sr-feed-date">{new Date(notification.created_at).toLocaleString()}</small>
             </div>
             {notification.tournament && (
               <Link className="sr-share-btn" to={`/tournaments/${notification.tournament.slug}`}>

@@ -72,7 +72,7 @@ function Navbar() {
           </>
         )}
         {!user && (
-          <Link to="/login" className="sr-link" style={{ marginLeft: 'auto' }}>
+          <Link to="/login" className="sr-link sr-login-link">
             {t('nav.login')}
           </Link>
         )}
