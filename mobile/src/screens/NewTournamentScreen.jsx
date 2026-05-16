@@ -1,83 +1,482 @@
-import { useState } from 'react';
-import { useNavigation } from '@react-navigation/native';
+import { useCallback, useMemo, useState } from 'react';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { City, Country } from 'country-state-city';
+import { ChevronLeft, ChevronRight, MapPin, Plus, Star } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
-import { Alert, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { api } from '../api/client';
+import SearchableListModal from '../components/SearchableListModal';
 
-const initialTournament = {
-  name: '',
-  city: '',
-  country: '',
-  total_segments_count: '2',
-  rated_segments_count: '1'
-};
+const TOTAL_STEPS = 5;
 
 function NewTournamentScreen() {
   const { t } = useTranslation();
   const navigation = useNavigation();
-  const [form, setForm] = useState(initialTournament);
+  const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
+  const [form, setForm] = useState({
+    name: '',
+    description: '',
+    country: null, // ISO code, e.g. "UA"
+    countryLabel: '',
+    city: '',
+    totalSegments: '4',
+    ratedSegments: '2'
+  });
+  // Map of segmentId -> { rated: boolean, order: number (insertion order) }
+  const [selectedSegments, setSelectedSegments] = useState({});
+  const [mySegments, setMySegments] = useState(null);
+  const [showCountryPicker, setShowCountryPicker] = useState(false);
+  const [showCityPicker, setShowCityPicker] = useState(false);
+
+  const countries = useMemo(() => Country.getAllCountries(), []);
+  const cities = useMemo(() => (form.country ? City.getCitiesOfCountry(form.country) || [] : []), [form.country]);
+
+  const loadSegments = useCallback(async () => {
+    try {
+      const segs = await api.mySegments();
+      setMySegments(segs);
+    } catch {
+      setMySegments([]);
+    }
+  }, []);
+
+  // Refresh segments whenever this screen regains focus (e.g. user came back
+  // from NewSegmentScreen after creating one inline).
+  useFocusEffect(
+    useCallback(() => {
+      if (step === 5) {
+        loadSegments();
+      }
+    }, [step, loadSegments])
+  );
+
+  function setField(key, value) {
+    setForm((f) => ({ ...f, [key]: value }));
+  }
+
+  function selectCountry(country) {
+    setForm((f) => ({ ...f, country: country.isoCode, countryLabel: country.name, city: '' }));
+    setShowCountryPicker(false);
+  }
+
+  function selectCity(city) {
+    setField('city', city.name);
+    setShowCityPicker(false);
+  }
+
+  function toggleSegment(segment) {
+    setSelectedSegments((prev) => {
+      const next = { ...prev };
+      if (next[segment.id]) {
+        delete next[segment.id];
+      } else {
+        const order = Object.keys(next).length;
+        next[segment.id] = { rated: false, order };
+      }
+      return next;
+    });
+  }
+
+  function toggleSegmentRated(segment) {
+    setSelectedSegments((prev) => {
+      const entry = prev[segment.id];
+      if (!entry) {
+        return prev;
+      }
+      return { ...prev, [segment.id]: { ...entry, rated: !entry.rated } };
+    });
+  }
+
+  const ratedTarget = Number(form.ratedSegments) || 0;
+  const totalTarget = Number(form.totalSegments) || 0;
+  const selectedCount = Object.keys(selectedSegments).length;
+  const ratedSelected = Object.values(selectedSegments).filter((s) => s.rated).length;
+
+  function canGoNext() {
+    if (step === 1) {
+      return form.name.trim().length > 0;
+    }
+    if (step === 2) {
+      return true;
+    } // description is optional
+    if (step === 3) {
+      return Boolean(form.country);
+    } // city is optional
+    if (step === 4) {
+      const total = Number(form.totalSegments);
+      const rated = Number(form.ratedSegments);
+      return Number.isInteger(total) && total > 0 && Number.isInteger(rated) && rated > 0 && rated < total;
+    }
+    return false;
+  }
+
+  function canSubmit() {
+    return selectedCount === totalTarget && ratedSelected === ratedTarget;
+  }
 
   async function handleSubmit() {
     setSubmitting(true);
     try {
-      await api.createTournament(form);
+      const tournament = await api.createTournament({
+        name: form.name.trim(),
+        description: form.description.trim(),
+        city: form.city.trim(),
+        country: form.country || '',
+        total_segments_count: String(totalTarget),
+        rated_segments_count: String(ratedTarget)
+      });
+
+      // Add selected segments in insertion order
+      const ordered = Object.entries(selectedSegments).sort(([, a], [, b]) => a.order - b.order);
+      for (const [segmentId, meta] of ordered) {
+        await api.addTournamentSegment(tournament.slug, {
+          segment_id: segmentId,
+          order_number: String(meta.order + 1),
+          is_rated: meta.rated ? '1' : '0'
+        });
+      }
+
       Alert.alert(t('creator.title'), t('creator.tournamentCreated'));
       navigation.goBack();
     } catch (error) {
-      Alert.alert(t('common.error'), error?.errors?.join(', ') || t('creator.failed'));
+      Alert.alert(t('common.error'), error?.errors?.join(', ') || error?.error || t('creator.failed'));
     } finally {
       setSubmitting(false);
     }
   }
 
-  function setField(key) {
-    return (value) => setForm((current) => ({ ...current, [key]: value }));
-  }
-
   return (
-    <ScrollView className="flex-1 bg-gray-100" contentContainerClassName="p-4 pb-10">
-      <Field label={t('creator.tournamentName')} value={form.name} onChangeText={setField('name')} />
-      <Field label={t('creator.city')} value={form.city} onChangeText={setField('city')} />
-      <Field label={t('creator.country')} value={form.country} onChangeText={setField('country')} />
-      <View className="flex-row flex-wrap gap-2">
-        <Field
-          label={t('creator.totalSegments')}
-          value={form.total_segments_count}
-          onChangeText={setField('total_segments_count')}
-          keyboardType="numeric"
-          className="flex-grow basis-[47%]"
-        />
-        <Field
-          label={t('creator.ratedSegments')}
-          value={form.rated_segments_count}
-          onChangeText={setField('rated_segments_count')}
-          keyboardType="numeric"
-          className="flex-grow basis-[47%]"
-        />
-      </View>
+    <View className="flex-1 bg-gray-100">
+      <StepProgress current={step} total={TOTAL_STEPS} t={t} />
 
-      <TouchableOpacity
-        className={`bg-brand-red rounded-lg p-3.5 items-center mt-2 ${submitting ? 'opacity-60' : ''}`}
-        onPress={handleSubmit}
-        disabled={submitting}
-      >
-        <Text className="text-white font-bold text-[15px]">{submitting ? '...' : t('creator.createTournament')}</Text>
-      </TouchableOpacity>
-    </ScrollView>
+      <ScrollView className="flex-1" contentContainerClassName="p-4 pb-4">
+        {step === 1 && <NameStep form={form} setField={setField} t={t} />}
+        {step === 2 && <DescriptionStep form={form} setField={setField} t={t} />}
+        {step === 3 && (
+          <LocationStep
+            form={form}
+            cities={cities}
+            onPickCountry={() => setShowCountryPicker(true)}
+            onPickCity={() => setShowCityPicker(true)}
+            onClearCity={() => setField('city', '')}
+            t={t}
+          />
+        )}
+        {step === 4 && <SegmentsCountStep form={form} setField={setField} t={t} />}
+        {step === 5 && (
+          <PickSegmentsStep
+            mySegments={mySegments}
+            selectedSegments={selectedSegments}
+            totalTarget={totalTarget}
+            ratedTarget={ratedTarget}
+            selectedCount={selectedCount}
+            ratedSelected={ratedSelected}
+            onToggle={toggleSegment}
+            onToggleRated={toggleSegmentRated}
+            onCreateNew={() => navigation.navigate('NewSegment')}
+            t={t}
+          />
+        )}
+      </ScrollView>
+
+      <BottomNav
+        step={step}
+        canGoNext={canGoNext()}
+        canSubmit={canSubmit()}
+        submitting={submitting}
+        onBack={() => setStep((s) => Math.max(1, s - 1))}
+        onNext={() => setStep((s) => Math.min(TOTAL_STEPS, s + 1))}
+        onSubmit={handleSubmit}
+        t={t}
+      />
+
+      <SearchableListModal
+        visible={showCountryPicker}
+        onClose={() => setShowCountryPicker(false)}
+        onSelect={selectCountry}
+        title={t('creator.selectCountry')}
+        searchPlaceholder={t('creator.searchCountry')}
+        emptyText={t('creator.noResults')}
+        items={countries}
+        keyFor={(c) => c.isoCode}
+        labelFor={(c) => c.name}
+        leading={(c) => <Text className="text-xl">{c.flag}</Text>}
+      />
+
+      <SearchableListModal
+        visible={showCityPicker}
+        onClose={() => setShowCityPicker(false)}
+        onSelect={selectCity}
+        title={t('creator.selectCity')}
+        searchPlaceholder={t('creator.searchCity')}
+        emptyText={t('creator.noResults')}
+        items={cities}
+        keyFor={(c) => `${c.stateCode}-${c.name}`}
+        labelFor={(c) => c.name}
+      />
+    </View>
   );
 }
 
-function Field({ label, value, onChangeText, keyboardType, className = '' }) {
+function StepProgress({ current, total, t }) {
   return (
-    <View className={`mb-3 ${className}`}>
-      <Text className="text-xs text-gray-600 mb-1">{label}</Text>
+    <View className="bg-white px-4 pt-3 pb-3 border-b border-gray-200">
+      <Text className="text-xs text-gray-500 mb-2">{t('creator.wizardStep', { current, total })}</Text>
+      <View className="flex-row gap-1.5">
+        {Array.from({ length: total }, (_, i) => i + 1).map((n) => (
+          <View key={n} className={`flex-1 h-1 rounded-full ${n <= current ? 'bg-brand-red' : 'bg-gray-200'}`} />
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function NameStep({ form, setField, t }) {
+  return (
+    <View>
+      <Text className="text-xl font-bold text-brand-navy mb-1">{t('creator.tournamentName')}</Text>
       <TextInput
-        className="border border-gray-300 rounded-lg p-2.5 text-sm bg-white"
-        value={value}
-        onChangeText={onChangeText}
-        keyboardType={keyboardType}
+        className="bg-white border border-gray-300 rounded-lg p-3.5 text-base mt-3"
+        value={form.name}
+        onChangeText={(v) => setField('name', v)}
+        placeholder={t('creator.tournamentNamePlaceholder')}
+        placeholderTextColor="#9ca3af"
+        autoFocus
+        maxLength={120}
       />
+    </View>
+  );
+}
+
+function DescriptionStep({ form, setField, t }) {
+  return (
+    <View>
+      <Text className="text-xl font-bold text-brand-navy mb-1">{t('creator.description')}</Text>
+      <TextInput
+        className="bg-white border border-gray-300 rounded-lg p-3.5 text-base mt-3 min-h-[140px]"
+        value={form.description}
+        onChangeText={(v) => setField('description', v)}
+        placeholder={t('creator.descriptionPlaceholder')}
+        placeholderTextColor="#9ca3af"
+        multiline
+        textAlignVertical="top"
+        maxLength={10000}
+      />
+    </View>
+  );
+}
+
+function LocationStep({ form, cities, onPickCountry, onPickCity, onClearCity, t }) {
+  const hasCountry = Boolean(form.country);
+  return (
+    <View>
+      <Text className="text-xl font-bold text-brand-navy mb-1">
+        {t('creator.country')} & {t('creator.city')}
+      </Text>
+
+      <Text className="text-xs text-gray-500 mt-3 mb-1.5">{t('creator.country')}</Text>
+      <TouchableOpacity
+        onPress={onPickCountry}
+        className="flex-row items-center bg-white border border-gray-300 rounded-lg p-3.5"
+      >
+        <MapPin size={16} color="#6b7280" />
+        <Text className={`ml-2 flex-1 text-base ${hasCountry ? 'text-brand-navy' : 'text-gray-400'}`}>
+          {hasCountry ? form.countryLabel : t('creator.selectCountry')}
+        </Text>
+        <ChevronRight size={18} color="#9ca3af" />
+      </TouchableOpacity>
+
+      <Text className="text-xs text-gray-500 mt-4 mb-1.5">{t('creator.city')}</Text>
+      <TouchableOpacity
+        onPress={hasCountry ? onPickCity : undefined}
+        disabled={!hasCountry}
+        className={`flex-row items-center bg-white border rounded-lg p-3.5 ${
+          hasCountry ? 'border-gray-300' : 'border-gray-200 opacity-60'
+        }`}
+      >
+        <Text className={`flex-1 text-base ${form.city ? 'text-brand-navy' : 'text-gray-400'}`}>
+          {form.city || (hasCountry ? t('creator.selectCity') : t('creator.selectCountryFirst'))}
+        </Text>
+        {form.city ? (
+          <TouchableOpacity onPress={onClearCity} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Text className="text-brand-red font-bold">×</Text>
+          </TouchableOpacity>
+        ) : (
+          <ChevronRight size={18} color="#9ca3af" />
+        )}
+      </TouchableOpacity>
+      {hasCountry && cities.length === 0 && (
+        <Text className="text-xs text-gray-500 mt-2">{t('creator.noResults')}</Text>
+      )}
+    </View>
+  );
+}
+
+function SegmentsCountStep({ form, setField, t }) {
+  return (
+    <View>
+      <Text className="text-xl font-bold text-brand-navy mb-3">{t('creator.tournamentSegments')}</Text>
+
+      <View>
+        <Text className="text-sm font-semibold text-brand-navy mb-1">{t('creator.totalSegments')}</Text>
+        <Text className="text-xs text-gray-500 mb-2 leading-[18px]">{t('creator.totalSegmentsHelp')}</Text>
+        <TextInput
+          className="bg-white border border-gray-300 rounded-lg p-3.5 text-base w-24"
+          value={form.totalSegments}
+          onChangeText={(v) => setField('totalSegments', v.replace(/[^0-9]/g, ''))}
+          keyboardType="numeric"
+          maxLength={3}
+        />
+      </View>
+
+      <View className="mt-5">
+        <Text className="text-sm font-semibold text-brand-navy mb-1">{t('creator.ratedSegments')}</Text>
+        <Text className="text-xs text-gray-500 mb-2 leading-[18px]">{t('creator.ratedSegmentsHelp')}</Text>
+        <TextInput
+          className="bg-white border border-gray-300 rounded-lg p-3.5 text-base w-24"
+          value={form.ratedSegments}
+          onChangeText={(v) => setField('ratedSegments', v.replace(/[^0-9]/g, ''))}
+          keyboardType="numeric"
+          maxLength={3}
+        />
+      </View>
+    </View>
+  );
+}
+
+function PickSegmentsStep({
+  mySegments,
+  selectedSegments,
+  totalTarget,
+  ratedTarget,
+  selectedCount,
+  ratedSelected,
+  onToggle,
+  onToggleRated,
+  onCreateNew,
+  t
+}) {
+  if (mySegments === null) {
+    return (
+      <View className="items-center py-8">
+        <ActivityIndicator color="#e53935" />
+      </View>
+    );
+  }
+
+  return (
+    <View>
+      <Text className="text-xl font-bold text-brand-navy mb-1">{t('creator.pickSegments')}</Text>
+      <Text className="text-xs text-gray-500 mb-2">{t('creator.pickSegmentsHint')}</Text>
+
+      <View className="bg-white rounded-lg border border-gray-200 px-3 py-2.5 mb-3">
+        <Text className="text-[13px] text-brand-navy">
+          {t('creator.segmentsProgress', {
+            selected: selectedCount,
+            total: totalTarget,
+            rated: ratedSelected,
+            ratedTotal: ratedTarget
+          })}
+        </Text>
+      </View>
+
+      <TouchableOpacity
+        onPress={onCreateNew}
+        className="flex-row items-center justify-center bg-brand-navy rounded-lg py-3 mb-3 gap-2"
+      >
+        <Plus size={16} color="#fff" />
+        <Text className="text-white font-bold">{t('creator.createNewSegment')}</Text>
+      </TouchableOpacity>
+
+      {mySegments.length === 0 ? (
+        <Text className="text-gray-500 text-center py-4">{t('creator.noSegmentsYet')}</Text>
+      ) : (
+        mySegments.map((segment) => {
+          const entry = selectedSegments[segment.id];
+          const isSelected = Boolean(entry);
+          const isRated = isSelected && entry.rated;
+          return (
+            <View
+              key={segment.id}
+              className={`bg-white border rounded-lg mb-2 ${isSelected ? 'border-brand-red' : 'border-gray-200'}`}
+            >
+              <TouchableOpacity onPress={() => onToggle(segment)} className="flex-row items-center p-3">
+                <View
+                  className={`w-5 h-5 rounded mr-3 items-center justify-center ${
+                    isSelected ? 'bg-brand-red' : 'border-2 border-gray-300'
+                  }`}
+                >
+                  {isSelected && <Text className="text-white text-xs font-bold">✓</Text>}
+                </View>
+                <View className="flex-1">
+                  <Text className="text-[15px] font-semibold text-brand-navy">{segment.name}</Text>
+                  {segment.distance_meters != null && (
+                    <Text className="text-xs text-gray-500 mt-0.5">
+                      {(segment.distance_meters / 1000).toFixed(2)} km
+                    </Text>
+                  )}
+                </View>
+                {isSelected && (
+                  <TouchableOpacity
+                    onPress={() => onToggleRated(segment)}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    className="ml-2"
+                  >
+                    <Star
+                      size={20}
+                      color={isRated ? '#c97c00' : '#cbd5e1'}
+                      fill={isRated ? '#c97c00' : 'transparent'}
+                    />
+                  </TouchableOpacity>
+                )}
+              </TouchableOpacity>
+            </View>
+          );
+        })
+      )}
+    </View>
+  );
+}
+
+function BottomNav({ step, canGoNext, canSubmit, submitting, onBack, onNext, onSubmit, t }) {
+  const isFirst = step === 1;
+  const isLast = step === TOTAL_STEPS;
+  return (
+    <View className="flex-row gap-3 bg-white border-t border-gray-200 px-4 py-3">
+      <TouchableOpacity
+        onPress={onBack}
+        disabled={isFirst}
+        className={`flex-row items-center justify-center px-4 py-3 rounded-lg border ${
+          isFirst ? 'border-gray-200 opacity-40' : 'border-gray-300'
+        }`}
+      >
+        <ChevronLeft size={18} color="#1a1a2e" />
+        <Text className="text-brand-navy font-bold ml-1">{t('creator.back')}</Text>
+      </TouchableOpacity>
+
+      {isLast ? (
+        <TouchableOpacity
+          onPress={onSubmit}
+          disabled={!canSubmit || submitting}
+          className={`flex-1 items-center justify-center py-3 rounded-lg bg-brand-red ${
+            !canSubmit || submitting ? 'opacity-60' : ''
+          }`}
+        >
+          <Text className="text-white font-bold text-base">{submitting ? '...' : t('creator.createTournament')}</Text>
+        </TouchableOpacity>
+      ) : (
+        <TouchableOpacity
+          onPress={onNext}
+          disabled={!canGoNext}
+          className={`flex-1 flex-row items-center justify-center py-3 rounded-lg bg-brand-red ${
+            !canGoNext ? 'opacity-60' : ''
+          }`}
+        >
+          <Text className="text-white font-bold text-base">{t('creator.next')}</Text>
+          <ChevronRight size={18} color="#fff" />
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
