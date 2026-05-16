@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 import * as Sharing from 'expo-sharing';
 import * as TaskManager from 'expo-task-manager';
+import { Check, Play, Square } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { Alert, Platform, ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import ViewShot from 'react-native-view-shot';
@@ -13,9 +14,8 @@ import { buildShareText, calcDistance, fmtDist, fmtPace, fmtTime } from '../util
 
 const LOCATION_TASK = 'splitrace-location-task';
 const POINTS_KEY = 'splitrace_run_points';
-const MIN_DISTANCE_M = 30; // below this we treat the activity as "not moving"
+const MIN_DISTANCE_M = 30;
 
-// Background task — runs even when screen is locked
 TaskManager.defineTask(LOCATION_TASK, async ({ data, error }) => {
   if (error || !data) {
     return;
@@ -37,7 +37,6 @@ TaskManager.defineTask(LOCATION_TASK, async ({ data, error }) => {
 
 function RunTrackerScreen() {
   const { t } = useTranslation();
-  // idle | acquiring | recording | paused | saving | saved | error
   const [status, setStatus] = useState('idle');
   const [points, setPoints] = useState([]);
   const [duration, setDuration] = useState(0);
@@ -50,7 +49,6 @@ function RunTrackerScreen() {
   const timerRef = useRef(null);
   const shareCardRef = useRef(null);
 
-  // Poll AsyncStorage for new GPS points while recording
   useEffect(() => {
     if (status !== 'recording') {
       return;
@@ -68,7 +66,6 @@ function RunTrackerScreen() {
     return () => clearInterval(interval);
   }, [status]);
 
-  // Cleanup on unmount
   useEffect(
     () => () => {
       clearInterval(timerRef.current);
@@ -138,7 +135,6 @@ function RunTrackerScreen() {
     accumulatedMs.current += Date.now() - segmentStart.current;
     setDuration(Math.floor(accumulatedMs.current / 1000));
 
-    // Pull final batch of points that the background task wrote
     try {
       const stored = await AsyncStorage.getItem(POINTS_KEY);
       if (stored) {
@@ -217,45 +213,45 @@ function RunTrackerScreen() {
     setError(null);
   }
 
-  // ── IDLE / ERROR ─────────────────────────────────────────────────────────────
   if (status === 'idle' || status === 'error') {
     return (
-      <View style={[s.center, { backgroundColor: '#1a1a2e' }]}>
-        <Text style={{ color: 'rgba(255,255,255,0.5)', marginBottom: 32, fontSize: 15 }}>{t('run.ready')}</Text>
-        <TouchableOpacity style={s.roundBtn('#4caf50')} onPress={startRun}>
-          <Text style={s.btnLabel}>{t('run.start')}</Text>
+      <View className="flex-1 items-center justify-center bg-brand-navy">
+        <Text className="text-white/50 mb-8 text-[15px]">{t('run.ready')}</Text>
+        <TouchableOpacity
+          className="w-[90px] h-[90px] rounded-full items-center justify-center bg-green-500"
+          onPress={startRun}
+        >
+          <Text className="text-white font-bold text-[15px]">{t('run.start')}</Text>
         </TouchableOpacity>
-        {error && (
-          <Text style={{ color: '#e53935', marginTop: 20, textAlign: 'center', paddingHorizontal: 24 }}>{error}</Text>
-        )}
+        {error && <Text className="text-brand-red mt-5 text-center px-6">{error}</Text>}
       </View>
     );
   }
 
-  // ── ACQUIRING ────────────────────────────────────────────────────────────────
   if (status === 'acquiring') {
     return (
-      <View style={[s.center, { backgroundColor: '#1a1a2e' }]}>
-        <View style={s.gpsDot} />
-        <Text style={{ color: '#fff', fontSize: 16, marginTop: 24, marginBottom: 8 }}>{t('run.gettingGps')}</Text>
-        <Text style={{ color: 'rgba(255,255,255,0.45)', fontSize: 13, marginBottom: 40 }}>{t('run.goOutside')}</Text>
-        <TouchableOpacity style={[s.roundBtn('#555'), { width: 70, height: 70 }]} onPress={reset}>
-          <Text style={[s.btnLabel, { fontSize: 13 }]}>{t('run.cancel')}</Text>
+      <View className="flex-1 items-center justify-center bg-brand-navy">
+        <View className="w-9 h-9 rounded-full bg-blue-500" />
+        <Text className="text-white text-base mt-6 mb-2">{t('run.gettingGps')}</Text>
+        <Text className="text-white/45 text-[13px] mb-10">{t('run.goOutside')}</Text>
+        <TouchableOpacity
+          className="w-[70px] h-[70px] rounded-full items-center justify-center bg-gray-600"
+          onPress={reset}
+        >
+          <Text className="text-white font-bold text-[13px]">{t('run.cancel')}</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
-  // ── SAVING ───────────────────────────────────────────────────────────────────
   if (status === 'saving') {
     return (
-      <View style={[s.center, { backgroundColor: '#1a1a2e' }]}>
-        <Text style={{ color: '#fff', fontSize: 16 }}>{t('run.saving')}</Text>
+      <View className="flex-1 items-center justify-center bg-brand-navy">
+        <Text className="text-white text-base">{t('run.saving')}</Text>
       </View>
     );
   }
 
-  // ── SAVED ────────────────────────────────────────────────────────────────────
   if (status === 'saved') {
     const activity = savedActivity || {
       elapsed_time_seconds: duration,
@@ -267,18 +263,23 @@ function RunTrackerScreen() {
     const hasSegments = segmentCount > 0;
 
     return (
-      <ScrollView style={s.savedScreen} contentContainerStyle={s.savedContent}>
-        <Text style={s.savedCheck}>✓</Text>
-        <Text style={s.savedTitle}>{t('run.runSaved')}</Text>
+      <ScrollView className="flex-1 bg-brand-navy" contentContainerClassName="p-5 pb-9 items-center">
+        <Check size={48} color="#4caf50" strokeWidth={3} />
+        <Text className="text-green-500 text-xl font-extrabold mb-4 mt-2">{t('run.runSaved')}</Text>
 
-        {/* Share card — captured as image on share */}
-        <ViewShot ref={shareCardRef} options={{ format: 'png', quality: 1 }} style={s.shareCardWrap}>
+        <ViewShot
+          ref={shareCardRef}
+          options={{ format: 'png', quality: 1 }}
+          style={{ width: 360, marginBottom: 20, borderRadius: 24, overflow: 'hidden' }}
+        >
           <RunShareCard activity={activity} />
         </ViewShot>
 
-        <View style={s.summaryCard}>
-          <Text style={s.summaryKicker}>{hasSegments ? t('run.segmentUnlocked') : t('run.noSegmentUnlocked')}</Text>
-          <View style={s.summaryStats}>
+        <View className="w-full bg-white rounded-2xl p-4 shadow-lg">
+          <Text className="text-brand-red text-[13px] font-extrabold mb-3.5 uppercase">
+            {hasSegments ? t('run.segmentUnlocked') : t('run.noSegmentUnlocked')}
+          </Text>
+          <View className="flex-row gap-2">
             <SummaryStat label={t('run.distance')} value={fmtDist(activity.distance_meters)} />
             <SummaryStat label={t('run.time')} value={fmtTime(activity.elapsed_time_seconds || duration)} />
             <SummaryStat
@@ -286,74 +287,91 @@ function RunTrackerScreen() {
               value={fmtPace(activity.elapsed_time_seconds, activity.distance_meters)}
             />
           </View>
-          <View style={s.segmentSummary}>
-            <Text style={s.segmentCount}>{t('run.segmentsCompleted', { count: segmentCount })}</Text>
+          <View className="mt-4 border-t border-gray-200 pt-3.5">
+            <Text className="text-brand-navy text-base font-extrabold mb-2.5">
+              {t('run.segmentsCompleted', { count: segmentCount })}
+            </Text>
             {hasSegments ? (
               activity.segment_efforts.map((effort) => (
-                <View key={effort.id} style={s.segmentRow}>
-                  <Text style={s.segmentName}>{effort.segment?.name}</Text>
-                  <Text style={s.segmentTime}>{effort.formatted_time}</Text>
+                <View
+                  key={effort.id}
+                  className="flex-row justify-between gap-3 py-2 border-b border-gray-100"
+                >
+                  <Text className="text-gray-800 text-sm font-semibold flex-1">{effort.segment?.name}</Text>
+                  <Text className="text-brand-red text-sm font-extrabold">{effort.formatted_time}</Text>
                 </View>
               ))
             ) : (
-              <Text style={s.noSegmentsText}>{t('run.noSegmentsCompleted')}</Text>
+              <Text className="text-gray-600 leading-5">{t('run.noSegmentsCompleted')}</Text>
             )}
           </View>
         </View>
-        <View style={s.savedActions}>
-          <TouchableOpacity style={s.shareBtn} onPress={() => shareActivityImage(shareCardRef, activity, t)}>
-            <Text style={s.shareBtnText}>{t('run.shareResult')}</Text>
+        <View className="w-full gap-2.5 mt-4">
+          <TouchableOpacity
+            className="bg-brand-red rounded-2xl p-4 items-center"
+            onPress={() => shareActivityImage(shareCardRef, activity, t)}
+          >
+            <Text className="text-white font-extrabold text-base">{t('run.shareResult')}</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={s.newRunBtn} onPress={reset}>
-            <Text style={s.newRunBtnText}>{t('run.newRun')}</Text>
+          <TouchableOpacity className="border border-white/25 rounded-2xl p-4 items-center" onPress={reset}>
+            <Text className="text-white font-bold text-[15px]">{t('run.newRun')}</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
     );
   }
 
-  // ── RECORDING / PAUSED ───────────────────────────────────────────────────────
   const distKm = calcDistance(points) / 1000;
   const pace = duration > 0 && distKm > 0.01 ? fmtTime(Math.round(duration / distKm)) : '--:--';
   const isPaused = status === 'paused';
 
   return (
-    <View style={s.screen}>
-      {/* Header bar — yellow when paused */}
-      <View style={[s.statsBar, isPaused && s.statsBarPaused]}>
-        {isPaused ? <Text style={s.pausedLabel}>{t('run.paused')}</Text> : <View style={s.recDot} />}
+    <View className="flex-1 bg-brand-navy">
+      <View className={`flex-row items-center justify-around py-3.5 px-4 ${isPaused ? 'bg-amber-400' : 'bg-brand-navy'}`}>
+        {isPaused ? (
+          <Text className="text-brand-navy font-extrabold text-[11px] tracking-widest">{t('run.paused')}</Text>
+        ) : (
+          <View className="w-2.5 h-2.5 rounded-full bg-brand-red" />
+        )}
         <Stat label={t('run.time')} value={fmtTime(duration)} dark={isPaused} />
         <Stat label={t('run.distance')} value={`${distKm.toFixed(2)} km`} dark={isPaused} />
         <Stat label={t('run.pace')} value={pace} dark={isPaused} />
       </View>
 
-      {/* Live map */}
-      <View style={s.mapWrap}>
+      <View className="flex-1 relative">
         {points.length > 0 ? (
           <LeafletMap points={points} follow={!isPaused} />
         ) : (
-          <View style={[StyleSheet.absoluteFill, s.noMap]}>
-            <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>{t('run.waitingGps')}</Text>
+          <View style={StyleSheet.absoluteFill} className="items-center justify-center bg-neutral-900">
+            <Text className="text-white/40 text-[13px]">{t('run.waitingGps')}</Text>
           </View>
         )}
       </View>
 
-      {/* Bottom controls */}
-      <View style={s.footer}>
+      <View className="items-center py-5 px-4 bg-brand-navy">
         {isPaused ? (
-          <View style={s.pausedRow}>
-            <TouchableOpacity style={s.pillBtn('#e53935')} onPress={resumeRun}>
-              <Text style={s.pillIcon}>▶</Text>
-              <Text style={s.pillLabel}>{t('run.resume')}</Text>
+          <View className="flex-row gap-3 w-full">
+            <TouchableOpacity
+              className="flex-1 h-14 rounded-full flex-row items-center justify-center gap-2 bg-brand-red"
+              onPress={resumeRun}
+            >
+              <Play size={14} color="#fff" fill="#fff" />
+              <Text className="text-white font-bold text-base">{t('run.resume')}</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={s.pillBtn('#1a1a2e')} onPress={finishRun}>
-              <Text style={s.pillIcon}>■</Text>
-              <Text style={s.pillLabel}>{t('run.finish')}</Text>
+            <TouchableOpacity
+              className="flex-1 h-14 rounded-full flex-row items-center justify-center gap-2 bg-brand-navy border border-white/25"
+              onPress={finishRun}
+            >
+              <Square size={14} color="#fff" fill="#fff" />
+              <Text className="text-white font-bold text-base">{t('run.finish')}</Text>
             </TouchableOpacity>
           </View>
         ) : (
-          <TouchableOpacity style={s.roundBtn('#e53935')} onPress={pauseRun}>
-            <Text style={s.btnLabel}>{t('run.stop')}</Text>
+          <TouchableOpacity
+            className="w-[90px] h-[90px] rounded-full items-center justify-center bg-brand-red"
+            onPress={pauseRun}
+          >
+            <Text className="text-white font-bold text-[15px]">{t('run.stop')}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -363,27 +381,20 @@ function RunTrackerScreen() {
 
 function Stat({ label, value, dark }) {
   return (
-    <View style={{ alignItems: 'center' }}>
-      <Text
-        style={{
-          color: dark ? 'rgba(0,0,0,0.55)' : 'rgba(255,255,255,0.55)',
-          fontSize: 10,
-          textTransform: 'uppercase',
-          letterSpacing: 0.8
-        }}
-      >
+    <View className="items-center">
+      <Text className={`text-[10px] uppercase tracking-wider ${dark ? 'text-black/55' : 'text-white/55'}`}>
         {label}
       </Text>
-      <Text style={{ color: dark ? '#1a1a2e' : '#fff', fontSize: 20, fontWeight: '700' }}>{value}</Text>
+      <Text className={`text-xl font-bold ${dark ? 'text-brand-navy' : 'text-white'}`}>{value}</Text>
     </View>
   );
 }
 
 function SummaryStat({ label, value }) {
   return (
-    <View style={s.summaryStat}>
-      <Text style={s.summaryStatLabel}>{label}</Text>
-      <Text style={s.summaryStatValue}>{value}</Text>
+    <View className="flex-1 bg-gray-50 rounded-xl p-2.5">
+      <Text className="text-gray-500 text-[10px] uppercase font-bold mb-1">{label}</Text>
+      <Text className="text-brand-navy text-base font-extrabold">{value}</Text>
     </View>
   );
 }
@@ -405,91 +416,5 @@ async function shareActivityImage(cardRef, activity, t) {
 function shareActivityText(activity, t) {
   Share.share({ message: buildShareText(activity, t) }).catch(() => {});
 }
-
-const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#1a1a2e' },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  statsBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-around',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    backgroundColor: '#1a1a2e'
-  },
-  statsBarPaused: { backgroundColor: '#ffc107' },
-  recDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#e53935' },
-  pausedLabel: { color: '#1a1a2e', fontWeight: '800', fontSize: 11, letterSpacing: 1 },
-  mapWrap: { flex: 1, position: 'relative' },
-  noMap: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#111' },
-  footer: { alignItems: 'center', paddingVertical: 20, paddingHorizontal: 16, backgroundColor: '#1a1a2e' },
-  gpsDot: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#2196f3' },
-  roundBtn: (bg) => ({
-    backgroundColor: bg,
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    alignItems: 'center',
-    justifyContent: 'center'
-  }),
-  btnLabel: { color: '#fff', fontWeight: '700', fontSize: 15 },
-  pausedRow: { flexDirection: 'row', gap: 12, width: '100%' },
-  pillBtn: (bg) => ({
-    flex: 1,
-    backgroundColor: bg,
-    height: 56,
-    borderRadius: 28,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8
-  }),
-  pillIcon: { color: '#fff', fontSize: 14 },
-  pillLabel: { color: '#fff', fontWeight: '700', fontSize: 16 },
-  savedScreen: { flex: 1, backgroundColor: '#1a1a2e' },
-  savedContent: { padding: 20, paddingBottom: 36, alignItems: 'center' },
-  shareCardWrap: { width: 360, marginBottom: 20, borderRadius: 24, overflow: 'hidden' },
-  savedCheck: { fontSize: 48, marginBottom: 8, color: '#4caf50' },
-  savedTitle: { color: '#4caf50', fontSize: 20, fontWeight: '800', marginBottom: 18 },
-  summaryCard: {
-    width: '100%',
-    backgroundColor: '#fff',
-    borderRadius: 18,
-    padding: 18,
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 18,
-    elevation: 4
-  },
-  summaryKicker: { color: '#e53935', fontSize: 13, fontWeight: '800', marginBottom: 14, textTransform: 'uppercase' },
-  summaryStats: { flexDirection: 'row', gap: 8 },
-  summaryStat: { flex: 1, backgroundColor: '#f7f7f9', borderRadius: 12, padding: 10 },
-  summaryStatLabel: { color: '#777', fontSize: 10, textTransform: 'uppercase', fontWeight: '700', marginBottom: 4 },
-  summaryStatValue: { color: '#1a1a2e', fontSize: 16, fontWeight: '800' },
-  segmentSummary: { marginTop: 16, borderTopWidth: 1, borderTopColor: '#eee', paddingTop: 14 },
-  segmentCount: { color: '#1a1a2e', fontSize: 16, fontWeight: '800', marginBottom: 10 },
-  segmentRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0'
-  },
-  segmentName: { color: '#333', fontSize: 14, fontWeight: '600', flex: 1 },
-  segmentTime: { color: '#e53935', fontSize: 14, fontWeight: '800' },
-  noSegmentsText: { color: '#777', lineHeight: 20 },
-  savedActions: { width: '100%', gap: 10, marginTop: 18 },
-  shareBtn: { backgroundColor: '#e53935', borderRadius: 14, padding: 15, alignItems: 'center' },
-  shareBtnText: { color: '#fff', fontWeight: '800', fontSize: 16 },
-  newRunBtn: {
-    borderColor: 'rgba(255,255,255,0.24)',
-    borderWidth: 1,
-    borderRadius: 14,
-    padding: 15,
-    alignItems: 'center'
-  },
-  newRunBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 }
-});
 
 export default RunTrackerScreen;
