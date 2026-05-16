@@ -1,73 +1,54 @@
 import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 
 function CreatorScreen() {
   const { t } = useTranslation();
   const navigation = useNavigation();
 
   return (
-    <ScrollView style={s.scroll} contentContainerStyle={s.container}>
-      <Text style={s.intro}>{t('creator.hubIntro')}</Text>
+    <ScrollView className="flex-1 bg-gray-100" contentContainerClassName="p-4 pb-10">
+      <Text className="text-sm text-gray-600 mb-4 leading-5">{t('creator.hubIntro')}</Text>
 
-      <TouchableOpacity style={s.card} onPress={() => navigation.navigate('NewSegment')} activeOpacity={0.8}>
-        <View style={[s.iconWrap, { backgroundColor: '#fff3f3' }]}>
-          <Text style={s.icon}>🗺️</Text>
-        </View>
-        <View style={s.body}>
-          <Text style={s.badge}>{t('creator.segments')}</Text>
-          <Text style={s.title}>{t('creator.newSegment')}</Text>
-          <Text style={s.subtitle}>{t('creator.newSegmentSubtitle')}</Text>
-          <Text style={s.cta}>{t('creator.createSegment')} →</Text>
-        </View>
-      </TouchableOpacity>
+      <HubCard
+        icon="🗺️"
+        iconBg="bg-red-50"
+        badge={t('creator.segments')}
+        title={t('creator.newSegment')}
+        subtitle={t('creator.newSegmentSubtitle')}
+        cta={t('creator.createSegment')}
+        onPress={() => navigation.navigate('NewSegment')}
+      />
 
-      <TouchableOpacity style={s.card} onPress={() => navigation.navigate('NewTournament')} activeOpacity={0.8}>
-        <View style={[s.iconWrap, { backgroundColor: '#fff8e1' }]}>
-          <Text style={s.icon}>🏆</Text>
-        </View>
-        <View style={s.body}>
-          <Text style={s.badge}>{t('nav.tournaments')}</Text>
-          <Text style={s.title}>{t('creator.newTournament')}</Text>
-          <Text style={s.subtitle}>{t('creator.newTournamentSubtitle')}</Text>
-          <Text style={s.cta}>{t('creator.createTournament')} →</Text>
-        </View>
-      </TouchableOpacity>
+      <HubCard
+        icon="🏆"
+        iconBg="bg-amber-50"
+        badge={t('nav.tournaments')}
+        title={t('creator.newTournament')}
+        subtitle={t('creator.newTournamentSubtitle')}
+        cta={t('creator.createTournament')}
+        onPress={() => navigation.navigate('NewTournament')}
+      />
     </ScrollView>
   );
 }
 
-const s = StyleSheet.create({
-  scroll: { flex: 1, backgroundColor: '#f5f5f5' },
-  container: { padding: 16, paddingBottom: 40 },
-  intro: { fontSize: 13, color: '#666', marginBottom: 16, lineHeight: 18 },
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 14,
-    padding: 16,
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: '#eee',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 }
-  },
-  iconWrap: {
-    width: 60,
-    height: 60,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12
-  },
-  icon: { fontSize: 32 },
-  body: { gap: 4 },
-  badge: { fontSize: 11, fontWeight: '700', color: '#e53935', letterSpacing: 0.5, textTransform: 'uppercase' },
-  title: { fontSize: 18, fontWeight: '700', color: '#1a1a2e' },
-  subtitle: { fontSize: 13, color: '#666', lineHeight: 18, marginBottom: 8 },
-  cta: { fontSize: 14, color: '#1a1a2e', fontWeight: '600' }
-});
+function HubCard({ icon, iconBg, badge, title, subtitle, cta, onPress }) {
+  return (
+    <TouchableOpacity
+      activeOpacity={0.8}
+      onPress={onPress}
+      className="bg-white rounded-2xl p-4 mb-3.5 border border-gray-200 shadow"
+    >
+      <View className={`w-[60px] h-[60px] rounded-xl items-center justify-center mb-3 ${iconBg}`}>
+        <Text className="text-3xl">{icon}</Text>
+      </View>
+      <Text className="text-[11px] font-bold text-brand-red uppercase tracking-wider">{badge}</Text>
+      <Text className="text-lg font-bold text-brand-navy mt-1">{title}</Text>
+      <Text className="text-sm text-gray-600 leading-5 mt-1 mb-2">{subtitle}</Text>
+      <Text className="text-sm font-semibold text-brand-navy">{cta} →</Text>
+    </TouchableOpacity>
+  );
+}
 
 export default CreatorScreen;
