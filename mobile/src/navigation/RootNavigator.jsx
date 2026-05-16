@@ -9,6 +9,8 @@ import { api } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
 import CreatorScreen from '../screens/CreatorScreen';
 import LoginScreen from '../screens/LoginScreen';
+import NewSegmentScreen from '../screens/NewSegmentScreen';
+import NewTournamentScreen from '../screens/NewTournamentScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import RunTrackerScreen from '../screens/RunTrackerScreen';
@@ -43,6 +45,12 @@ function CreatorStack() {
   return (
     <Stack.Navigator screenOptions={stackScreenOptions}>
       <Stack.Screen name="CreatorHome" component={CreatorScreen} options={{ title: t('nav.creator') }} />
+      <Stack.Screen name="NewSegment" component={NewSegmentScreen} options={{ title: t('creator.newSegment') }} />
+      <Stack.Screen
+        name="NewTournament"
+        component={NewTournamentScreen}
+        options={{ title: t('creator.newTournament') }}
+      />
     </Stack.Navigator>
   );
 }

@@ -115,6 +115,9 @@
   },
   "creator": {
     "title": "Create",
+    "hubIntro": "What would you like to create?",
+    "newSegmentSubtitle": "Draw a route on the map — others can run it in your tournaments.",
+    "newTournamentSubtitle": "Combine several segments into a tournament and invite others to compete.",
     "newSegment": "New segment",
     "newTournament": "New tournament",
     "segmentName": "Segment name",
