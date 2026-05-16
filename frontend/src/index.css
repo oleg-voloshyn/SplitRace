@@ -1770,6 +1770,107 @@
   stroke: #fff;
 }
 
+.sr-grid-tournaments {
+  @apply grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3;
+}
+
+.sr-tournament-card {
+  @apply block overflow-hidden rounded-lg border border-slate-200 bg-white p-0 text-center text-inherit no-underline shadow-sm transition hover:-translate-y-0.5 hover:border-red-300 hover:shadow-lg;
+}
+
+.sr-tournament-card-media {
+  @apply relative flex h-40 items-center justify-center overflow-hidden border-b border-slate-100 bg-slate-950;
+}
+
+.sr-tournament-card-media::before {
+  @apply absolute inset-0 opacity-70;
+  content: '';
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+  background-size: 18px 18px;
+}
+
+.sr-tournament-card-media::after {
+  @apply absolute inset-x-10 bottom-0 h-24 rounded-t-full bg-red-500/15 blur-2xl;
+  content: '';
+}
+
+.sr-tournament-card-body {
+  @apply relative z-10 flex flex-col items-center p-6;
+}
+
+.sr-tournament-card-title {
+  @apply mb-0 mt-3 text-xl font-extrabold leading-tight tracking-normal text-[#1a1a2e];
+}
+
+.sr-tournament-card-location {
+  @apply mt-2 text-sm text-slate-500;
+}
+
+.sr-tournament-card-meta {
+  @apply mt-5 flex flex-wrap justify-center gap-4 text-sm font-semibold text-slate-500;
+}
+
+.sr-tournament-card-footer {
+  @apply mt-6 flex w-full justify-center;
+}
+
+.sr-tournament-card-footer .sr-success-text {
+  @apply rounded-md border border-green-200 bg-green-50 px-4 py-2.5;
+}
+
+.sr-tournament-card-illustration {
+  @apply relative z-10 h-28 w-52;
+}
+
+.sr-tournament-card-route-shadow,
+.sr-tournament-card-route,
+.sr-tournament-card-handle,
+.sr-tournament-card-stem,
+.sr-tournament-card-base {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.sr-tournament-card-route-shadow {
+  stroke: rgba(255, 255, 255, 0.16);
+  stroke-width: 16;
+}
+
+.sr-tournament-card-route {
+  stroke: #ff4b4b;
+  stroke-width: 11;
+}
+
+.sr-tournament-card-node {
+  fill: #fff;
+  stroke: #fff;
+  stroke-width: 5;
+}
+
+.sr-tournament-card-node-end {
+  stroke: #ff4b4b;
+}
+
+.sr-tournament-card-cup {
+  fill: #ff4b4b;
+  stroke: #ff4b4b;
+  stroke-width: 4;
+}
+
+.sr-tournament-card-handle,
+.sr-tournament-card-stem,
+.sr-tournament-card-base {
+  stroke: #fff;
+  stroke-width: 8;
+}
+
+.sr-tournament-card-spark {
+  fill: #d7b35a;
+}
+
 @media (max-width: 640px) {
   .sr-page-wrap {
     @apply px-4 pb-20 pt-4;
