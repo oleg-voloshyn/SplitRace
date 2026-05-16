@@ -1,19 +1,68 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { api } from '../api/client';
+import CreatorTournamentsList from '../components/CreatorTournamentsList';
 
 function Tournaments() {
   const { t } = useTranslation();
   const [tournaments, setTournaments] = useState([]);
+  const [myTournaments, setMyTournaments] = useState([]);
+  const [segments, setSegments] = useState([]);
+  const [message, setMessage] = useState(null);
+  const [expandedAdd, setExpandedAdd] = useState(null);
   const [loading, setLoading] = useState(true);
+  const segmentOptions = useMemo(() => segments.filter((segment) => segment.id), [segments]);
 
   useEffect(() => {
-    api
-      .tournaments()
-      .then(setTournaments)
-      .finally(() => setLoading(false));
+    refreshTournaments();
   }, []);
+
+  async function refreshTournaments() {
+    setLoading(true);
+    try {
+      const [allTournaments, userSegments, userTournaments] = await Promise.all([
+        api.tournaments(),
+        api.mySegments(),
+        api.myTournaments()
+      ]);
+      setTournaments(allTournaments);
+      setSegments(userSegments);
+      setMyTournaments(userTournaments);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function addSegment(tournament, event) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    setMessage(null);
+    try {
+      await api.addTournamentSegment(tournament.slug, {
+        segment_id: formData.get('segment_id'),
+        order_number: formData.get('order_number'),
+        is_rated: formData.get('is_rated') ? '1' : '0'
+      });
+      setMessage(t('creator.segmentAdded'));
+      await refreshTournaments();
+      return true;
+    } catch (error) {
+      setMessage(error?.errors?.join(', ') || error?.error || t('creator.failed'));
+      return false;
+    }
+  }
+
+  async function submitForReview(tournament) {
+    setMessage(null);
+    try {
+      await api.submitTournamentForReview(tournament.slug);
+      setMessage(t('creator.submitted'));
+      await refreshTournaments();
+    } catch (error) {
+      setMessage(error?.error || error?.errors?.join(', ') || t('creator.failed'));
+    }
+  }
 
   if (loading) {
     return <p>{t('common.loading')}</p>;
@@ -21,6 +70,8 @@ function Tournaments() {
 
   return (
     <div>
+      {message && <p className="sr-alert sr-alert-success sr-spaced-card">{message}</p>}
+
       <h2>{t('tournaments.title')}</h2>
       {tournaments.length === 0 && <p className="sr-muted">{t('tournaments.noTournaments')}</p>}
       <div className="sr-grid-tournaments">
@@ -32,6 +83,17 @@ function Tournaments() {
           />
         ))}
       </div>
+
+      <CreatorTournamentsList
+        loading={loading}
+        tournaments={myTournaments}
+        segmentOptions={segmentOptions}
+        expandedAdd={expandedAdd}
+        setExpandedAdd={setExpandedAdd}
+        addSegment={addSegment}
+        submitForReview={submitForReview}
+        t={t}
+      />
     </div>
   );
 }

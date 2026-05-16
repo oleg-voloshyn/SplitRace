@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CircleMarker, MapContainer, Polyline, TileLayer, useMap, useMapEvents } from 'react-leaflet';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -33,22 +33,12 @@ function Creator() {
   const isTournamentNew = path === '/creator/tournaments/new';
   const isHub = !isSegmentNew && !isTournamentNew;
   const routeMessage = location.state?.creatorMessage;
-  const [segments, setSegments] = useState([]);
-  const [tournaments, setTournaments] = useState([]);
   const [segmentDefaults, setSegmentDefaults] = useState(defaultSegment);
   const [segmentForm, setSegmentForm] = useState(defaultSegment);
   const [tournamentForm, setTournamentForm] = useState(initialTournament);
   const [mapCenter, setMapCenter] = useState(DEFAULT_CENTER);
   const [userLocation, setUserLocation] = useState(null);
   const [message, setMessage] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  const [expandedAdd, setExpandedAdd] = useState(null);
-  const segmentOptions = useMemo(() => segments.filter((segment) => segment.id), [segments]);
-
-  useEffect(() => {
-    refreshCreatorData();
-  }, []);
 
   useEffect(() => {
     if (!navigator.geolocation) {
@@ -75,17 +65,6 @@ function Creator() {
       { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 }
     );
   }, []);
-
-  async function refreshCreatorData() {
-    setLoading(true);
-    try {
-      const [mySegments, myTournaments] = await Promise.all([api.mySegments(), api.myTournaments()]);
-      setSegments(mySegments);
-      setTournaments(myTournaments);
-    } finally {
-      setLoading(false);
-    }
-  }
 
   async function createSegment(event) {
     event.preventDefault();
@@ -114,36 +93,6 @@ function Creator() {
       navigate('/creator', { state: { creatorMessage: t('creator.tournamentCreated') } });
     } catch (error) {
       setMessage(error?.errors?.join(', ') || t('creator.failed'));
-    }
-  }
-
-  async function addSegment(tournament, event) {
-    event.preventDefault();
-    const formData = new FormData(event.currentTarget);
-    setMessage(null);
-    try {
-      await api.addTournamentSegment(tournament.slug, {
-        segment_id: formData.get('segment_id'),
-        order_number: formData.get('order_number'),
-        is_rated: formData.get('is_rated') ? '1' : '0'
-      });
-      setMessage(t('creator.segmentAdded'));
-      await refreshCreatorData();
-      return true;
-    } catch (error) {
-      setMessage(error?.errors?.join(', ') || error?.error || t('creator.failed'));
-      return false;
-    }
-  }
-
-  async function submitForReview(tournament) {
-    setMessage(null);
-    try {
-      await api.submitTournamentForReview(tournament.slug);
-      setMessage(t('creator.submitted'));
-      await refreshCreatorData();
-    } catch (error) {
-      setMessage(error?.error || error?.errors?.join(', ') || t('creator.failed'));
     }
   }
 
@@ -178,48 +127,32 @@ function Creator() {
       )}
 
       {isHub && (
-        <>
-          <div className="sr-page-heading sr-creator-hub-heading">
-            <h2>{t('creator.title')}</h2>
-            <div className="sr-creator-actions">
-              <Link to="/creator/segments/new" className="sr-flow-card">
-                <span className="sr-flow-card-media">
-                  <SegmentCardIcon />
-                </span>
-                <span className="sr-flow-card-body">
-                  <span className="sr-flow-card-badge">{t('creator.segments')}</span>
-                  <span className="sr-flow-card-title">{t('creator.newSegment')}</span>
-                  <span className="sr-flow-card-cta" aria-hidden="true">
-                    {t('creator.createSegment')} →
-                  </span>
-                </span>
-              </Link>
-              <Link to="/creator/tournaments/new" className="sr-flow-card">
-                <span className="sr-flow-card-media">
-                  <TournamentCardIcon />
-                </span>
-                <span className="sr-flow-card-body">
-                  <span className="sr-flow-card-badge">{t('nav.tournaments')}</span>
-                  <span className="sr-flow-card-title">{t('creator.newTournament')}</span>
-                  <span className="sr-flow-card-cta" aria-hidden="true">
-                    {t('creator.createTournament')} →
-                  </span>
-                </span>
-              </Link>
-            </div>
-          </div>
-
-          <CreatorTournamentsList
-            loading={loading}
-            tournaments={tournaments}
-            segmentOptions={segmentOptions}
-            expandedAdd={expandedAdd}
-            setExpandedAdd={setExpandedAdd}
-            addSegment={addSegment}
-            submitForReview={submitForReview}
-            t={t}
-          />
-        </>
+        <div className="sr-creator-actions sr-creator-actions-only">
+          <Link to="/creator/segments/new" className="sr-flow-card">
+            <span className="sr-flow-card-media">
+              <SegmentCardIcon />
+            </span>
+            <span className="sr-flow-card-body">
+              <span className="sr-flow-card-badge">{t('creator.segments')}</span>
+              <span className="sr-flow-card-title">{t('creator.newSegment')}</span>
+              <span className="sr-flow-card-cta" aria-hidden="true">
+                {t('creator.createSegment')} →
+              </span>
+            </span>
+          </Link>
+          <Link to="/creator/tournaments/new" className="sr-flow-card">
+            <span className="sr-flow-card-media">
+              <TournamentCardIcon />
+            </span>
+            <span className="sr-flow-card-body">
+              <span className="sr-flow-card-badge">{t('nav.tournaments')}</span>
+              <span className="sr-flow-card-title">{t('creator.newTournament')}</span>
+              <span className="sr-flow-card-cta" aria-hidden="true">
+                {t('creator.createTournament')} →
+              </span>
+            </span>
+          </Link>
+        </div>
       )}
 
       {isSegmentNew && (
@@ -354,109 +287,6 @@ function CreatorBreadcrumbs({ current }) {
       <span aria-hidden="true">/</span>
       <span>{current}</span>
     </nav>
-  );
-}
-
-function CreatorTournamentsList({
-  loading,
-  tournaments,
-  segmentOptions,
-  expandedAdd,
-  setExpandedAdd,
-  addSegment,
-  submitForReview,
-  t
-}) {
-  return (
-    <>
-      <h3 className="sr-section-heading">{t('creator.myTournaments')}</h3>
-      {loading && <p>{t('common.loading')}</p>}
-      {!loading && tournaments.length === 0 && <p className="sr-card">{t('creator.noTournaments')}</p>}
-      <div className="sr-creator-list">
-        {tournaments.map((tournament) => {
-          const isEditable = tournament.status === 'draft' || tournament.status === 'rejected';
-          const sortedSegments = [...(tournament.segments || [])].sort((a, b) => a.order_number - b.order_number);
-          const available = segmentOptions.filter((s) => !tournament.segments?.some((e) => e.segment.id === s.id));
-          return (
-            <div key={tournament.id} className="sr-card">
-              <div className="sr-creator-card-head">
-                <div>
-                  <h3>{tournament.name}</h3>
-                  <span className={`sr-status-badge sr-status-${tournament.status}`}>
-                    {t(`creator.status_${tournament.status}`)}
-                  </span>
-                </div>
-                {isEditable && (
-                  <button type="button" onClick={() => submitForReview(tournament)}>
-                    {t('creator.submitReview')}
-                  </button>
-                )}
-              </div>
-
-              {tournament.review_note && <p className="sr-creator-review-note">{tournament.review_note}</p>}
-
-              <p className="sr-creator-seg-count">
-                {sortedSegments.length} / {tournament.total_segments_count} {t('creator.segments')}
-              </p>
-
-              {sortedSegments.length > 0 ? (
-                <div className="sr-creator-segment-list">
-                  {sortedSegments.map((ts) => (
-                    <div key={ts.segment.id} className="sr-creator-segment-item">
-                      <span className="sr-creator-seg-num">#{ts.order_number}</span>
-                      <span className="sr-creator-seg-name">{ts.segment.name}</span>
-                      {ts.is_rated && <span className="sr-creator-rated">★ {t('creator.rated')}</span>}
-                      {ts.segment.distance_meters != null && (
-                        <span className="sr-creator-seg-dist">{(ts.segment.distance_meters / 1000).toFixed(2)} km</span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="sr-muted sr-spaced-card">{t('creator.noSegmentsAdded')}</p>
-              )}
-
-              {isEditable && (
-                <>
-                  <button
-                    type="button"
-                    className="sr-creator-ghost-btn sr-creator-add-toggle"
-                    onClick={() => setExpandedAdd(expandedAdd === tournament.id ? null : tournament.id)}
-                  >
-                    {expandedAdd === tournament.id ? t('creator.cancelAdd') : t('creator.addSegmentBtn')}
-                  </button>
-                  {expandedAdd === tournament.id && (
-                    <form
-                      className="sr-creator-add-row sr-creator-add-row-expanded"
-                      onSubmit={async (event) => {
-                        const ok = await addSegment(tournament, event);
-                        if (ok) {
-                          setExpandedAdd(null);
-                        }
-                      }}
-                    >
-                      <select name="segment_id" required>
-                        <option value="">{t('creator.selectSegment')}</option>
-                        {available.map((segment) => (
-                          <option key={segment.id} value={segment.id}>
-                            {segment.name}
-                          </option>
-                        ))}
-                      </select>
-                      <input name="order_number" type="number" min="1" defaultValue={sortedSegments.length + 1} />
-                      <label>
-                        <input name="is_rated" type="checkbox" defaultChecked /> {t('creator.rated')}
-                      </label>
-                      <button type="submit">{t('creator.add')}</button>
-                    </form>
-                  )}
-                </>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </>
   );
 }
 

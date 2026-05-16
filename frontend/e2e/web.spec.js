@@ -26,7 +26,7 @@ test('landing page starts club registration flow', async ({ page }) => {
   await page.getByRole('button', { name: 'Register' }).click();
 
   await expect(page).toHaveURL(/\/tournaments/);
-  await expect(page.getByRole('heading', { name: 'Tournaments' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Tournaments', exact: true })).toBeVisible();
 });
 
 test('runner auth offers Google and Apple without Strava', async ({ page }) => {
@@ -43,7 +43,7 @@ test('runner can join active tournament and open tournament detail', async ({ pa
   await registerViaApi(request, page, { email: uniqueEmail('e2e-joiner') });
 
   await page.goto('/tournaments');
-  await expect(page.getByRole('heading', { name: 'Tournaments' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Tournaments', exact: true })).toBeVisible();
   await expect(page.getByText(catalog.active_tournament_name)).toBeVisible();
 
   const card = page.locator('.sr-card', { hasText: catalog.active_tournament_name });
@@ -81,7 +81,8 @@ test('creator can draw a segment on the map and submit rich text description', a
   await registerViaApi(request, page, { email: uniqueEmail('e2e-creator') });
 
   await page.goto('/creator');
-  await expect(page.getByRole('heading', { name: 'Create' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Create' })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: /New segment/i })).toBeVisible();
   await expect(page.getByRole('link', { name: /New tournament/i })).toHaveAttribute('href', '/creator/tournaments/new');
 
   await page.getByRole('link', { name: /New segment/i }).click();
