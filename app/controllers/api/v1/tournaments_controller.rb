@@ -9,8 +9,10 @@ module Api
       before_action :require_tournament_owner!, only: %i[update destroy submit_for_review add_segment remove_segment]
 
       def index
-        tournaments = Tournament.visible.order(starts_at: :desc)
-        render json: tournaments.map { |t| tournament_json(t) }
+        tournaments = Tournament.visible
+                                .includes(tournament_segments: :segment)
+                                .order(starts_at: :desc)
+        render json: tournaments.map { |t| tournament_json(t, preview: true) }
       end
 
       def show
@@ -177,7 +179,7 @@ module Api
         end
       end
 
-      def tournament_json(tournament, detailed: false, owned: false)
+      def tournament_json(tournament, detailed: false, owned: false, preview: false)
         can_participate = !current_user.club?
         data = {
           id: tournament.id,
@@ -226,6 +228,21 @@ module Api
             }
           end
           data[:feed] = tournament_events_json(tournament)
+        elsif preview
+          data[:segments_preview] = tournament.tournament_segments
+                                              .includes(:segment)
+                                              .order(:order_number)
+                                              .map do |ts|
+            {
+              segment: {
+                id: ts.segment.id,
+                name: ts.segment.name,
+                start_point: ts.segment.start_point ? { lat: ts.segment.start_point.lat, lng: ts.segment.start_point.lon } : nil,
+                end_point: ts.segment.end_point ? { lat: ts.segment.end_point.lat, lng: ts.segment.end_point.lon } : nil,
+                polyline: polyline_to_coords(ts.segment.polyline)
+              }
+            }
+          end
         end
 
         data

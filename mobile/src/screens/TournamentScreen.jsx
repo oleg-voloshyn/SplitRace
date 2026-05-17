@@ -18,6 +18,7 @@ import { WEB_URL, api } from '../api/client';
 import EntityShareCard from '../components/EntityShareCard';
 import RichDescription from '../components/RichDescription';
 import { RUN_SHARE_FORMATS } from '../components/RunShareCard';
+import SegmentPreviewModal from '../components/SegmentPreviewModal';
 import SegmentsMap from '../components/SegmentsMap';
 import ShareFormatModal from '../components/ShareFormatModal';
 import { useAuth } from '../contexts/AuthContext';
@@ -35,6 +36,7 @@ function TournamentScreen() {
   const [reportTarget, setReportTarget] = useState(null);
   const [pendingShare, setPendingShare] = useState(null);
   const [shareTarget, setShareTarget] = useState(null); // { kind: 'tournament' | 'segment', entity }
+  const [previewSegment, setPreviewSegment] = useState(null);
   const shareCardRef = useRef(null);
 
   useEffect(() => {
@@ -269,7 +271,12 @@ function TournamentScreen() {
               <Text className="text-center text-gray-500 mt-16">{t('tournaments.noSegments')}</Text>
             ) : (
               visibleSegments.map((ts, i) => (
-                <View key={ts.segment.id} className="bg-white rounded-xl p-3 mb-2">
+                <TouchableOpacity
+                  key={ts.segment.id}
+                  activeOpacity={0.85}
+                  onPress={() => setPreviewSegment(ts.segment)}
+                  className="bg-white rounded-xl p-3 mb-2"
+                >
                   <View className="flex-row items-center gap-2.5">
                     <View className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: segColor(i) }} />
                     <View className="flex-1">
@@ -289,13 +296,16 @@ function TournamentScreen() {
                     </View>
                   </View>
                   <TouchableOpacity
-                    onPress={() => openShareModal('segment', ts.segment)}
+                    onPress={(e) => {
+                      e.stopPropagation?.();
+                      openShareModal('segment', ts.segment);
+                    }}
                     className="flex-row items-center gap-1.5 self-start mt-2.5 bg-white border border-gray-300 rounded-lg px-3 py-2"
                   >
                     <Share2 size={14} color="#1a1a2e" />
                     <Text className="text-brand-navy font-bold text-[13px]">{t('tournaments.share')}</Text>
                   </TouchableOpacity>
-                </View>
+                </TouchableOpacity>
               ))
             )}
           </View>
@@ -342,6 +352,12 @@ function TournamentScreen() {
       {reportTarget && (
         <ReportModal target={reportTarget} tournamentSlug={slug} onClose={() => setReportTarget(null)} />
       )}
+
+      <SegmentPreviewModal
+        segment={previewSegment}
+        visible={Boolean(previewSegment)}
+        onClose={() => setPreviewSegment(null)}
+      />
 
       <ShareFormatModal
         visible={Boolean(shareTarget)}
