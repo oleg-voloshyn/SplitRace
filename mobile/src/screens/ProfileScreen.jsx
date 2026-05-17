@@ -1,13 +1,15 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { City, Country } from 'country-state-city';
 import * as Sharing from 'expo-sharing';
-import { AlertTriangle, Check, ChevronRight, Pencil, Share2 } from 'lucide-react-native';
+import { AlertTriangle, Check, ChevronRight, MapPin, Pencil, Share2 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { Alert, Image, ScrollView, Share, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import ViewShot from 'react-native-view-shot';
 import { api } from '../api/client';
 import LeafletMap from '../components/LeafletMap';
 import { RUN_SHARE_FORMATS, RunShareCard } from '../components/RunShareCard';
+import SearchableListModal from '../components/SearchableListModal';
 import ShareFormatModal from '../components/ShareFormatModal';
 import { useAuth } from '../contexts/AuthContext';
 import { SUPPORTED_LANGS } from '../i18n';
@@ -25,8 +27,15 @@ function ProfileScreen() {
   const [expandedId, setExpandedId] = useState(null);
   const [pendingShare, setPendingShare] = useState(null);
   const [shareActivity, setShareActivity] = useState(null);
+  const [showCountryPicker, setShowCountryPicker] = useState(false);
+  const [showCityPicker, setShowCityPicker] = useState(false);
   const shareCardRef = useRef(null);
   const isClub = user?.account_type === 'club';
+  const countries = useMemo(() => Country.getAllCountries(), []);
+  const cities = useMemo(
+    () => (form.countryCode ? City.getCitiesOfCountry(form.countryCode) || [] : []),
+    [form.countryCode]
+  );
 
   useEffect(() => {
     api
@@ -208,18 +217,39 @@ function ProfileScreen() {
             </View>
 
             <Label>{t('profile.country')}</Label>
-            <Input
-              value={form.country}
-              onChangeText={(v) => setForm((f) => ({ ...f, country: v }))}
-              placeholder={t('profile.country')}
-            />
+            <TouchableOpacity
+              onPress={() => setShowCountryPicker(true)}
+              className="flex-row items-center bg-gray-50 border border-gray-200 rounded-lg p-3 mb-1"
+            >
+              <MapPin size={16} color="#6b7280" />
+              <Text className={`ml-2 flex-1 text-[15px] ${form.country ? 'text-brand-navy' : 'text-gray-400'}`}>
+                {form.country || t('creator.selectCountry')}
+              </Text>
+              <ChevronRight size={18} color="#9ca3af" />
+            </TouchableOpacity>
 
             <Label>{t('profile.city')}</Label>
-            <Input
-              value={form.city}
-              onChangeText={(v) => setForm((f) => ({ ...f, city: v }))}
-              placeholder={t('profile.city')}
-            />
+            <TouchableOpacity
+              onPress={form.countryCode ? () => setShowCityPicker(true) : undefined}
+              disabled={!form.countryCode}
+              className={`flex-row items-center bg-gray-50 border rounded-lg p-3 mb-1 ${
+                form.countryCode ? 'border-gray-200' : 'border-gray-200 opacity-60'
+              }`}
+            >
+              <Text className={`flex-1 text-[15px] ${form.city ? 'text-brand-navy' : 'text-gray-400'}`}>
+                {form.city || (form.countryCode ? t('creator.selectCity') : t('creator.selectCountryFirst'))}
+              </Text>
+              {form.city ? (
+                <TouchableOpacity
+                  onPress={() => setForm((f) => ({ ...f, city: '' }))}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Text className="text-brand-red font-bold">×</Text>
+                </TouchableOpacity>
+              ) : (
+                <ChevronRight size={18} color="#9ca3af" />
+              )}
+            </TouchableOpacity>
 
             <LanguageSelector t={t} i18n={i18n} />
 
@@ -321,6 +351,35 @@ function ProfileScreen() {
             setPendingShare({ activity, format });
           }
         }}
+      />
+      <SearchableListModal
+        visible={showCountryPicker}
+        onClose={() => setShowCountryPicker(false)}
+        onSelect={(country) => {
+          setForm((f) => ({ ...f, country: country.name, countryCode: country.isoCode, city: '' }));
+          setShowCountryPicker(false);
+        }}
+        title={t('creator.selectCountry')}
+        searchPlaceholder={t('creator.searchCountry')}
+        emptyText={t('creator.noResults')}
+        items={countries}
+        keyFor={(c) => c.isoCode}
+        labelFor={(c) => c.name}
+        leading={(c) => <Text className="text-xl">{c.flag}</Text>}
+      />
+      <SearchableListModal
+        visible={showCityPicker}
+        onClose={() => setShowCityPicker(false)}
+        onSelect={(city) => {
+          setForm((f) => ({ ...f, city: city.name }));
+          setShowCityPicker(false);
+        }}
+        title={t('creator.selectCity')}
+        searchPlaceholder={t('creator.searchCity')}
+        emptyText={t('creator.noResults')}
+        items={cities}
+        keyFor={(c) => `${c.stateCode}-${c.name}`}
+        labelFor={(c) => c.name}
       />
       {pendingShare && (
         <ViewShot
@@ -495,13 +554,16 @@ function shareActivityText(activity, t) {
 }
 
 function profileFormFromUser(user) {
+  const countryName = user?.country || '';
+  const matched = countryName ? Country.getAllCountries().find((c) => c.name === countryName) : null;
   return {
     club_name: user?.club_name || '',
     first_name: user?.first_name || '',
     last_name: user?.last_name || '',
     gender: user?.gender || '',
     units: user?.units || 'km',
-    country: user?.country || '',
+    country: countryName,
+    countryCode: matched?.isoCode || '',
     city: user?.city || ''
   };
 }
@@ -516,7 +578,8 @@ function profilePayload(form, isClub) {
     };
   }
 
-  return form;
+  const { countryCode: _ignored, ...rest } = form;
+  return rest;
 }
 
 function fmtDate(iso) {

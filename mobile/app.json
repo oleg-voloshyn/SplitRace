@@ -51,7 +51,13 @@
           "isAndroidForegroundServiceEnabled": true
         }
       ],
-      "expo-notifications",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/adaptive-icon.png",
+          "color": "#e53935"
+        }
+      ],
       "expo-secure-store",
       "expo-localization",
       "expo-web-browser",

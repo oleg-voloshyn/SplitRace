@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
+import { MapPin, Trophy, Users } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, FlatList, RefreshControl, Text, TouchableOpacity, View } from 'react-native';
 import { api } from '../api/client';
@@ -61,24 +62,57 @@ function TournamentsScreen() {
       ListEmptyComponent={<Text className="text-center text-gray-500 mt-16">{t('tournaments.noTournaments')}</Text>}
       renderItem={({ item: tn }) => (
         <TouchableOpacity
-          className="bg-white rounded-xl p-4 mb-2.5"
+          activeOpacity={0.85}
+          className="bg-white rounded-2xl mb-3 overflow-hidden border border-gray-200"
+          style={{
+            shadowColor: '#0b1024',
+            shadowOpacity: 0.06,
+            shadowRadius: 6,
+            shadowOffset: { width: 0, height: 2 },
+            elevation: 2
+          }}
           onPress={() => navigation.navigate('Tournament', { slug: tn.slug, title: tn.name })}
         >
-          <View className="flex-row justify-between items-center mb-1.5">
-            <Text className="text-base font-bold flex-1 mr-2">{tn.name}</Text>
-            <View className="rounded px-1.5 py-0.5" style={{ backgroundColor: badgeColor(tn.status) }}>
-              <Text className="text-white text-[11px] font-bold">{t(`tournaments.${tn.status}`).toUpperCase()}</Text>
+          <View className="flex-row">
+            <View className="w-1.5" style={{ backgroundColor: badgeColor(tn.status) }} />
+            <View className="flex-1 p-4">
+              <View className="flex-row items-start mb-1.5">
+                <View className="w-10 h-10 rounded-xl bg-red-50 items-center justify-center mr-3">
+                  <Trophy size={20} color="#e53935" strokeWidth={2.2} />
+                </View>
+                <View className="flex-1">
+                  <Text className="text-base font-bold text-brand-navy" numberOfLines={2}>
+                    {tn.name}
+                  </Text>
+                  <View
+                    className="self-start rounded px-1.5 py-0.5 mt-1"
+                    style={{ backgroundColor: badgeColor(tn.status) }}
+                  >
+                    <Text className="text-white text-[10px] font-bold tracking-wider">
+                      {t(`tournaments.${tn.status}`).toUpperCase()}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+              <View className="flex-row flex-wrap items-center gap-x-3 gap-y-1 mt-1">
+                {tn.city ? (
+                  <View className="flex-row items-center gap-1">
+                    <MapPin size={13} color="#6b7280" />
+                    <Text className="text-gray-600 text-[13px]">
+                      {tn.city}
+                      {tn.country ? `, ${tn.country}` : ''}
+                    </Text>
+                  </View>
+                ) : null}
+                <View className="flex-row items-center gap-1">
+                  <Users size={13} color="#6b7280" />
+                  <Text className="text-gray-600 text-[13px]">
+                    {t('tournaments.participants', { count: tn.participants_count ?? 0 })}
+                  </Text>
+                </View>
+              </View>
             </View>
           </View>
-          {tn.city && (
-            <Text className="text-gray-500 text-[13px] mt-0.5">
-              {tn.city}
-              {tn.country ? ` · ${tn.country}` : ''}
-            </Text>
-          )}
-          <Text className="text-gray-500 text-[13px] mt-0.5">
-            {t('tournaments.participants', { count: tn.participants_count ?? 0 })}
-          </Text>
         </TouchableOpacity>
       )}
     />

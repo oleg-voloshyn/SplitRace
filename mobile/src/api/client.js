@@ -48,6 +48,7 @@ const api = {
   createTournament: (params) => request('/tournaments', { method: 'POST', body: JSON.stringify(params) }),
   updateTournament: (slug, params) =>
     request(`/tournaments/${slug}`, { method: 'PATCH', body: JSON.stringify(params) }),
+  deleteTournament: (slug) => request(`/tournaments/${slug}`, { method: 'DELETE' }),
   removeTournamentSegment: (slug, segmentId) =>
     request(`/tournaments/${slug}/segments/${segmentId}`, { method: 'DELETE' }),
   tournament: (slug) => request(`/tournaments/${slug}`),

@@ -26,7 +26,7 @@ Rails.application.routes.draw do
       resources :segments, only: %i[index show create]
 
       # Tournaments
-      resources :tournaments, only: %i[index show create update], param: :id do
+      resources :tournaments, only: %i[index show create update destroy], param: :id do
         collection do
           get :mine
         end

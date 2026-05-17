@@ -4,6 +4,7 @@ import { ChevronDown, ChevronUp, Plus, Star, Trash2 } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Alert, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { api } from '../api/client';
+import SegmentPreviewModal from '../components/SegmentPreviewModal';
 
 function EditTournamentScreen() {
   const { t } = useTranslation();
@@ -14,7 +15,9 @@ function EditTournamentScreen() {
   const [form, setForm] = useState(null);
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
+  const [previewSegment, setPreviewSegment] = useState(null);
 
   const load = useCallback(async () => {
     try {
@@ -48,7 +51,11 @@ function EditTournamentScreen() {
   }
 
   const isEditable = tournament.status === 'draft' || tournament.status === 'rejected';
+  const isDraft = tournament.status === 'draft';
   const sortedSegments = [...(tournament.segments || [])].sort((a, b) => a.order_number - b.order_number);
+  const ratedOrder = sortedSegments
+    .filter((ts) => ts.is_rated)
+    .reduce((acc, ts, i) => ({ ...acc, [ts.segment.id]: i + 1 }), {});
   const available = mySegments.filter((seg) => !tournament.segments?.some((ts) => ts.segment.id === seg.id));
 
   function setField(key) {
@@ -93,6 +100,24 @@ function EditTournamentScreen() {
       setTournament(updated);
     } catch (error) {
       Alert.alert(t('common.error'), error?.error || error?.errors?.join(', ') || t('creator.failed'));
+    }
+  }
+
+  function confirmDelete() {
+    Alert.alert(t('creator.deleteTournamentConfirm'), t('creator.deleteTournamentConfirmBody'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('creator.delete'), style: 'destructive', onPress: deleteTournament }
+    ]);
+  }
+
+  async function deleteTournament() {
+    setDeleting(true);
+    try {
+      await api.deleteTournament(slug);
+      navigation.goBack();
+    } catch (error) {
+      setDeleting(false);
+      Alert.alert(t('common.error'), error?.error || t('creator.failed'));
     }
   }
 
@@ -193,29 +218,39 @@ function EditTournamentScreen() {
         {sortedSegments.length === 0 ? (
           <Text className="text-gray-500 text-[13px]">{t('creator.noSegmentsAdded')}</Text>
         ) : (
-          sortedSegments.map((ts) => (
-            <View key={ts.segment.id} className="flex-row items-center py-2 border-b border-gray-100">
-              <Text className="text-gray-300 font-bold text-xs w-[26px]">#{ts.order_number}</Text>
-              <View className="flex-1">
-                <Text className="text-sm text-brand-navy">{ts.segment.name}</Text>
-                {ts.segment.distance_meters != null ? (
-                  <Text className="text-xs text-gray-500 mt-0.5">
-                    {(ts.segment.distance_meters / 1000).toFixed(2)} km
-                  </Text>
-                ) : null}
-              </View>
-              {ts.is_rated ? <Star size={14} color="#c97c00" fill="#c97c00" /> : null}
-              {isEditable && (
-                <TouchableOpacity
-                  onPress={() => removeSegment(ts.segment.id)}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  className="ml-2 p-1"
-                >
-                  <Trash2 size={16} color="#dc2626" />
+          sortedSegments.map((ts) => {
+            const ratedPosition = ratedOrder[ts.segment.id];
+            return (
+              <View key={ts.segment.id} className="flex-row items-center py-2 border-b border-gray-100">
+                <Text className="text-gray-300 font-bold text-xs w-[26px]">#{ts.order_number}</Text>
+                <TouchableOpacity onPress={() => setPreviewSegment(ts.segment)} activeOpacity={0.7} className="flex-1">
+                  <Text className="text-sm text-brand-navy underline-offset-2">{ts.segment.name}</Text>
+                  {ts.segment.distance_meters != null ? (
+                    <Text className="text-xs text-gray-500 mt-0.5">
+                      {(ts.segment.distance_meters / 1000).toFixed(2)} km
+                    </Text>
+                  ) : null}
                 </TouchableOpacity>
-              )}
-            </View>
-          ))
+                {ts.is_rated ? (
+                  <View className="flex-row items-center mr-1">
+                    {ratedPosition != null ? (
+                      <Text className="text-amber-700 font-extrabold text-xs mr-1">#{ratedPosition}</Text>
+                    ) : null}
+                    <Star size={14} color="#c97c00" fill="#c97c00" />
+                  </View>
+                ) : null}
+                {isEditable && (
+                  <TouchableOpacity
+                    onPress={() => removeSegment(ts.segment.id)}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    className="ml-2 p-1"
+                  >
+                    <Trash2 size={16} color="#dc2626" />
+                  </TouchableOpacity>
+                )}
+              </View>
+            );
+          })
         )}
 
         {isEditable && (
@@ -260,6 +295,25 @@ function EditTournamentScreen() {
           <Text className="text-white font-bold text-base">{submitting ? '...' : t('creator.submitReview')}</Text>
         </TouchableOpacity>
       )}
+
+      {isDraft && (
+        <TouchableOpacity
+          className={`mt-3 flex-row items-center justify-center gap-2 rounded-lg p-3 border border-red-300 bg-white ${
+            deleting ? 'opacity-60' : ''
+          }`}
+          onPress={confirmDelete}
+          disabled={deleting}
+        >
+          <Trash2 size={16} color="#dc2626" />
+          <Text className="text-red-700 font-bold">{deleting ? '...' : t('creator.deleteTournament')}</Text>
+        </TouchableOpacity>
+      )}
+
+      <SegmentPreviewModal
+        segment={previewSegment}
+        visible={Boolean(previewSegment)}
+        onClose={() => setPreviewSegment(null)}
+      />
     </ScrollView>
   );
 }

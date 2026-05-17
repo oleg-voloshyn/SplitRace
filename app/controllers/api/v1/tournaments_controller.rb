@@ -2,11 +2,11 @@ module Api
   module V1
     class TournamentsController < BaseController
       before_action :set_tournament, only: %i[
-        show update join leave leaderboard activate complete submit_for_review add_segment remove_segment
+        show update destroy join leave leaderboard activate complete submit_for_review add_segment remove_segment
         feed
       ]
       before_action :require_moderator!, only: %i[activate complete]
-      before_action :require_tournament_owner!, only: %i[update submit_for_review add_segment remove_segment]
+      before_action :require_tournament_owner!, only: %i[update destroy submit_for_review add_segment remove_segment]
 
       def index
         tournaments = Tournament.visible.order(starts_at: :desc)
@@ -42,6 +42,16 @@ module Api
         else
           render json: { errors: @tournament.errors.full_messages }, status: :unprocessable_content
         end
+      end
+
+      def destroy
+        unless @tournament.status == 'draft'
+          return render json: { error: 'Only draft tournaments can be deleted' },
+                        status: :unprocessable_content
+        end
+
+        @tournament.destroy
+        head :no_content
       end
 
       def add_segment

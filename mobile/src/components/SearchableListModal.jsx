@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Search, X } from 'lucide-react-native';
 import { FlatList, Modal, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 /**
  * Reusable bottom-sheet style searchable picker.
@@ -26,6 +27,7 @@ function SearchableListModal({
   subtitleFor,
   filterFor
 }) {
+  const insets = useSafeAreaInsets();
   const [query, setQuery] = useState('');
   const normalizedQuery = query.trim().toLowerCase();
 
@@ -52,7 +54,10 @@ function SearchableListModal({
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={handleClose} presentationStyle="pageSheet">
       <View className="flex-1 bg-white">
-        <View className="flex-row items-center justify-between p-4 border-b border-gray-200">
+        <View
+          className="flex-row items-center justify-between px-4 pb-4 border-b border-gray-200"
+          style={{ paddingTop: insets.top + 12 }}
+        >
           <Text className="text-lg font-bold text-brand-navy">{title}</Text>
           <TouchableOpacity onPress={handleClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
             <X size={22} color="#1a1a2e" />

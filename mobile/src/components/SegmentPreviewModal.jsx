@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react';
 import { MapPin, X } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Modal, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api } from '../api/client';
 import LeafletMap from './LeafletMap';
 import RichDescription from './RichDescription';
 
 function SegmentPreviewModal({ segment, visible, onClose }) {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const [detailed, setDetailed] = useState(null);
   const isLoading = !detailed || (segment && detailed.id !== segment.id);
 
@@ -43,7 +45,10 @@ function SegmentPreviewModal({ segment, visible, onClose }) {
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose} presentationStyle="pageSheet">
       <View className="flex-1 bg-white">
-        <View className="flex-row items-center justify-between p-4 border-b border-gray-200">
+        <View
+          className="flex-row items-center justify-between px-4 pb-4 border-b border-gray-200"
+          style={{ paddingTop: insets.top + 12 }}
+        >
           <Text className="text-lg font-bold text-brand-navy flex-1 mr-2" numberOfLines={1}>
             {segment.name}
           </Text>
