@@ -36,7 +36,7 @@
     "tournaments": "Tournaments",
     "run": "Run",
     "creator": "Create",
-    "notifications": "Alerts",
+    "notifications": "News",
     "profile": "Profile"
   },
   "tournaments": {
@@ -126,6 +126,7 @@
   },
   "creator": {
     "title": "Create",
+    "segmentsBadge": "Segments",
     "hubIntro": "What would you like to create?",
     "newSegmentSubtitle": "Draw a route on the map — others can run it in your tournaments.",
     "newTournamentSubtitle": "Combine several segments into a tournament and invite others to compete.",

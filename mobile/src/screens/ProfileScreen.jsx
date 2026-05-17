@@ -221,6 +221,8 @@ function ProfileScreen() {
               placeholder={t('profile.city')}
             />
 
+            <LanguageSelector t={t} i18n={i18n} />
+
             <View className="flex-row gap-2.5 mt-4">
               <TouchableOpacity
                 className="flex-1 py-3 rounded-lg border border-gray-300 items-center bg-white"
@@ -234,24 +236,6 @@ function ProfileScreen() {
             </View>
           </>
         )}
-      </View>
-
-      {/* Language */}
-      <View className="bg-white rounded-xl p-4 mb-4 border border-gray-200">
-        <Text className="text-xs text-gray-500 uppercase tracking-wider font-bold mb-2.5">{t('profile.language')}</Text>
-        {SUPPORTED_LANGS.map((l) => {
-          const active = i18n.language === l.code;
-          return (
-            <TouchableOpacity
-              key={l.code}
-              className="flex-row justify-between items-center py-3 px-1 border-b border-gray-100"
-              onPress={() => i18n.changeLanguage(l.code)}
-            >
-              <Text className={`text-[15px] ${active ? 'text-brand-red font-bold' : 'text-gray-700'}`}>{l.label}</Text>
-              {active && <Check size={18} color="#e53935" strokeWidth={2.5} />}
-            </TouchableOpacity>
-          );
-        })}
       </View>
 
       {/* Sign out */}
@@ -455,6 +439,29 @@ function Input(props) {
       placeholderTextColor="#9ca3af"
       {...props}
     />
+  );
+}
+
+function LanguageSelector({ t, i18n }) {
+  return (
+    <View className="mt-2 mb-1">
+      <Text className="text-xs text-gray-500 uppercase tracking-wider font-bold mb-2.5">{t('profile.language')}</Text>
+      <View className="rounded-lg border border-gray-200 overflow-hidden">
+        {SUPPORTED_LANGS.map((l) => {
+          const active = i18n.language === l.code;
+          return (
+            <TouchableOpacity
+              key={l.code}
+              className="flex-row justify-between items-center py-3 px-3 border-b border-gray-100 bg-white"
+              onPress={() => i18n.changeLanguage(l.code)}
+            >
+              <Text className={`text-[15px] ${active ? 'text-brand-red font-bold' : 'text-gray-700'}`}>{l.label}</Text>
+              {active && <Check size={18} color="#e53935" strokeWidth={2.5} />}
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    </View>
   );
 }
 

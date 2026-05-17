@@ -36,7 +36,7 @@ function TournamentsStack() {
       <Stack.Screen
         name="Tournament"
         component={TournamentScreen}
-        options={({ route }) => ({ title: route.params?.slug || t('nav.tournaments') })}
+        options={({ route }) => ({ title: route.params?.title || t('nav.tournaments') })}
       />
       <Stack.Screen
         name="Segment"
@@ -130,6 +130,11 @@ function AppTabs() {
         component={TournamentsStack}
         options={{ headerShown: false, tabBarLabel: t('nav.tournaments') }}
       />
+      <Tab.Screen
+        name="Creator"
+        component={CreatorStack}
+        options={{ headerShown: false, tabBarLabel: t('nav.creator') }}
+      />
       {!isClub && (
         <Tab.Screen
           name="Run"
@@ -137,11 +142,6 @@ function AppTabs() {
           options={{ title: t('nav.run'), tabBarLabel: t('nav.run') }}
         />
       )}
-      <Tab.Screen
-        name="Creator"
-        component={CreatorStack}
-        options={{ headerShown: false, tabBarLabel: t('nav.creator') }}
-      />
       <Tab.Screen
         name="Notifications"
         component={NotificationsScreen}

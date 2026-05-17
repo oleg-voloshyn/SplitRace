@@ -11,7 +11,7 @@ jest.mock('@react-navigation/native', () => ({
 const mockT = (key) => {
   const map = {
     'creator.hubIntro': 'What would you like to create?',
-    'creator.segments': 'Segments',
+    'creator.segmentsBadge': 'Segments',
     'creator.newSegment': 'New segment',
     'creator.newSegmentSubtitle': 'Draw a route on the map',
     'creator.createSegment': 'Create segment',

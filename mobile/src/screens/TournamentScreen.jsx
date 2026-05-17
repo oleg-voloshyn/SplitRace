@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { Check, Flag, Share2 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import {
@@ -25,6 +25,7 @@ import { shareEntityImage, shareEntityLink } from '../utils/entityShare';
 
 function TournamentScreen() {
   const { t } = useTranslation();
+  const navigation = useNavigation();
   const { slug } = useRoute().params;
   const { user } = useAuth();
   const [data, setData] = useState(null);
@@ -46,6 +47,12 @@ function TournamentScreen() {
       .then(setBoard)
       .catch(() => {});
   }, [slug]);
+
+  useEffect(() => {
+    if (data?.name) {
+      navigation.setOptions({ title: data.name });
+    }
+  }, [data?.name, navigation]);
 
   useEffect(() => {
     if (!pendingShare) {

@@ -36,7 +36,7 @@
     "tournaments": "Турніри",
     "run": "Пробіжка",
     "creator": "Створити",
-    "notifications": "Дзвінок",
+    "notifications": "Новини",
     "profile": "Профіль"
   },
   "tournaments": {
@@ -126,6 +126,7 @@
   },
   "creator": {
     "title": "Створити",
+    "segmentsBadge": "Сегменти",
     "hubIntro": "Що хочеш створити?",
     "newSegmentSubtitle": "Намалюйте маршрут на мапі — інші зможуть пробігти його у ваших турнірах.",
     "newTournamentSubtitle": "Зберіть кілька сегментів у турнір і запросіть інших змагатися.",

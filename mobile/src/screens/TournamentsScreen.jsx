@@ -62,7 +62,7 @@ function TournamentsScreen() {
       renderItem={({ item: tn }) => (
         <TouchableOpacity
           className="bg-white rounded-xl p-4 mb-2.5"
-          onPress={() => navigation.navigate('Tournament', { slug: tn.slug })}
+          onPress={() => navigation.navigate('Tournament', { slug: tn.slug, title: tn.name })}
         >
           <View className="flex-row justify-between items-center mb-1.5">
             <Text className="text-base font-bold flex-1 mr-2">{tn.name}</Text>

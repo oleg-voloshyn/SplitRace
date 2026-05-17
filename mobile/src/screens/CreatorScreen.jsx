@@ -15,7 +15,7 @@ function CreatorScreen() {
         Icon={Map}
         iconBg="bg-red-50"
         iconColor="#e53935"
-        badge={t('creator.segments')}
+        badge={t('creator.segmentsBadge')}
         title={t('creator.newSegment')}
         subtitle={t('creator.newSegmentSubtitle')}
         cta={t('creator.createSegment')}
