@@ -100,3 +100,58 @@ test('creator can draw a segment on the map and submit rich text description', a
   await page.getByRole('button', { name: 'Create segment' }).click();
   await expect(page.getByText('Segment created')).toBeVisible();
 });
+
+test('creator can create a tournament through the five step wizard', async ({ page, request }) => {
+  const auth = await registerViaApi(request, page, { email: uniqueEmail('e2e-tournament-creator') });
+  const prefix = `E2E Wizard ${Date.now()}`;
+
+  for (let index = 1; index <= 4; index += 1) {
+    const response = await request.post('/api/v1/segments', {
+      headers: { Authorization: `Bearer ${auth.token}` },
+      data: {
+        name: `${prefix} Segment ${index}`,
+        city: 'Kyiv',
+        country: 'UA',
+        points: [
+          { lat: 50.45 + index / 1000, lng: 30.52 },
+          { lat: 50.451 + index / 1000, lng: 30.521 }
+        ]
+      }
+    });
+
+    expect(response.ok()).toBeTruthy();
+  }
+
+  await page.goto('/creator/tournaments/new');
+  await expect(page.getByText('Step 1 of 5')).toBeVisible();
+  await page.getByPlaceholder('Example: Cherkasy Spring Challenge').fill(`${prefix} Tournament`);
+  await page.getByRole('button', { name: /next/i }).click();
+
+  await expect(page.getByText('Step 2 of 5')).toBeVisible();
+  await page.locator('[contenteditable="true"]').fill('Tournament wizard description');
+  await page.getByRole('button', { name: /next/i }).click();
+
+  await expect(page.getByText('Step 3 of 5')).toBeVisible();
+  await page.getByPlaceholder('Country').fill('UA');
+  await page.getByPlaceholder('City').fill('Kyiv');
+  await page.getByRole('button', { name: /next/i }).click();
+
+  await expect(page.getByText('Step 4 of 5')).toBeVisible();
+  await page.getByRole('button', { name: /next/i }).click();
+
+  await expect(page.getByText('Step 5 of 5')).toBeVisible();
+  for (let index = 1; index <= 4; index += 1) {
+    await page
+      .locator('.sr-wizard-segment-row:not(.selected)', { hasText: `${prefix} Segment ${index}` })
+      .getByRole('button', { name: '+' })
+      .click();
+  }
+
+  await expect(page.getByText('4 / 4 selected')).toBeVisible();
+  await page.locator('.sr-wizard-segment-row.selected').nth(0).getByRole('checkbox').check();
+  await page.locator('.sr-wizard-segment-row.selected').nth(1).getByRole('checkbox').check();
+  await expect(page.getByText('2 / 2 rated')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Create tournament' }).click();
+  await expect(page.getByText('Tournament created')).toBeVisible();
+});

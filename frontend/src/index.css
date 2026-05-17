@@ -1846,6 +1846,146 @@
   stroke: #fff;
 }
 
+.sr-tournament-wizard {
+  @apply mx-auto max-w-3xl gap-6 p-6;
+}
+
+.sr-wizard-progress {
+  @apply flex flex-col gap-3;
+}
+
+.sr-wizard-progress > span {
+  @apply text-sm font-bold text-slate-500;
+}
+
+.sr-wizard-bars {
+  @apply grid grid-cols-5 gap-2;
+}
+
+.sr-wizard-bars span {
+  @apply h-2 rounded-full bg-slate-200;
+}
+
+.sr-wizard-bars span.active {
+  @apply bg-red-500;
+}
+
+.sr-wizard-step {
+  @apply flex flex-col gap-4;
+}
+
+.sr-wizard-step h3 {
+  @apply m-0 text-2xl font-extrabold leading-tight text-[#1a1a2e];
+}
+
+.sr-wizard-step p {
+  @apply m-0 text-sm leading-6 text-slate-600;
+}
+
+.sr-wizard-step label {
+  @apply flex flex-col gap-2;
+}
+
+.sr-wizard-step label span {
+  @apply text-sm font-bold text-[#1a1a2e];
+}
+
+.sr-wizard-step label small {
+  @apply text-xs leading-5 text-slate-500;
+}
+
+.sr-wizard-counts {
+  @apply grid gap-2 sm:grid-cols-2;
+}
+
+.sr-wizard-counts span {
+  @apply rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-[#1a1a2e];
+}
+
+.sr-wizard-selected {
+  @apply flex flex-col gap-2;
+}
+
+.sr-wizard-selected h4 {
+  @apply m-0 text-sm font-extrabold text-[#1a1a2e];
+}
+
+.sr-wizard-search {
+  @apply grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto];
+}
+
+.sr-wizard-search .sr-btn {
+  @apply inline-flex items-center justify-center;
+}
+
+.sr-wizard-segment-list {
+  @apply overflow-hidden rounded-lg border border-slate-200 bg-white;
+}
+
+.sr-wizard-segment-row {
+  @apply grid grid-cols-[2.25rem_minmax(0,1fr)] items-center gap-3 border-b border-slate-100 p-3;
+}
+
+.sr-wizard-segment-row:last-child {
+  @apply border-b-0;
+}
+
+.sr-wizard-segment-row.selected {
+  @apply grid-cols-[2.25rem_minmax(0,1fr)_auto_auto] bg-slate-50;
+}
+
+.sr-creator-form .sr-wizard-segment-row button {
+  @apply flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 bg-white p-0 text-lg font-extrabold leading-none text-[#1a1a2e];
+}
+
+.sr-creator-form .sr-wizard-segment-row button:disabled {
+  @apply cursor-not-allowed opacity-40;
+}
+
+.sr-wizard-segment-row:not(.selected) button {
+  @apply border-red-200 text-red-600;
+}
+
+.sr-wizard-segment-main {
+  @apply flex min-w-0 flex-col gap-1;
+}
+
+.sr-wizard-segment-main strong {
+  @apply truncate text-sm font-extrabold text-[#1a1a2e];
+}
+
+.sr-wizard-segment-main span {
+  @apply truncate text-xs text-slate-500;
+}
+
+.sr-wizard-order {
+  @apply text-sm font-extrabold text-slate-400;
+}
+
+.sr-wizard-step .sr-wizard-rated-toggle {
+  @apply flex flex-row items-center gap-2 whitespace-nowrap text-sm font-bold text-[#1a1a2e];
+}
+
+.sr-wizard-step .sr-wizard-rated-toggle input {
+  @apply h-4 w-4 accent-red-600;
+}
+
+.sr-wizard-empty {
+  @apply rounded-lg border border-dashed border-slate-300 bg-slate-50 p-5 text-center text-sm text-slate-500;
+}
+
+.sr-wizard-actions {
+  @apply flex flex-wrap justify-between gap-3 border-t border-slate-100 pt-5;
+}
+
+.sr-creator-form .sr-wizard-actions button {
+  @apply inline-flex min-w-32 items-center justify-center rounded-md px-4 py-3 text-sm font-extrabold;
+}
+
+.sr-creator-form .sr-wizard-actions .sr-creator-ghost-btn {
+  @apply border border-slate-300 bg-white text-[#1a1a2e];
+}
+
 .sr-grid-tournaments {
   @apply grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3;
 }

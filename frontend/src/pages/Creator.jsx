@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CircleMarker, MapContainer, Polyline, TileLayer, useMap, useMapEvents } from 'react-leaflet';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -20,9 +20,11 @@ const initialTournament = {
   description: '',
   city: '',
   country: '',
-  total_segments_count: 2,
-  rated_segments_count: 1
+  totalSegments: '4',
+  ratedSegments: '2'
 };
+
+const TOURNAMENT_STEPS = 5;
 
 function Creator() {
   const { t } = useTranslation();
@@ -35,7 +37,6 @@ function Creator() {
   const routeMessage = location.state?.creatorMessage;
   const [segmentDefaults, setSegmentDefaults] = useState(defaultSegment);
   const [segmentForm, setSegmentForm] = useState(defaultSegment);
-  const [tournamentForm, setTournamentForm] = useState(initialTournament);
   const [mapCenter, setMapCenter] = useState(DEFAULT_CENTER);
   const [userLocation, setUserLocation] = useState(null);
   const [message, setMessage] = useState(null);
@@ -79,18 +80,6 @@ function Creator() {
       await api.createSegment(segmentForm);
       setSegmentForm(segmentDefaults);
       navigate('/creator', { state: { creatorMessage: t('creator.segmentCreated') } });
-    } catch (error) {
-      setMessage(error?.errors?.join(', ') || t('creator.failed'));
-    }
-  }
-
-  async function createTournament(event) {
-    event.preventDefault();
-    setMessage(null);
-    try {
-      await api.createTournament(tournamentForm);
-      setTournamentForm(initialTournament);
-      navigate('/creator', { state: { creatorMessage: t('creator.tournamentCreated') } });
     } catch (error) {
       setMessage(error?.errors?.join(', ') || t('creator.failed'));
     }
@@ -221,49 +210,10 @@ function Creator() {
             </Link>
           </div>
 
-          <form className="sr-card sr-creator-form sr-creator-form-wide" onSubmit={createTournament}>
-            <input
-              required
-              maxLength={120}
-              placeholder={t('creator.tournamentName')}
-              value={tournamentForm.name}
-              onChange={setTournament('name')}
-            />
-            <RichTextEditor
-              value={tournamentForm.description}
-              onChange={(description) => setTournamentForm((current) => ({ ...current, description }))}
-              placeholder={t('creator.description')}
-            />
-            <input
-              maxLength={120}
-              placeholder={t('creator.city')}
-              value={tournamentForm.city}
-              onChange={setTournament('city')}
-            />
-            <input
-              maxLength={120}
-              placeholder={t('creator.country')}
-              value={tournamentForm.country}
-              onChange={setTournament('country')}
-            />
-            <div className="sr-creator-two">
-              <input
-                min="2"
-                max="100"
-                type="number"
-                value={tournamentForm.total_segments_count}
-                onChange={setTournament('total_segments_count')}
-              />
-              <input
-                min="1"
-                max="99"
-                type="number"
-                value={tournamentForm.rated_segments_count}
-                onChange={setTournament('rated_segments_count')}
-              />
-            </div>
-            <button type="submit">{t('creator.createTournament')}</button>
-          </form>
+          <TournamentWizard
+            onCreated={() => navigate('/creator', { state: { creatorMessage: t('creator.tournamentCreated') } })}
+            onError={(error) => setMessage(error ? error?.errors?.join(', ') || t('creator.failed') : null)}
+          />
         </>
       )}
     </div>
@@ -272,10 +222,371 @@ function Creator() {
   function setSegment(key) {
     return (event) => setSegmentForm((current) => ({ ...current, [key]: event.target.value }));
   }
+}
 
-  function setTournament(key) {
-    return (event) => setTournamentForm((current) => ({ ...current, [key]: event.target.value }));
+function TournamentWizard({ onCreated, onError }) {
+  const { t } = useTranslation();
+  const [step, setStep] = useState(1);
+  const [form, setForm] = useState(initialTournament);
+  const [segments, setSegments] = useState(null);
+  const [selectedSegments, setSelectedSegments] = useState({});
+  const [query, setQuery] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const totalTarget = Number(form.totalSegments) || 0;
+  const ratedTarget = Number(form.ratedSegments) || 0;
+  const selectedEntries = useMemo(
+    () => Object.entries(selectedSegments).sort(([, a], [, b]) => a.order - b.order),
+    [selectedSegments]
+  );
+  const selectedCount = selectedEntries.length;
+  const ratedSelected = selectedEntries.filter(([, meta]) => meta.rated).length;
+  const selectedIds = useMemo(() => new Set(selectedEntries.map(([id]) => String(id))), [selectedEntries]);
+  const selectedSegmentList = useMemo(() => {
+    if (!segments) {
+      return [];
+    }
+
+    return selectedEntries
+      .map(([id, meta]) => {
+        const segment = segments.find((item) => String(item.id) === String(id));
+        return segment ? { segment, meta } : null;
+      })
+      .filter(Boolean);
+  }, [segments, selectedEntries]);
+  const availableSegments = useMemo(() => {
+    if (!segments) {
+      return [];
+    }
+
+    const normalizedQuery = query.trim().toLowerCase();
+    return segments.filter((segment) => {
+      if (selectedIds.has(String(segment.id))) {
+        return false;
+      }
+
+      if (!normalizedQuery) {
+        return true;
+      }
+
+      return [segment.name, segment.city, segment.country]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+        .includes(normalizedQuery);
+    });
+  }, [query, segments, selectedIds]);
+
+  useEffect(() => {
+    if (step !== TOURNAMENT_STEPS || segments !== null) {
+      return;
+    }
+
+    api
+      .mySegments()
+      .then(setSegments)
+      .catch(() => setSegments([]));
+  }, [segments, step]);
+
+  function setField(key) {
+    return (event) => setForm((current) => ({ ...current, [key]: event.target.value }));
   }
+
+  function setDescription(description) {
+    setForm((current) => ({ ...current, description }));
+  }
+
+  function addSegment(segment) {
+    setSelectedSegments((current) => {
+      if (current[segment.id]) {
+        return current;
+      }
+
+      const nextOrder = Math.max(-1, ...Object.values(current).map((meta) => meta.order)) + 1;
+      return { ...current, [segment.id]: { order: nextOrder, rated: false } };
+    });
+  }
+
+  function removeSegment(segment) {
+    setSelectedSegments((current) => {
+      const next = { ...current };
+      delete next[segment.id];
+      return next;
+    });
+  }
+
+  function toggleRated(segment) {
+    setSelectedSegments((current) => {
+      const entry = current[segment.id];
+      if (!entry) {
+        return current;
+      }
+
+      return { ...current, [segment.id]: { ...entry, rated: !entry.rated } };
+    });
+  }
+
+  function canGoNext() {
+    if (step === 1) {
+      return form.name.trim().length > 0;
+    }
+
+    if (step === 2) {
+      return true;
+    }
+
+    if (step === 3) {
+      return form.country.trim().length > 0;
+    }
+
+    if (step === 4) {
+      return (
+        Number.isInteger(totalTarget) &&
+        totalTarget > 1 &&
+        Number.isInteger(ratedTarget) &&
+        ratedTarget > 0 &&
+        ratedTarget < totalTarget
+      );
+    }
+
+    return false;
+  }
+
+  function canSubmit() {
+    return selectedCount === totalTarget && ratedSelected === ratedTarget;
+  }
+
+  async function submit(event) {
+    event.preventDefault();
+    onError(null);
+
+    if (!canSubmit()) {
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const tournament = await api.createTournament({
+        name: form.name.trim(),
+        description: form.description.trim(),
+        city: form.city.trim(),
+        country: form.country.trim(),
+        total_segments_count: String(totalTarget),
+        rated_segments_count: String(ratedTarget)
+      });
+
+      for (const [index, [segmentId, meta]] of selectedEntries.entries()) {
+        await api.addTournamentSegment(tournament.slug, {
+          segment_id: segmentId,
+          order_number: String(index + 1),
+          is_rated: meta.rated ? '1' : '0'
+        });
+      }
+
+      onCreated();
+    } catch (error) {
+      onError(error);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  function nextStep() {
+    if (canGoNext()) {
+      setStep((current) => Math.min(TOURNAMENT_STEPS, current + 1));
+    }
+  }
+
+  return (
+    <form className="sr-card sr-creator-form sr-creator-form-wide sr-tournament-wizard" onSubmit={submit}>
+      <div className="sr-wizard-progress">
+        <span>{t('creator.wizardStep', { current: step, total: TOURNAMENT_STEPS })}</span>
+        <div className="sr-wizard-bars" aria-hidden="true">
+          {Array.from({ length: TOURNAMENT_STEPS }, (_, index) => (
+            <span key={index} className={index < step ? 'active' : ''} />
+          ))}
+        </div>
+      </div>
+
+      {step === 1 && (
+        <section className="sr-wizard-step">
+          <h3>{t('creator.tournamentName')}</h3>
+          <p>{t('creator.tournamentNameHelp')}</p>
+          <input
+            autoFocus
+            required
+            maxLength={120}
+            placeholder={t('creator.tournamentNamePlaceholder')}
+            value={form.name}
+            onChange={setField('name')}
+          />
+        </section>
+      )}
+
+      {step === 2 && (
+        <section className="sr-wizard-step">
+          <h3>{t('creator.description')}</h3>
+          <p>{t('creator.descriptionHelp')}</p>
+          <RichTextEditor value={form.description} onChange={setDescription} placeholder={t('creator.description')} />
+        </section>
+      )}
+
+      {step === 3 && (
+        <section className="sr-wizard-step">
+          <h3>
+            {t('creator.country')} & {t('creator.city')}
+          </h3>
+          <p>{t('creator.locationHelp')}</p>
+          <div className="sr-creator-two">
+            <label>
+              <span>{t('creator.country')}</span>
+              <input
+                required
+                maxLength={120}
+                placeholder={t('creator.country')}
+                value={form.country}
+                onChange={setField('country')}
+              />
+            </label>
+            <label>
+              <span>{t('creator.city')}</span>
+              <input maxLength={120} placeholder={t('creator.city')} value={form.city} onChange={setField('city')} />
+            </label>
+          </div>
+        </section>
+      )}
+
+      {step === 4 && (
+        <section className="sr-wizard-step">
+          <h3>{t('creator.tournamentSegments')}</h3>
+          <p>{t('creator.segmentsCountHelp')}</p>
+          <div className="sr-creator-two">
+            <label>
+              <span>{t('creator.totalSegments')}</span>
+              <input min="2" max="100" type="number" value={form.totalSegments} onChange={setField('totalSegments')} />
+              <small>{t('creator.totalSegmentsHelp')}</small>
+            </label>
+            <label>
+              <span>{t('creator.ratedSegments')}</span>
+              <input min="1" max="99" type="number" value={form.ratedSegments} onChange={setField('ratedSegments')} />
+              <small>{t('creator.ratedSegmentsHelp')}</small>
+            </label>
+          </div>
+        </section>
+      )}
+
+      {step === 5 && (
+        <section className="sr-wizard-step">
+          <h3>{t('creator.pickSegments')}</h3>
+          <p>{t('creator.pickSegmentsHint')}</p>
+          <div className="sr-wizard-counts">
+            <span>{t('creator.selectedSegmentsProgress', { selected: selectedCount, total: totalTarget })}</span>
+            <span>{t('creator.ratedSegmentsProgress', { rated: ratedSelected, total: ratedTarget })}</span>
+          </div>
+
+          {selectedSegmentList.length > 0 && (
+            <div className="sr-wizard-selected">
+              <h4>{t('creator.selectedSegments')}</h4>
+              <div className="sr-wizard-segment-list">
+                {selectedSegmentList.map(({ segment, meta }, index) => (
+                  <SegmentPickRow
+                    key={segment.id}
+                    segment={segment}
+                    meta={meta}
+                    orderNumber={index + 1}
+                    selected
+                    onSelect={() => removeSegment(segment)}
+                    onToggleRated={() => toggleRated(segment)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="sr-wizard-search">
+            <input
+              type="search"
+              placeholder={t('creator.searchSegments')}
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+            />
+            <Link to="/creator/segments/new" className="sr-btn sr-btn-ghost">
+              {t('creator.createNewSegment')}
+            </Link>
+          </div>
+
+          {segments === null ? (
+            <p className="sr-wizard-empty">{t('common.loading')}</p>
+          ) : availableSegments.length === 0 ? (
+            <p className="sr-wizard-empty">
+              {segments.length === 0 ? t('creator.noSegmentsYet') : t('creator.noMatchingSegments')}
+            </p>
+          ) : (
+            <div className="sr-wizard-segment-list">
+              {availableSegments.map((segment) => (
+                <SegmentPickRow
+                  key={segment.id}
+                  segment={segment}
+                  onSelect={() => addSegment(segment)}
+                  disabled={selectedCount >= totalTarget}
+                />
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      <div className="sr-wizard-actions">
+        <button
+          type="button"
+          className="sr-creator-ghost-btn"
+          disabled={step === 1 || submitting}
+          onClick={() => setStep((current) => Math.max(1, current - 1))}
+        >
+          ← {t('creator.back')}
+        </button>
+        {step === TOURNAMENT_STEPS ? (
+          <button type="submit" disabled={!canSubmit() || submitting}>
+            {submitting ? t('common.loading') : t('creator.createTournament')}
+          </button>
+        ) : (
+          <button type="button" disabled={!canGoNext()} onClick={nextStep}>
+            {t('creator.next')} →
+          </button>
+        )}
+      </div>
+    </form>
+  );
+}
+
+function SegmentPickRow({ segment, meta, orderNumber, selected = false, disabled = false, onSelect, onToggleRated }) {
+  const { t } = useTranslation();
+
+  return (
+    <div className={selected ? 'sr-wizard-segment-row selected' : 'sr-wizard-segment-row'}>
+      <button type="button" disabled={disabled} onClick={onSelect}>
+        {selected ? '×' : '+'}
+      </button>
+      <div className="sr-wizard-segment-main">
+        <strong>{segment.name}</strong>
+        <span>
+          {formatDistance(segment.distance_meters)}
+          {[segment.city, segment.country].filter(Boolean).length > 0
+            ? ` · ${[segment.city, segment.country].filter(Boolean).join(', ')}`
+            : ''}
+        </span>
+      </div>
+      {selected && (
+        <>
+          <span className="sr-wizard-order">#{orderNumber}</span>
+          <label className="sr-wizard-rated-toggle">
+            <input type="checkbox" checked={Boolean(meta?.rated)} onChange={onToggleRated} />
+            <span>{t('creator.rated')}</span>
+          </label>
+        </>
+      )}
+    </div>
+  );
 }
 
 function CreatorBreadcrumbs({ current }) {
