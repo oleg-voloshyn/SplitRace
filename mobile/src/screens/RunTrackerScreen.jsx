@@ -16,6 +16,7 @@ import { buildShareText, calcDistance, fmtDist, fmtPace, fmtTime } from '../util
 const LOCATION_TASK = 'splitrace-location-task';
 const POINTS_KEY = 'splitrace_run_points';
 const MIN_DISTANCE_M = 30;
+const GPS_MAX_ACCURACY_M = 100;
 
 TaskManager.defineTask(LOCATION_TASK, async ({ data, error }) => {
   if (error || !data) {
@@ -44,12 +45,86 @@ function RunTrackerScreen() {
   const [error, setError] = useState(null);
   const [savedActivity, setSavedActivity] = useState(null);
   const [shareFormat, setShareFormat] = useState('story');
+  const [previewPoint, setPreviewPoint] = useState(null);
+  const [gpsReady, setGpsReady] = useState(false);
+  const [gpsStatus, setGpsStatus] = useState('checking');
 
   const startTime = useRef(null);
   const segmentStart = useRef(null);
   const accumulatedMs = useRef(0);
   const timerRef = useRef(null);
   const shareCardRef = useRef(null);
+
+  useEffect(() => {
+    if (status !== 'idle') {
+      return;
+    }
+
+    let cancelled = false;
+    let subscription;
+
+    async function warmUpGps() {
+      setGpsStatus('checking');
+      setGpsReady(false);
+
+      const { status: fg } = await Location.requestForegroundPermissionsAsync();
+      if (cancelled) {
+        return;
+      }
+      if (fg !== 'granted') {
+        setError(t('run.permissionDenied'));
+        setGpsStatus('denied');
+        return;
+      }
+
+      const lastKnown = await Location.getLastKnownPositionAsync({
+        maxAge: 120000,
+        requiredAccuracy: GPS_MAX_ACCURACY_M
+      }).catch(() => null);
+      if (!cancelled && lastKnown) {
+        setPreviewPoint(pointFromLocation(lastKnown));
+      }
+
+      const current = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High
+      }).catch(() => null);
+      if (!cancelled && current) {
+        acceptGpsPoint(current);
+      }
+
+      subscription = await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.High,
+          timeInterval: 2000,
+          distanceInterval: 2
+        },
+        (location) => {
+          if (!cancelled) {
+            acceptGpsPoint(location);
+          }
+        }
+      ).catch(() => null);
+    }
+
+    function acceptGpsPoint(location) {
+      const point = pointFromLocation(location);
+      setPreviewPoint(point);
+      if (isUsableGpsPoint(point)) {
+        setGpsReady(true);
+        setGpsStatus('ready');
+        setError(null);
+      } else {
+        setGpsStatus('weak');
+      }
+    }
+
+    warmUpGps();
+
+    return () => {
+      cancelled = true;
+      subscription?.remove?.();
+    };
+  }, [status, t]);
 
   useEffect(() => {
     if (status !== 'recording') {
@@ -100,16 +175,44 @@ function RunTrackerScreen() {
     });
   }
 
-  async function startRun() {
-    setError(null);
-    setStatus('acquiring');
-
+  async function getFreshGpsPoint() {
     const { status: fg } = await Location.requestForegroundPermissionsAsync();
     if (fg !== 'granted') {
       setError(t('run.permissionDenied'));
-      setStatus('error');
+      setGpsStatus('denied');
+      return null;
+    }
+
+    const current = await Location.getCurrentPositionAsync({
+      accuracy: Location.Accuracy.High
+    }).catch(() => null);
+    if (!current) {
+      return null;
+    }
+
+    const point = pointFromLocation(current);
+    setPreviewPoint(point);
+    if (!isUsableGpsPoint(point)) {
+      setGpsStatus('weak');
+      return null;
+    }
+
+    setGpsReady(true);
+    setGpsStatus('ready');
+    return point;
+  }
+
+  async function startRun() {
+    setError(null);
+
+    const initialPoint = gpsReady && previewPoint ? previewPoint : await getFreshGpsPoint();
+    if (!initialPoint) {
+      setGpsStatus('checking');
+      setError(t('run.waitingGps'));
       return;
     }
+
+    setStatus('acquiring');
 
     const { status: bg } = await Location.requestBackgroundPermissionsAsync();
     if (bg !== 'granted') {
@@ -117,7 +220,8 @@ function RunTrackerScreen() {
     }
 
     await AsyncStorage.removeItem(POINTS_KEY);
-    setPoints([]);
+    await AsyncStorage.setItem(POINTS_KEY, JSON.stringify([initialPoint]));
+    setPoints([initialPoint]);
     setDuration(0);
 
     await startLocationUpdates();
@@ -200,7 +304,7 @@ function RunTrackerScreen() {
   async function discardRun() {
     await AsyncStorage.removeItem(POINTS_KEY);
     accumulatedMs.current = 0;
-    setPoints([]);
+    setPoints(previewPoint ? [previewPoint] : []);
     setDuration(0);
     setError(null);
     setStatus('idle');
@@ -208,40 +312,50 @@ function RunTrackerScreen() {
 
   function reset() {
     setStatus('idle');
-    setPoints([]);
+    setPoints(previewPoint ? [previewPoint] : []);
     setDuration(0);
     setSavedActivity(null);
     accumulatedMs.current = 0;
     setError(null);
   }
 
-  if (status === 'idle' || status === 'error') {
-    return (
-      <View className="flex-1 items-center justify-center bg-brand-navy">
-        <Text className="text-white/50 mb-8 text-[15px]">{t('run.ready')}</Text>
-        <TouchableOpacity
-          className="w-[90px] h-[90px] rounded-full items-center justify-center bg-green-500"
-          onPress={startRun}
-        >
-          <Text className="text-white font-bold text-[15px]">{t('run.start')}</Text>
-        </TouchableOpacity>
-        {error && <Text className="text-brand-red mt-5 text-center px-6">{error}</Text>}
-      </View>
-    );
-  }
+  if (status === 'idle' || status === 'error' || status === 'acquiring') {
+    const waitingForGps = status === 'acquiring' || !gpsReady;
+    const message =
+      status === 'acquiring'
+        ? t('run.gettingGps')
+        : gpsReady
+          ? t('run.ready')
+          : gpsStatus === 'denied'
+            ? t('run.permissionDenied')
+            : t('run.waitingGps');
 
-  if (status === 'acquiring') {
     return (
-      <View className="flex-1 items-center justify-center bg-brand-navy">
-        <View className="w-9 h-9 rounded-full bg-blue-500" />
-        <Text className="text-white text-base mt-6 mb-2">{t('run.gettingGps')}</Text>
-        <Text className="text-white/45 text-[13px] mb-10">{t('run.goOutside')}</Text>
-        <TouchableOpacity
-          className="w-[70px] h-[70px] rounded-full items-center justify-center bg-gray-600"
-          onPress={reset}
-        >
-          <Text className="text-white font-bold text-[13px]">{t('run.cancel')}</Text>
-        </TouchableOpacity>
+      <View className="flex-1 bg-brand-navy">
+        <View className="flex-1 relative">
+          {previewPoint ? (
+            <LeafletMap points={[previewPoint]} follow />
+          ) : (
+            <View style={StyleSheet.absoluteFill} className="items-center justify-center bg-neutral-900">
+              <Text className="text-white/40 text-[13px]">{t('run.waitingGps')}</Text>
+            </View>
+          )}
+        </View>
+
+        <View className="items-center py-7 px-4 bg-brand-navy">
+          <Text className="text-white/55 mb-2 text-[15px] text-center">{message}</Text>
+          {waitingForGps && <Text className="text-white/35 text-[12px] mb-5 text-center">{t('run.goOutside')}</Text>}
+          <TouchableOpacity
+            className={`w-[90px] h-[90px] rounded-full items-center justify-center ${
+              gpsReady && status !== 'acquiring' ? 'bg-green-500' : 'bg-gray-600'
+            }`}
+            onPress={startRun}
+            disabled={!gpsReady || status === 'acquiring'}
+          >
+            <Text className="text-white font-bold text-[15px]">{status === 'acquiring' ? '...' : t('run.start')}</Text>
+          </TouchableOpacity>
+          {error && <Text className="text-brand-red mt-5 text-center px-6">{error}</Text>}
+        </View>
       </View>
     );
   }
@@ -424,6 +538,19 @@ async function shareActivityImage(cardRef, activity, t) {
 
 function shareActivityText(activity, t) {
   Share.share({ message: buildShareText(activity, t) }).catch(() => {});
+}
+
+function pointFromLocation(location) {
+  return {
+    lat: location.coords.latitude,
+    lng: location.coords.longitude,
+    ts: Math.floor((location.timestamp || Date.now()) / 1000),
+    accuracy: location.coords.accuracy
+  };
+}
+
+function isUsableGpsPoint(point) {
+  return Boolean(point) && (point.accuracy == null || point.accuracy <= GPS_MAX_ACCURACY_M);
 }
 
 export default RunTrackerScreen;

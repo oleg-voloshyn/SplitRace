@@ -1,11 +1,16 @@
 // Silence noisy native warnings in tests
 jest.mock('expo-location', () => ({
   getLastKnownPositionAsync: jest.fn().mockResolvedValue(null),
+  getCurrentPositionAsync: jest.fn().mockResolvedValue({
+    coords: { latitude: 50.45, longitude: 30.52, accuracy: 20 },
+    timestamp: Date.now()
+  }),
+  watchPositionAsync: jest.fn().mockResolvedValue({ remove: jest.fn() }),
   requestForegroundPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted' }),
   requestBackgroundPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted' }),
   startLocationUpdatesAsync: jest.fn().mockResolvedValue(undefined),
   stopLocationUpdatesAsync: jest.fn().mockResolvedValue(undefined),
-  Accuracy: { BestForNavigation: 6 }
+  Accuracy: { BestForNavigation: 6, High: 5 }
 }));
 
 jest.mock('expo-task-manager', () => ({

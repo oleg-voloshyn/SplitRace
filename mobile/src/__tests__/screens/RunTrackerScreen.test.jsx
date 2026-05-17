@@ -35,14 +35,15 @@ jest.mock('react-i18next', () => ({
 }));
 
 describe('RunTrackerScreen — idle state', () => {
-  it('renders START button in idle state', () => {
+  it('renders START button in idle state', async () => {
     render(<RunTrackerScreen />);
+    await waitFor(() => expect(screen.getByText('Ready to run')).toBeTruthy());
     expect(screen.getByText('START')).toBeTruthy();
   });
 
-  it('renders ready message', () => {
+  it('renders ready message', async () => {
     render(<RunTrackerScreen />);
-    expect(screen.getByText('Ready to run')).toBeTruthy();
+    await waitFor(() => expect(screen.getByText('Ready to run')).toBeTruthy());
   });
 });
 
