@@ -50,13 +50,20 @@ function buildHtml(initialPoints, initialFollow) {
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
     html, body, #map { margin:0; padding:0; height:100%; width:100%; background:#1a1a2e; }
+    .leaflet-control-zoom a { color: #1a1a2e !important; font-weight: 700; }
   </style>
 </head>
 <body>
   <div id="map"></div>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
-    const map = L.map('map', { zoomControl: false, attributionControl: false }).setView([50.45, 30.52], 13);
+    const map = L.map('map', {
+      zoomControl: true,
+      attributionControl: false,
+      touchZoom: true,
+      doubleClickZoom: true,
+      scrollWheelZoom: true
+    }).setView([50.45, 30.52], 13);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
     let polyline = null, startMarker = null, endMarker = null;
