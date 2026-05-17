@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { api } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
 import CreatorScreen from '../screens/CreatorScreen';
+import EditTournamentScreen from '../screens/EditTournamentScreen';
 import LoginScreen from '../screens/LoginScreen';
 import NewSegmentScreen from '../screens/NewSegmentScreen';
 import NewTournamentScreen from '../screens/NewTournamentScreen';
@@ -41,6 +42,11 @@ function TournamentsStack() {
         name="Segment"
         component={SegmentScreen}
         options={({ route }) => ({ title: route.params?.id || 'Segment' })}
+      />
+      <Stack.Screen
+        name="EditTournament"
+        component={EditTournamentScreen}
+        options={{ title: t('creator.newTournament') }}
       />
     </Stack.Navigator>
   );

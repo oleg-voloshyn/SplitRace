@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import * as Sharing from 'expo-sharing';
-import { AlertTriangle, Check, Pencil, Share2 } from 'lucide-react-native';
+import { AlertTriangle, Check, ChevronRight, Pencil, Share2 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { Alert, Image, ScrollView, Share, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import ViewShot from 'react-native-view-shot';
@@ -14,10 +15,13 @@ import { buildShareText } from '../utils/runUtils';
 
 function ProfileScreen() {
   const { t, i18n } = useTranslation();
+  const navigation = useNavigation();
   const { user, setUser, logout } = useAuth();
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState(() => profileFormFromUser(user));
   const [activities, setActivities] = useState(null);
+  const [myTournaments, setMyTournaments] = useState(null);
+  const [bottomTab, setBottomTab] = useState('activities');
   const [expandedId, setExpandedId] = useState(null);
   const [pendingShare, setPendingShare] = useState(null);
   const [shareActivity, setShareActivity] = useState(null);
@@ -30,6 +34,16 @@ function ProfileScreen() {
       .then(setActivities)
       .catch(() => setActivities([]));
   }, []);
+
+  // Refresh "My tournaments" each time the Profile screen regains focus.
+  useFocusEffect(
+    useCallback(() => {
+      api
+        .myTournaments()
+        .then(setMyTournaments)
+        .catch(() => setMyTournaments([]));
+    }, [])
+  );
 
   useEffect(() => {
     if (!pendingShare) {
@@ -245,54 +259,74 @@ function ProfileScreen() {
         <Text className="text-brand-red font-semibold">{t('profile.signOut')}</Text>
       </TouchableOpacity>
 
-      {/* Recent runs */}
-      <Text className="text-base font-bold mt-2 mb-2.5">{t('profile.recentRuns')}</Text>
-      {activities === null && <Text className="text-gray-500 text-center mt-5">{t('common.loading')}</Text>}
-      {activities?.length === 0 && <Text className="text-gray-500 text-center mt-5">{t('profile.noRuns')}</Text>}
-      {activities?.map((a) => (
-        <View key={a.id} className="bg-white rounded-xl p-3.5 mb-2 border border-gray-200">
-          <View className="flex-row justify-between items-center mb-1.5">
-            <Text className="font-semibold text-sm">{fmtDate(a.started_at)}</Text>
-            {a.segment_efforts_count > 0 && (
-              <View className="bg-amber-100 rounded px-1.5 py-0.5">
-                <Text className="text-amber-900 text-xs">{a.segment_efforts_count} seg</Text>
+      {/* Bottom tabs: Activities / My tournaments */}
+      <View className="flex-row bg-white border border-gray-200 rounded-xl overflow-hidden mb-3">
+        {['activities', 'tournaments'].map((tab) => (
+          <TouchableOpacity
+            key={tab}
+            className={`flex-1 py-3 items-center ${bottomTab === tab ? 'bg-brand-navy' : ''}`}
+            onPress={() => setBottomTab(tab)}
+          >
+            <Text className={`text-sm font-bold ${bottomTab === tab ? 'text-white' : 'text-gray-600'}`}>
+              {tab === 'activities' ? t('creator.activitiesTab') : t('creator.myTournamentsTab')}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {bottomTab === 'tournaments' && <MyTournamentsTab myTournaments={myTournaments} navigation={navigation} t={t} />}
+
+      {bottomTab === 'activities' && activities === null && (
+        <Text className="text-gray-500 text-center mt-5">{t('common.loading')}</Text>
+      )}
+      {bottomTab === 'activities' && activities?.length === 0 && (
+        <Text className="text-gray-500 text-center mt-5">{t('profile.noRuns')}</Text>
+      )}
+      {bottomTab === 'activities' &&
+        activities?.map((a) => (
+          <View key={a.id} className="bg-white rounded-xl p-3.5 mb-2 border border-gray-200">
+            <View className="flex-row justify-between items-center mb-1.5">
+              <Text className="font-semibold text-sm">{fmtDate(a.started_at)}</Text>
+              {a.segment_efforts_count > 0 && (
+                <View className="bg-amber-100 rounded px-1.5 py-0.5">
+                  <Text className="text-amber-900 text-xs">{a.segment_efforts_count} seg</Text>
+                </View>
+              )}
+            </View>
+            <View className="flex-row gap-4">
+              <Text className="text-gray-700 text-[13px]">{fmtDist(a.distance_meters)}</Text>
+              <Text className="text-gray-700 text-[13px]">{fmtTime(a.elapsed_time_seconds)}</Text>
+              {a.distance_meters > 0 && a.elapsed_time_seconds > 0 && (
+                <Text className="text-gray-700 text-[13px]">
+                  {fmtPace(a.elapsed_time_seconds, a.distance_meters)} /km
+                </Text>
+              )}
+            </View>
+            <RunSegmentSummary activity={a} t={t} />
+            <TouchableOpacity
+              onPress={() => setShareActivity(a)}
+              className="self-start mt-2.5 flex-row items-center gap-1.5 bg-brand-red rounded-lg px-3 py-2"
+            >
+              <Share2 size={14} color="#fff" />
+              <Text className="text-white font-bold text-[13px]">{t('run.shareResult')}</Text>
+            </TouchableOpacity>
+            {a.gps_points?.length > 1 && (
+              <TouchableOpacity
+                onPress={() => setExpandedId(expandedId === a.id ? null : a.id)}
+                className="mt-2 self-start border border-gray-300 rounded-md px-2.5 py-1"
+              >
+                <Text className="text-gray-700 text-xs">
+                  {expandedId === a.id ? t('profile.hideRoute') : t('profile.showRoute')}
+                </Text>
+              </TouchableOpacity>
+            )}
+            {expandedId === a.id && a.gps_points?.length > 1 && (
+              <View className="h-[200px] mt-2 rounded-lg overflow-hidden">
+                <LeafletMap points={a.gps_points} />
               </View>
             )}
           </View>
-          <View className="flex-row gap-4">
-            <Text className="text-gray-700 text-[13px]">{fmtDist(a.distance_meters)}</Text>
-            <Text className="text-gray-700 text-[13px]">{fmtTime(a.elapsed_time_seconds)}</Text>
-            {a.distance_meters > 0 && a.elapsed_time_seconds > 0 && (
-              <Text className="text-gray-700 text-[13px]">
-                {fmtPace(a.elapsed_time_seconds, a.distance_meters)} /km
-              </Text>
-            )}
-          </View>
-          <RunSegmentSummary activity={a} t={t} />
-          <TouchableOpacity
-            onPress={() => setShareActivity(a)}
-            className="self-start mt-2.5 flex-row items-center gap-1.5 bg-brand-red rounded-lg px-3 py-2"
-          >
-            <Share2 size={14} color="#fff" />
-            <Text className="text-white font-bold text-[13px]">{t('run.shareResult')}</Text>
-          </TouchableOpacity>
-          {a.gps_points?.length > 1 && (
-            <TouchableOpacity
-              onPress={() => setExpandedId(expandedId === a.id ? null : a.id)}
-              className="mt-2 self-start border border-gray-300 rounded-md px-2.5 py-1"
-            >
-              <Text className="text-gray-700 text-xs">
-                {expandedId === a.id ? t('profile.hideRoute') : t('profile.showRoute')}
-              </Text>
-            </TouchableOpacity>
-          )}
-          {expandedId === a.id && a.gps_points?.length > 1 && (
-            <View className="h-[200px] mt-2 rounded-lg overflow-hidden">
-              <LeafletMap points={a.gps_points} />
-            </View>
-          )}
-        </View>
-      ))}
+        ))}
       <ShareFormatModal
         visible={Boolean(shareActivity)}
         onClose={() => setShareActivity(null)}
@@ -320,6 +354,72 @@ function ProfileScreen() {
         </ViewShot>
       )}
     </ScrollView>
+  );
+}
+
+function MyTournamentsTab({ myTournaments, navigation, t }) {
+  if (myTournaments === null) {
+    return <Text className="text-gray-500 text-center mt-5">{t('common.loading')}</Text>;
+  }
+  if (myTournaments.length === 0) {
+    return <Text className="text-gray-500 text-center mt-5">{t('creator.noTournaments')}</Text>;
+  }
+  return (
+    <>
+      {myTournaments.map((tournament) => {
+        const editable = tournament.status === 'draft' || tournament.status === 'rejected';
+        const sortedSegments = [...(tournament.segments || [])].sort((a, b) => a.order_number - b.order_number);
+        return (
+          <TouchableOpacity
+            key={tournament.id}
+            activeOpacity={editable ? 0.7 : 1}
+            disabled={!editable}
+            onPress={() =>
+              navigation.navigate('Tournaments', { screen: 'EditTournament', params: { slug: tournament.slug } })
+            }
+            className="bg-white rounded-xl p-3.5 mb-2.5 border border-gray-200"
+          >
+            <View className="flex-row items-start mb-1.5">
+              <View className="flex-1">
+                <Text className="text-[15px] font-bold mb-1">{tournament.name}</Text>
+                <View
+                  className="self-start rounded px-2 py-0.5"
+                  style={{ backgroundColor: statusBg(tournament.status) }}
+                >
+                  <Text className="text-[10px] font-bold tracking-wider" style={{ color: statusFg(tournament.status) }}>
+                    {t(`creator.status_${tournament.status}`).toUpperCase()}
+                  </Text>
+                </View>
+              </View>
+              {editable && <ChevronRight size={18} color="#9ca3af" />}
+            </View>
+            {tournament.review_note ? (
+              <Text className="text-red-700 text-[13px] mb-2 leading-[18px]">{tournament.review_note}</Text>
+            ) : null}
+            <Text className="text-gray-500 text-xs">
+              {sortedSegments.length}/{tournament.total_segments_count} {t('creator.segments')}
+            </Text>
+            {editable && <Text className="text-gray-400 text-[11px] mt-1">{t('creator.tapToEdit')}</Text>}
+          </TouchableOpacity>
+        );
+      })}
+    </>
+  );
+}
+
+function statusBg(status) {
+  return (
+    { draft: '#fff3cd', pending_review: '#cce5ff', active: '#d4edda', rejected: '#f8d7da', completed: '#e2e3e5' }[
+      status
+    ] || '#eee'
+  );
+}
+
+function statusFg(status) {
+  return (
+    { draft: '#856404', pending_review: '#004085', active: '#155724', rejected: '#721c24', completed: '#383d41' }[
+      status
+    ] || '#555'
   );
 }
 
