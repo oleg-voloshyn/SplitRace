@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRoute } from '@react-navigation/native';
-import { Check, Flag } from 'lucide-react-native';
+import { Check, Flag, Share2 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
@@ -19,7 +19,7 @@ import EntityShareCard from '../components/EntityShareCard';
 import RichDescription from '../components/RichDescription';
 import { RUN_SHARE_FORMATS } from '../components/RunShareCard';
 import SegmentsMap from '../components/SegmentsMap';
-import ShareFormatButtons from '../components/ShareFormatButtons';
+import ShareFormatModal from '../components/ShareFormatModal';
 import { useAuth } from '../contexts/AuthContext';
 import { shareEntityImage, shareEntityLink } from '../utils/entityShare';
 
@@ -33,6 +33,7 @@ function TournamentScreen() {
   const [joining, setJoining] = useState(false);
   const [reportTarget, setReportTarget] = useState(null);
   const [pendingShare, setPendingShare] = useState(null);
+  const [shareTarget, setShareTarget] = useState(null); // { kind: 'tournament' | 'segment', entity }
   const shareCardRef = useRef(null);
 
   useEffect(() => {
@@ -80,8 +81,12 @@ function TournamentScreen() {
     });
   }
 
-  function shareTournamentImage(format) {
+  async function shareTournamentImage(format) {
     const url = `${WEB_URL}/tournaments/${data.slug}`;
+    // `data.segments` already includes polyline coords for the tournament view.
+    const polylines = (data.segments ?? [])
+      .map((ts) => ts.segment?.polyline)
+      .filter((line) => Array.isArray(line) && line.length >= 2);
     setPendingShare({
       format,
       entity: data,
@@ -89,10 +94,11 @@ function TournamentScreen() {
       title: data.name,
       message: t('tournaments.shareText', { name: data.name }),
       url,
-      dialogTitle: t('tournaments.share'),
+      polylines,
+      dialogTitle: t('tournaments.shareTournament'),
       stats: [
         {
-          label: t('tournaments.participantsLabel', { defaultValue: 'Participants' }),
+          label: t('tournaments.participantsLabel'),
           value: String(data.participants_count ?? 0)
         },
         { label: t('tournaments.segments'), value: String(data.total_segments_count ?? data.segments?.length ?? 0) },
@@ -101,19 +107,28 @@ function TournamentScreen() {
     });
   }
 
-  function shareSegmentImage(segment, format) {
+  async function shareSegmentImage(segment, format) {
     const url = `${WEB_URL}/segments/${segment.id}`;
+    // The list-view segment object doesn't include polyline — pull the
+    // detailed payload so the share card can render the actual route.
+    let polylines = [];
+    try {
+      const detailed = await api.segment(segment.id);
+      if (Array.isArray(detailed?.polyline) && detailed.polyline.length >= 2) {
+        polylines = [detailed.polyline];
+      }
+    } catch {
+      // Network error — fall back to icon hero.
+    }
     setPendingShare({
       format,
       entity: segment,
       kind: 'segment',
       title: segment.name,
-      message: t('segments.shareText', {
-        name: segment.name,
-        defaultValue: `Try this running segment on SplitRace: ${segment.name}`
-      }),
+      message: t('tournaments.shareText', { name: segment.name }),
       url,
-      dialogTitle: t('segments.shareSegment', { defaultValue: 'Share segment' }),
+      polylines,
+      dialogTitle: t('tournaments.shareSegment'),
       stats: [
         {
           label: t('tournaments.distance'),
@@ -122,6 +137,23 @@ function TournamentScreen() {
         { label: t('tournaments.location'), value: [segment.city, segment.country].filter(Boolean).join(', ') || '-' }
       ]
     });
+  }
+
+  function openShareModal(kind, entity) {
+    setShareTarget({ kind, entity });
+  }
+
+  function handleShareFormatSelected(format) {
+    const target = shareTarget;
+    setShareTarget(null);
+    if (!target) {
+      return;
+    }
+    if (target.kind === 'segment') {
+      shareSegmentImage(target.entity, format);
+    } else {
+      shareTournamentImage(format);
+    }
   }
 
   if (!data) {
@@ -135,7 +167,6 @@ function TournamentScreen() {
   const isParticipant = data.is_participating;
   const canJoin = data.status === 'active' && data.can_participate !== false && !isParticipant;
   const visibleSegments = segmentsForDisplay(data.segments ?? []);
-  const showSegmentOrder = visibleSegments.some((ts) => ts.order_number != null);
 
   return (
     <View className="flex-1 bg-gray-100">
@@ -193,13 +224,21 @@ function TournamentScreen() {
               <Text className="text-green-800 font-semibold">{t('tournaments.youParticipate')}</Text>
             </View>
           )}
-          <TouchableOpacity
-            className="self-start border border-gray-300 rounded-lg py-2.5 px-3 bg-white mt-3 mb-3"
-            onPress={shareTournamentLink}
-          >
-            <Text className="text-brand-navy font-bold text-sm">{t('tournaments.share')}</Text>
-          </TouchableOpacity>
-          <ShareFormatButtons selected={null} compact onShare={shareTournamentImage} />
+          <View className="flex-row gap-2 mt-3 mb-3">
+            <TouchableOpacity
+              className="flex-row items-center gap-1.5 border border-gray-300 rounded-lg py-2.5 px-3 bg-white"
+              onPress={shareTournamentLink}
+            >
+              <Text className="text-brand-navy font-bold text-sm">{t('tournaments.shareLink')}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              className="flex-row items-center gap-1.5 bg-brand-red rounded-lg py-2.5 px-3"
+              onPress={() => openShareModal('tournament', data)}
+            >
+              <Share2 size={16} color="#fff" />
+              <Text className="text-white font-bold text-sm">{t('tournaments.share')}</Text>
+            </TouchableOpacity>
+          </View>
           {data.feed?.length > 0 && (
             <View className="bg-white rounded-xl p-3 mb-3">
               <Text className="text-base font-bold mb-2">{t('tournaments.feed')}</Text>
@@ -235,19 +274,20 @@ function TournamentScreen() {
                       ) : null}
                     </View>
                     <View className="items-end">
-                      {showSegmentOrder && <Text className="text-xs text-gray-400 font-bold">#{ts.order_number}</Text>}
                       {ts.segment.distance_meters != null ? (
-                        <Text className="text-xs text-gray-700 mt-0.5">
+                        <Text className="text-xs text-gray-700">
                           {(ts.segment.distance_meters / 1000).toFixed(2)} km
                         </Text>
                       ) : null}
                     </View>
                   </View>
-                  <ShareFormatButtons
-                    selected={null}
-                    compact
-                    onShare={(format) => shareSegmentImage(ts.segment, format)}
-                  />
+                  <TouchableOpacity
+                    onPress={() => openShareModal('segment', ts.segment)}
+                    className="flex-row items-center gap-1.5 self-start mt-2.5 bg-white border border-gray-300 rounded-lg px-3 py-2"
+                  >
+                    <Share2 size={14} color="#1a1a2e" />
+                    <Text className="text-brand-navy font-bold text-[13px]">{t('tournaments.share')}</Text>
+                  </TouchableOpacity>
                 </View>
               ))
             )}
@@ -295,6 +335,13 @@ function TournamentScreen() {
       {reportTarget && (
         <ReportModal target={reportTarget} tournamentSlug={slug} onClose={() => setReportTarget(null)} />
       )}
+
+      <ShareFormatModal
+        visible={Boolean(shareTarget)}
+        onClose={() => setShareTarget(null)}
+        onSelect={handleShareFormatSelected}
+      />
+
       {pendingShare && (
         <ViewShot
           ref={shareCardRef}
@@ -313,6 +360,7 @@ function TournamentScreen() {
             format={pendingShare.format}
             url={pendingShare.url}
             stats={pendingShare.stats}
+            polylines={pendingShare.polylines}
           />
         </ViewShot>
       )}

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRoute } from '@react-navigation/native';
+import { Share2 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import ViewShot from 'react-native-view-shot';
@@ -8,7 +9,7 @@ import EntityShareCard from '../components/EntityShareCard';
 import RichDescription from '../components/RichDescription';
 import { RUN_SHARE_FORMATS } from '../components/RunShareCard';
 import SegmentsMap from '../components/SegmentsMap';
-import ShareFormatButtons from '../components/ShareFormatButtons';
+import ShareFormatModal from '../components/ShareFormatModal';
 import { shareEntityImage, shareEntityLink } from '../utils/entityShare';
 
 function SegmentScreen() {
@@ -16,6 +17,7 @@ function SegmentScreen() {
   const { id } = useRoute().params;
   const [segment, setSegment] = useState(null);
   const [pendingShare, setPendingShare] = useState(null);
+  const [showFormatModal, setShowFormatModal] = useState(false);
   const shareCardRef = useRef(null);
 
   useEffect(() => {
@@ -57,26 +59,22 @@ function SegmentScreen() {
   function shareLink() {
     shareEntityLink({
       title: segment.name,
-      message: t('segments.shareText', {
-        name: segment.name,
-        defaultValue: `Try this running segment on SplitRace: ${segment.name}`
-      }),
+      message: t('tournaments.shareText', { name: segment.name }),
       url
     });
   }
 
   function shareImage(format) {
+    const polylines = Array.isArray(segment.polyline) && segment.polyline.length >= 2 ? [segment.polyline] : [];
     setPendingShare({
       format,
       entity: segment,
       kind: 'segment',
       title: segment.name,
-      message: t('segments.shareText', {
-        name: segment.name,
-        defaultValue: `Try this running segment on SplitRace: ${segment.name}`
-      }),
+      message: t('tournaments.shareText', { name: segment.name }),
       url,
-      dialogTitle: t('segments.shareSegment', { defaultValue: 'Share segment' }),
+      polylines,
+      dialogTitle: t('tournaments.shareSegment'),
       stats
     });
   }
@@ -94,15 +92,29 @@ function SegmentScreen() {
             </View>
           ))}
         </View>
-        <TouchableOpacity
-          className="self-start border border-gray-300 rounded-lg py-2.5 px-3 bg-white"
-          onPress={shareLink}
-        >
-          <Text className="text-brand-navy font-bold text-sm">{t('tournaments.share')}</Text>
-        </TouchableOpacity>
-        <ShareFormatButtons selected={null} compact onShare={shareImage} />
+        <View className="flex-row gap-2">
+          <TouchableOpacity className="border border-gray-300 rounded-lg py-2.5 px-3 bg-white" onPress={shareLink}>
+            <Text className="text-brand-navy font-bold text-sm">{t('tournaments.shareLink')}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            className="flex-row items-center gap-1.5 bg-brand-red rounded-lg py-2.5 px-3"
+            onPress={() => setShowFormatModal(true)}
+          >
+            <Share2 size={16} color="#fff" />
+            <Text className="text-white font-bold text-sm">{t('tournaments.share')}</Text>
+          </TouchableOpacity>
+        </View>
       </View>
       {segment.polyline?.length > 1 && <SegmentsMap segments={[{ segment }]} style={{ height: 280 }} />}
+
+      <ShareFormatModal
+        visible={showFormatModal}
+        onClose={() => setShowFormatModal(false)}
+        onSelect={(format) => {
+          setShowFormatModal(false);
+          shareImage(format);
+        }}
+      />
 
       {pendingShare && (
         <ViewShot
@@ -122,6 +134,7 @@ function SegmentScreen() {
             format={pendingShare.format}
             url={pendingShare.url}
             stats={pendingShare.stats}
+            polylines={pendingShare.polylines}
           />
         </ViewShot>
       )}

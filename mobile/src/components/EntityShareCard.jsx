@@ -1,11 +1,15 @@
 import { Flag, MapPin, Trophy } from 'lucide-react-native';
 import { Text, View } from 'react-native';
+import RouteSvg from './RouteSvg';
 import { RUN_SHARE_FORMATS } from './RunShareCard';
 
-function EntityShareCard({ entity, kind = 'tournament', format = 'story', url, stats = [] }) {
+function EntityShareCard({ entity, kind = 'tournament', format = 'story', url, stats = [], polylines = [] }) {
   const cardFormat = RUN_SHARE_FORMATS[format] || RUN_SHARE_FORMATS.story;
   const isStory = cardFormat.key === 'story';
   const Icon = kind === 'segment' ? MapPin : Trophy;
+  const hasRoute = polylines.some((line) => line && line.length >= 2);
+  const heroHeight = isStory ? 220 : 140;
+  const heroWidth = isStory ? cardFormat.width - 56 : cardFormat.width - 48;
 
   return (
     <View
@@ -16,7 +20,7 @@ function EntityShareCard({ entity, kind = 'tournament', format = 'story', url, s
       <View className="absolute -top-[70px] -right-[60px] w-[190px] h-[190px] rounded-full bg-brand-red opacity-10" />
       <View className="absolute -bottom-[60px] -left-[60px] w-[170px] h-[170px] rounded-full bg-blue-500 opacity-10" />
 
-      <View className={`flex-row items-center gap-3 ${isStory ? 'mb-14' : 'mb-8'}`}>
+      <View className={`flex-row items-center gap-3 ${isStory ? 'mb-10' : 'mb-6'}`}>
         <View className="w-11 h-11 rounded-xl bg-[#151a30] items-center justify-center">
           <Flag size={22} color="#e53935" />
         </View>
@@ -26,11 +30,17 @@ function EntityShareCard({ entity, kind = 'tournament', format = 'story', url, s
         </View>
       </View>
 
-      <View className={`${isStory ? 'h-[190px] mb-12' : 'h-[118px] mb-7'} items-center justify-center`}>
-        <View className="absolute w-[230px] h-[90px] border-b-[18px] border-brand-red rounded-full opacity-90" />
-        <View className="w-[78px] h-[78px] rounded-full bg-brand-red items-center justify-center">
-          <Icon size={34} color="#fff" strokeWidth={2.4} />
-        </View>
+      <View
+        className={`${isStory ? 'mb-8' : 'mb-6'} items-center justify-center bg-[#151a30] rounded-2xl overflow-hidden`}
+        style={{ height: heroHeight }}
+      >
+        {hasRoute ? (
+          <RouteSvg polylines={polylines} width={heroWidth} height={heroHeight - 24} strokeWidth={3.5} />
+        ) : (
+          <View className="w-[78px] h-[78px] rounded-full bg-brand-red items-center justify-center">
+            <Icon size={34} color="#fff" strokeWidth={2.4} />
+          </View>
+        )}
       </View>
 
       <Text className="text-brand-red text-[12px] font-black uppercase tracking-[2px] mb-3">
@@ -46,7 +56,7 @@ function EntityShareCard({ entity, kind = 'tournament', format = 'story', url, s
           (kind === 'segment' ? 'SplitRace segment' : 'SplitRace tournament')}
       </Text>
 
-      <View className={`${isStory ? 'mt-auto' : 'mt-8'} bg-[#151a30] rounded-2xl p-4`}>
+      <View className={`${isStory ? 'mt-auto' : 'mt-6'} bg-[#151a30] rounded-2xl p-4`}>
         <View className="flex-row gap-2">
           {stats.slice(0, 3).map((stat, index) => (
             <View key={`${stat.label}-${index}`} className="flex-1">

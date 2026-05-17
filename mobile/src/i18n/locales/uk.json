@@ -59,8 +59,14 @@
     "segmentsTab": "Сегменти",
     "noSegments": "Сегментів ще немає",
     "couldNotJoin": "Не вдалося долучитися",
-    "share": "Поділитися турніром",
+    "share": "Поділитися",
+    "shareTournament": "Поділитися турніром",
+    "shareSegment": "Поділитися сегментом",
     "shareText": "Долучайся до {{name}} у SplitRace",
+    "shareFormat": "Оберіть формат",
+    "shareLink": "Поділитися посиланням",
+    "distance": "Дистанція",
+    "location": "Локація",
     "feed": "Новини"
   },
   "segments": {

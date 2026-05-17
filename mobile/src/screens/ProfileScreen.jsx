@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import * as Sharing from 'expo-sharing';
-import { AlertTriangle, Check, Pencil } from 'lucide-react-native';
+import { AlertTriangle, Check, Pencil, Share2 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { Alert, Image, ScrollView, Share, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import ViewShot from 'react-native-view-shot';
 import { api } from '../api/client';
 import LeafletMap from '../components/LeafletMap';
 import { RUN_SHARE_FORMATS, RunShareCard } from '../components/RunShareCard';
-import ShareFormatButtons from '../components/ShareFormatButtons';
+import ShareFormatModal from '../components/ShareFormatModal';
 import { useAuth } from '../contexts/AuthContext';
 import { SUPPORTED_LANGS } from '../i18n';
 import { buildShareText } from '../utils/runUtils';
@@ -20,6 +20,7 @@ function ProfileScreen() {
   const [activities, setActivities] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
   const [pendingShare, setPendingShare] = useState(null);
+  const [shareActivity, setShareActivity] = useState(null);
   const shareCardRef = useRef(null);
   const isClub = user?.account_type === 'club';
 
@@ -268,12 +269,13 @@ function ProfileScreen() {
             )}
           </View>
           <RunSegmentSummary activity={a} t={t} />
-          <Text className="text-gray-500 text-xs font-bold mt-2.5 mb-1">{t('run.shareResult')}</Text>
-          <ShareFormatButtons
-            selected={pendingShare?.activity?.id === a.id ? pendingShare.format : null}
-            compact
-            onShare={(format) => setPendingShare({ activity: a, format })}
-          />
+          <TouchableOpacity
+            onPress={() => setShareActivity(a)}
+            className="self-start mt-2.5 flex-row items-center gap-1.5 bg-brand-red rounded-lg px-3 py-2"
+          >
+            <Share2 size={14} color="#fff" />
+            <Text className="text-white font-bold text-[13px]">{t('run.shareResult')}</Text>
+          </TouchableOpacity>
           {a.gps_points?.length > 1 && (
             <TouchableOpacity
               onPress={() => setExpandedId(expandedId === a.id ? null : a.id)}
@@ -291,6 +293,17 @@ function ProfileScreen() {
           )}
         </View>
       ))}
+      <ShareFormatModal
+        visible={Boolean(shareActivity)}
+        onClose={() => setShareActivity(null)}
+        onSelect={(format) => {
+          const activity = shareActivity;
+          setShareActivity(null);
+          if (activity) {
+            setPendingShare({ activity, format });
+          }
+        }}
+      />
       {pendingShare && (
         <ViewShot
           ref={shareCardRef}

@@ -59,8 +59,14 @@
     "segmentsTab": "Segments",
     "noSegments": "No segments yet",
     "couldNotJoin": "Could not join",
-    "share": "Share tournament",
+    "share": "Share",
+    "shareTournament": "Share tournament",
+    "shareSegment": "Share segment",
     "shareText": "Join {{name}} on SplitRace",
+    "shareFormat": "Choose format",
+    "shareLink": "Share link",
+    "distance": "Distance",
+    "location": "Location",
     "feed": "News"
   },
   "segments": {
