@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 import * as Sharing from 'expo-sharing';
 import * as TaskManager from 'expo-task-manager';
-import { Check, Play, Square } from 'lucide-react-native';
+import { Check, Play, Square, Trophy } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { Alert, Platform, ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import ViewShot from 'react-native-view-shot';
@@ -375,10 +375,12 @@ function RunTrackerScreen() {
       segment_efforts: [],
       segment_efforts_count: 0,
       passed_segments: [],
-      pending_rated_unlocks: []
+      pending_rated_unlocks: [],
+      new_personal_bests: []
     };
     const passedSegments = activity.passed_segments || [];
     const pendingUnlocks = activity.pending_rated_unlocks || [];
+    const personalBests = activity.new_personal_bests || [];
     const passedCount = passedSegments.length;
     const hasPassed = passedCount > 0;
     const cardFormat = RUN_SHARE_FORMATS[shareFormat] || RUN_SHARE_FORMATS.story;
@@ -428,6 +430,22 @@ function RunTrackerScreen() {
               ))
             ) : (
               <Text className="text-gray-600 leading-5">{t('run.noSegmentsCompleted')}</Text>
+            )}
+            {personalBests.length > 0 && (
+              <View className="mt-3 pt-3 border-t border-gray-100">
+                {personalBests.map((pb) => (
+                  <View key={pb.segment_id} className="flex-row items-center gap-2 py-1.5">
+                    <Trophy size={16} color="#d97706" strokeWidth={2.5} />
+                    <Text className="text-amber-700 text-[13px] leading-[18px] flex-1 font-semibold">
+                      {t('run.newPersonalBest', {
+                        segment: pb.segment_name,
+                        time: pb.formatted_time,
+                        previous: pb.previous_best_formatted
+                      })}
+                    </Text>
+                  </View>
+                ))}
+              </View>
             )}
             {pendingUnlocks.length > 0 && (
               <View className="mt-3 pt-3 border-t border-gray-100">

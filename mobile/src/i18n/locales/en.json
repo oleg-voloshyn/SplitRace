@@ -102,6 +102,7 @@
     "segmentsCompleted": "{{count}} segments completed",
     "noSegmentsCompleted": "No segments were unlocked on this run.",
     "pendingRatedUnlock": "Rated segment #{{position}} wasn't unlocked on this run.",
+    "newPersonalBest": "New PB on {{segment}}: {{time}} (was {{previous}})",
     "shareResult": "Share result",
     "shareTitle": "My SplitRace run"
   },

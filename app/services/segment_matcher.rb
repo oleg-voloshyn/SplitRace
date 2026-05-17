@@ -47,8 +47,10 @@ class SegmentMatcher
     !start_idx.nil? && !end_idx.nil? && start_idx < end_idx
   end
 
-  # For Golden Fever: player must complete rated segments in order 1→2→3…
-  # Only check the player's NEXT required segment. If covered, check the next one.
+  # Always record an effort for every rated segment the GPS passes through, so
+  # that re-runs of an already-unlocked segment update the user's best time.
+  # The unlock event (Golden Fever in-order chain) is only published the FIRST
+  # time a segment is matched — past unlocks are not re-fired.
   def match_ordered_for(tournament)
     rated_segments = tournament.tournament_segments
                                .where(is_rated: true)
@@ -57,20 +59,34 @@ class SegmentMatcher
 
     return if rated_segments.empty?
 
-    completed_ids = SegmentEffort
-                    .where(user: @user, segment_id: rated_segments.map(&:segment_id))
-                    .pluck(:segment_id)
-                    .to_set
+    rated_segment_ids = rated_segments.map(&:segment_id)
 
+    # Segments the user had efforts for BEFORE this activity — used to decide
+    # which unlock events are "new" and which are re-runs.
+    previously_completed = SegmentEffort
+                           .where(user: @user, segment_id: rated_segment_ids)
+                           .where.not(activity_id: @activity.id)
+                           .pluck(:segment_id)
+                           .to_set
+
+    # Try to match every rated segment — try_match handles "only keep faster
+    # time within the same activity" internally.
+    matched_now = rated_segments.each_with_object(Set.new) do |ts, set|
+      set.add(ts.segment_id) if try_match(ts.segment)
+    end
+
+    # Publish unlock events along the in-order chain, starting from the first
+    # not-previously-completed segment, while subsequent ones were matched in
+    # this run too. Stop at the first gap.
     rated_segments.each do |ts|
-      next if completed_ids.include?(ts.segment_id)
+      next if previously_completed.include?(ts.segment_id)
+      break unless matched_now.include?(ts.segment_id)
 
-      # This is the next required segment — try to match in this activity
-      effort = try_match(ts.segment)
-      break unless effort
+      effort = SegmentEffort.find_by(user: @user, segment: ts.segment, activity: @activity)
+      next unless effort
 
       TournamentEventPublisher.segment_unlocked!(tournament:, segment_effort: effort)
-      completed_ids.add(ts.segment_id)
+      previously_completed.add(ts.segment_id)
     end
   end
 

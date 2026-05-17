@@ -74,8 +74,38 @@ module Api
           segment_efforts: activity.segment_efforts.includes(:segment).order(:started_at).map { |effort| segment_effort_json(effort) },
           passed_segments:,
           pending_rated_unlocks: pending_rated_unlocks_for(activity),
+          new_personal_bests: new_personal_bests_for(activity),
           gps_points: activity.gps_points || []
         }
+      end
+
+      def new_personal_bests_for(activity)
+        activity.segment_efforts.includes(:segment).filter_map do |effort|
+          previous_best = SegmentEffort
+                          .where(user_id: activity.user_id, segment_id: effort.segment_id)
+                          .where.not(activity_id: activity.id)
+                          .minimum(:elapsed_time_seconds)
+          next nil unless previous_best
+          next nil unless effort.elapsed_time_seconds < previous_best
+
+          {
+            segment_id: effort.segment_id,
+            segment_name: effort.segment.name,
+            elapsed_time_seconds: effort.elapsed_time_seconds,
+            formatted_time: effort.formatted_time,
+            previous_best_seconds: previous_best,
+            previous_best_formatted: format_seconds(previous_best)
+          }
+        end
+      end
+
+      def format_seconds(secs)
+        hours   = secs / 3600
+        minutes = (secs % 3600) / 60
+        seconds = secs % 60
+        return format('%<h>02d:%<m>02d:%<s>02d', h: hours, m: minutes, s: seconds) if hours.positive?
+
+        format('%<m>02d:%<s>02d', m: minutes, s: seconds)
       end
 
       def passed_segments_for(activity)
