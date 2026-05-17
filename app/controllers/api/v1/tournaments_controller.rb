@@ -240,11 +240,12 @@ module Api
       end
 
       def tournament_event_json(event)
+        text = localized_event_text(event)
         {
           id: event.id,
           event_type: event.event_type,
-          title: event.title,
-          body: event.body,
+          title: text[:title] || event.title,
+          body: text[:body] || event.body,
           created_at: event.created_at,
           actor: {
             id: event.actor.id,
@@ -256,6 +257,12 @@ module Api
             name: event.segment.name
           }
         }
+      end
+
+      def localized_event_text(event)
+        return {} unless event.event_type == 'segment_unlocked' && event.metadata.present?
+
+        TournamentEventPublisher.localize_segment_unlocked(event.metadata, I18n.locale)
       end
 
       def polyline_to_coords(polyline)

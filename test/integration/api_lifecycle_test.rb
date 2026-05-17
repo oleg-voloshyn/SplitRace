@@ -361,7 +361,8 @@ class ApiLifecycleTest < ActionDispatch::IntegrationTest
     assert_equal 1, body['segment_efforts_count']
     assert_equal 'Matched Segment', body.dig('segment_efforts', 0, 'segment', 'name')
     assert_equal 1, TournamentEvent.where(tournament:, segment:).count
-    assert_equal 1, runner.notifications.where(tournament:).count
+    # Actor (runner) does not receive a notification for their own unlock.
+    assert_equal 0, runner.notifications.where(tournament:).count
   end
 
   private

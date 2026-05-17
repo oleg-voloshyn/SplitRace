@@ -20,14 +20,15 @@ class ApiNotificationsTest < ActionDispatch::IntegrationTest
 
     begin
       assert_difference 'TournamentEvent.count', 1 do
-        assert_difference 'Notification.count', 2 do
+        assert_difference 'Notification.count', 1 do
           TournamentEventPublisher.segment_unlocked!(tournament:, segment_effort: effort)
         end
       end
     ensure
       ExpoPushNotificationService.define_singleton_method(:deliver, original_deliver)
     end
-    assert_equal 2, delivered_notifications.size
+    assert_equal 1, delivered_notifications.size
+    assert_equal spectator.id, delivered_notifications.first.user_id
 
     get feed_api_v1_tournament_path(tournament.slug), headers: auth_headers(runner)
 

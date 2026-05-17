@@ -2,6 +2,7 @@ module Api
   module V1
     class BaseController < ActionController::API
       before_action :authenticate_user!
+      around_action :switch_locale
 
       private
 
@@ -14,6 +15,12 @@ module Api
 
         @current_user = User.find_by(id: payload['user_id'])
         render_unauthorized unless @current_user
+      end
+
+      def switch_locale(&)
+        locale = current_user&.locale&.to_sym
+        locale = I18n.default_locale unless I18n.available_locales.include?(locale)
+        I18n.with_locale(locale, &)
       end
 
       attr_reader :current_user

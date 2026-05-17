@@ -1,0 +1,5 @@
+uk:
+  notifications:
+    segment_unlocked:
+      title: "%{actor} відкрив(-ла) %{segment}"
+      body: "%{actor} пробіг(-ла) %{segment} за %{time}."

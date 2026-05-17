@@ -42,6 +42,10 @@ module Splitrace
     config.api_only = true
     config.active_job.queue_adapter = :sidekiq
 
+    config.i18n.available_locales = %i[en uk]
+    config.i18n.default_locale = :en
+    config.i18n.fallbacks = [:en]
+
     # OmniAuth needs sessions to store the state parameter between redirect and callback
     config.middleware.use Rack::MethodOverride
     config.middleware.use ActionDispatch::Cookies

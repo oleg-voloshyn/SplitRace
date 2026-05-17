@@ -19,7 +19,7 @@ class User < ApplicationRecord
   GENDERS = %w[male female other].freeze
   ROLES   = %w[user moderator admin].freeze
   UNITS   = %w[km miles].freeze
-  LOCALES = %w[en de fr es it].freeze
+  LOCALES = %w[en uk].freeze
 
   validates :email, presence: true, uniqueness: { case_sensitive: false }, format: { with: URI::MailTo::EMAIL_REGEXP }
   validates :account_type, inclusion: { in: ACCOUNT_TYPES }
