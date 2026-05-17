@@ -101,6 +101,7 @@
     "noSegmentUnlocked": "Run summary",
     "segmentsCompleted": "{{count}} segments completed",
     "noSegmentsCompleted": "No segments were unlocked on this run.",
+    "pendingRatedUnlock": "Rated segment #{{position}} wasn't unlocked on this run.",
     "shareResult": "Share result",
     "shareTitle": "My SplitRace run"
   },

@@ -62,6 +62,7 @@ module Api
       end
 
       def activity_json(activity)
+        passed_segments = passed_segments_for(activity)
         {
           id: activity.id,
           started_at: activity.started_at,
@@ -71,8 +72,31 @@ module Api
           source: activity.source,
           segment_efforts_count: activity.segment_efforts.count,
           segment_efforts: activity.segment_efforts.includes(:segment).order(:started_at).map { |effort| segment_effort_json(effort) },
+          passed_segments:,
+          pending_rated_unlocks: pending_rated_unlocks_for(activity),
           gps_points: activity.gps_points || []
         }
+      end
+
+      def passed_segments_for(activity)
+        ids = activity.passed_segment_ids.presence || []
+        return [] if ids.empty?
+
+        Segment.where(id: ids).pluck(:id, :name).map { |id, name| { id:, name: } }
+      end
+
+      def pending_rated_unlocks_for(activity)
+        user = activity.user
+        user.tournaments.where(status: 'active').filter_map do |tournament|
+          rated = tournament.tournament_segments.where(is_rated: true).order(:order_number)
+          next nil if rated.empty?
+
+          completed = SegmentEffort.where(user:, segment_id: rated.pluck(:segment_id)).pluck(:segment_id).to_set
+          next_required = rated.find { |ts| completed.exclude?(ts.segment_id) }
+          next nil unless next_required
+
+          { tournament_name: tournament.name, position: next_required.order_number }
+        end
       end
 
       def segment_effort_json(effort)

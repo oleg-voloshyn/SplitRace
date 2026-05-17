@@ -373,10 +373,14 @@ function RunTrackerScreen() {
       elapsed_time_seconds: duration,
       distance_meters: calcDistance(points),
       segment_efforts: [],
-      segment_efforts_count: 0
+      segment_efforts_count: 0,
+      passed_segments: [],
+      pending_rated_unlocks: []
     };
-    const segmentCount = activity.segment_efforts_count || activity.segment_efforts?.length || 0;
-    const hasSegments = segmentCount > 0;
+    const passedSegments = activity.passed_segments || [];
+    const pendingUnlocks = activity.pending_rated_unlocks || [];
+    const passedCount = passedSegments.length;
+    const hasPassed = passedCount > 0;
     const cardFormat = RUN_SHARE_FORMATS[shareFormat] || RUN_SHARE_FORMATS.story;
 
     return (
@@ -400,7 +404,7 @@ function RunTrackerScreen() {
 
         <View className="w-full bg-white rounded-2xl p-4 shadow-lg">
           <Text className="text-brand-red text-[13px] font-extrabold mb-3.5 uppercase">
-            {hasSegments ? t('run.segmentUnlocked') : t('run.noSegmentUnlocked')}
+            {t('run.noSegmentUnlocked')}
           </Text>
           <View className="flex-row gap-2">
             <SummaryStat label={t('run.distance')} value={fmtDist(activity.distance_meters)} />
@@ -412,17 +416,30 @@ function RunTrackerScreen() {
           </View>
           <View className="mt-4 border-t border-gray-200 pt-3.5">
             <Text className="text-brand-navy text-base font-extrabold mb-2.5">
-              {t('run.segmentsCompleted', { count: segmentCount })}
+              {t('run.segmentsCompleted', { count: passedCount })}
+              {hasPassed ? ':' : ''}
             </Text>
-            {hasSegments ? (
-              activity.segment_efforts.map((effort) => (
-                <View key={effort.id} className="flex-row justify-between gap-3 py-2 border-b border-gray-100">
-                  <Text className="text-gray-800 text-sm font-semibold flex-1">{effort.segment?.name}</Text>
-                  <Text className="text-brand-red text-sm font-extrabold">{effort.formatted_time}</Text>
+            {hasPassed ? (
+              passedSegments.map((seg) => (
+                <View key={seg.id} className="flex-row gap-3 py-2 border-b border-gray-100">
+                  <Text className="text-gray-400 text-sm">•</Text>
+                  <Text className="text-gray-800 text-sm font-semibold flex-1">{seg.name}</Text>
                 </View>
               ))
             ) : (
               <Text className="text-gray-600 leading-5">{t('run.noSegmentsCompleted')}</Text>
+            )}
+            {pendingUnlocks.length > 0 && (
+              <View className="mt-3 pt-3 border-t border-gray-100">
+                {pendingUnlocks.map((p) => (
+                  <Text
+                    key={`${p.tournament_name}-${p.position}`}
+                    className="text-amber-800 text-[13px] leading-[18px]"
+                  >
+                    {t('run.pendingRatedUnlock', { position: p.position })}
+                  </Text>
+                ))}
+              </View>
             )}
           </View>
         </View>

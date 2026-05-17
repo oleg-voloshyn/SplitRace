@@ -101,6 +101,7 @@
     "noSegmentUnlocked": "Підсумок пробіжки",
     "segmentsCompleted": "{{count}} сегментів подолано",
     "noSegmentsCompleted": "На цій пробіжці сегменти не були відкриті.",
+    "pendingRatedUnlock": "На цій пробіжці рейтинговий сегмент #{{position}} не був відкритий.",
     "shareResult": "Поділитися результатом",
     "shareTitle": "Моя пробіжка у SplitRace"
   },

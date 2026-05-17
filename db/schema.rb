@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_15_080000) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_17_183000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "postgis"
@@ -22,6 +22,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_15_080000) do
     t.datetime "finished_at"
     t.jsonb "gps_points", default: []
     t.geography "gps_track", limit: {srid: 4326, type: "line_string", geographic: true}
+    t.integer "passed_segment_ids", default: [], array: true
     t.string "source", default: "web_pwa", null: false
     t.datetime "started_at", null: false
     t.datetime "updated_at", null: false

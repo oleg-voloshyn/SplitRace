@@ -9,12 +9,43 @@ class SegmentMatcher
   def call
     return if @activity.gps_points.blank?
 
+    passed_ids = []
+
     @user.tournaments.where(status: 'active').find_each do |tournament|
       match_ordered_for(tournament)
+      passed_ids.concat(passing_segment_ids(tournament))
     end
+
+    @activity.update_columns(passed_segment_ids: passed_ids.uniq) if passed_ids.any?
   end
 
   private
+
+  def passing_segment_ids(tournament)
+    tournament.tournament_segments.includes(:segment).filter_map do |ts|
+      passes_through?(ts.segment) ? ts.segment_id : nil
+    end
+  end
+
+  def passes_through?(segment)
+    return false unless segment.start_point && segment.end_point && @activity.gps_track
+
+    near_start = Activity.where(id: @activity.id)
+                         .where('ST_DWithin(gps_track::geography, ?::geography, ?)',
+                                segment.start_point.to_s, PROXIMITY_METERS)
+                         .exists?
+    return false unless near_start
+
+    near_end = Activity.where(id: @activity.id)
+                       .where('ST_DWithin(gps_track::geography, ?::geography, ?)',
+                              segment.end_point.to_s, PROXIMITY_METERS)
+                       .exists?
+    return false unless near_end
+
+    start_idx = closest_point_index(@activity.gps_points, segment.start_point)
+    end_idx   = closest_point_index(@activity.gps_points, segment.end_point)
+    !start_idx.nil? && !end_idx.nil? && start_idx < end_idx
+  end
 
   # For Golden Fever: player must complete rated segments in order 1→2→3…
   # Only check the player's NEXT required segment. If covered, check the next one.
