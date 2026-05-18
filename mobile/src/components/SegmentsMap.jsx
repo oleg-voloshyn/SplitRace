@@ -59,12 +59,23 @@ function buildHtml(segments) {
       attributionControl: false,
       touchZoom: true,
       doubleClickZoom: true,
-      scrollWheelZoom: true
+      scrollWheelZoom: true,
+      zoomSnap: 0.25
     }).setView([50.45, 30.52], 13);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
     const segments = ${segsJson};
     const allLatLngs = [];
+    let fittedBounds = null;
+
+    function fitTournamentSegments() {
+      map.invalidateSize(false);
+      if (fittedBounds) {
+        map.fitBounds(fittedBounds, { padding: [42, 42], maxZoom: 13 });
+      } else if (allLatLngs.length === 1) {
+        map.setView(allLatLngs[0], 13);
+      }
+    }
 
     segments.forEach(function(seg) {
       const line = (seg.polyline || []).map(function(p) { return [p.lat, p.lng]; });
@@ -89,9 +100,13 @@ function buildHtml(segments) {
     });
 
     if (allLatLngs.length > 1) {
-      map.fitBounds(allLatLngs, { padding: [28, 28] });
+      fittedBounds = L.latLngBounds(allLatLngs);
+      fitTournamentSegments();
+      setTimeout(fitTournamentSegments, 120);
+      setTimeout(fitTournamentSegments, 420);
     } else if (allLatLngs.length === 1) {
-      map.setView(allLatLngs[0], 15);
+      fitTournamentSegments();
+      setTimeout(fitTournamentSegments, 120);
     }
   </script>
 </body>
