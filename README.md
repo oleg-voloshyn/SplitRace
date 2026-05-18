@@ -89,6 +89,11 @@ export EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID=your-android-client-id
 export EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=your-web-client-id
 ```
 
+`mobile/app.config.js` also accepts the backend-style fallback names
+`GOOGLE_EXPO_CLIENT_ID`, `GOOGLE_IOS_CLIENT_ID`, `GOOGLE_ANDROID_CLIENT_ID`,
+`GOOGLE_WEB_CLIENT_ID`, and `GOOGLE_CLIENT_ID`. For EAS builds, add these values
+as EAS environment variables/secrets before building the Android or iOS app.
+
 The Rails API verifies Google ID tokens against these backend env vars:
 
 ```sh
