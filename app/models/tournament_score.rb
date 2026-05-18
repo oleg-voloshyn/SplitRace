@@ -4,6 +4,8 @@ class TournamentScore < ApplicationRecord
 
   # Golden Fever scoring:
   #   per completed rated segment: (fastest_same_gender_time / own_time) * 100
+  #   first opener bonus: +10 for each rated segment where the runner is the
+  #     first tournament participant to unlock it
   #   bonus for completing all segments in order:
   #     1st finisher: participants * 10, 2nd: * 9 … 10th: * 1
   def self.recalculate_all(tournament)
@@ -17,6 +19,7 @@ class TournamentScore < ApplicationRecord
     rated_segment_ids  = rated_segments.map(&:segment_id)
     participants       = tournament.tournament_participants.includes(:user)
     total_participants = participants.count
+    first_opener_by_segment = first_opener_by_segment(tournament, rated_segment_ids)
 
     # Find who completed ALL segments and when (for bonus ranking)
     completion_times = {}
@@ -68,6 +71,8 @@ class TournamentScore < ApplicationRecord
         if fastest && best_effort.elapsed_time_seconds.positive?
           total_score += (fastest.to_f / best_effort.elapsed_time_seconds) * 100.0
         end
+
+        total_score += 10.0 if first_opener_by_segment[ts.segment_id] == user.id
       end
 
       # Bonus for completing all segments (positions 1–10)
@@ -85,6 +90,20 @@ class TournamentScore < ApplicationRecord
     end
 
     update_ranks(tournament)
+  end
+
+  def self.first_opener_by_segment(tournament, segment_ids)
+    return {} if segment_ids.empty?
+
+    participant_user_ids = tournament.tournament_participants.select(:user_id)
+
+    SegmentEffort
+      .where(user_id: participant_user_ids, segment_id: segment_ids)
+      .order(:segment_id, :started_at, :id)
+      .pluck(:segment_id, :user_id)
+      .each_with_object({}) do |(segment_id, user_id), first_openers|
+        first_openers[segment_id] ||= user_id
+      end
   end
 
   def self.update_ranks(tournament)
