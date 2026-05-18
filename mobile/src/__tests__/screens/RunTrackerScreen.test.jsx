@@ -22,10 +22,17 @@ const mockT = (key, opts) => {
     'run.time': 'Time',
     'run.pace': 'Pace',
     'run.segmentUnlocked': 'Segment unlocked',
+    'run.runComplete': 'Run complete',
     'run.noSegmentUnlocked': 'Run summary',
     'run.segmentsCompleted': `${opts?.count ?? 0} segments completed`,
     'run.noSegmentsCompleted': 'No segments completed.',
-    'run.shareTitle': 'My SplitRace run'
+    'run.shareTitle': 'My SplitRace run',
+    'run.shareTagline': 'Run • Compete • Improve',
+    'run.shareKicker': 'My SplitRace run',
+    'run.shareNoSegments': 'No segments completed',
+    'run.shareSegmentsCompleted': `${opts?.count ?? 0} segments completed`,
+    'run.shareMore': `+${opts?.count ?? 0} more...`,
+    'run.shareFooterDate': `Run date — ${opts?.date}`
   };
   return map[key] ?? key;
 };

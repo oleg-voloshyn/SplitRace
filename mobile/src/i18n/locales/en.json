@@ -98,13 +98,21 @@
     "backgroundNeededMsg": "To record your run when the screen is off, please allow \"Allow all the time\" in location settings.",
     "saveFailed": "Failed to save run",
     "segmentUnlocked": "Segment unlocked",
+    "runComplete": "Run complete",
     "noSegmentUnlocked": "Run summary",
     "segmentsCompleted": "{{count}} segments completed",
     "noSegmentsCompleted": "No segments were unlocked on this run.",
     "pendingRatedUnlock": "Rated segment #{{position}} wasn't unlocked on this run.",
     "newPersonalBest": "New PB on {{segment}}: {{time}} (was {{previous}})",
     "shareResult": "Share result",
-    "shareTitle": "My SplitRace run"
+    "shareTitle": "My SplitRace run",
+    "shareTagline": "Run • Compete • Improve",
+    "shareKicker": "My SplitRace run",
+    "shareNoSegments": "No segments completed",
+    "shareSegmentsCompleted_one": "{{count}} segment completed",
+    "shareSegmentsCompleted_other": "{{count}} segments completed",
+    "shareMore": "+{{count}} more...",
+    "shareFooterDate": "Run date — {{date}}"
   },
   "profile": {
     "genderWarning": "⚠ Set your gender — required for tournament scoring",

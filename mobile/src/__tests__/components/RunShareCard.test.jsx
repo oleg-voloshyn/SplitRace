@@ -2,6 +2,28 @@ import React from 'react';
 import { render, screen } from '@testing-library/react-native';
 import { RunShareCard } from '../../components/RunShareCard';
 
+const mockT = (key, opts) => {
+  const map = {
+    'run.shareTagline': 'Біжи • Змагайся • Прогресуй',
+    'run.shareKicker': 'Моя пробіжка SplitRace',
+    'run.segmentUnlocked': 'Сегмент відкрито',
+    'run.runComplete': 'Пробіжку завершено',
+    'run.distance': 'Дистанція',
+    'run.time': 'Час',
+    'run.pace': 'Темп/км',
+    'run.shareNoSegments': 'Сегменти не пройдені',
+    'run.shareSegmentsCompleted':
+      opts?.count === 1 ? `${opts.count} сегмент пройдено` : `${opts?.count ?? 0} сегменти пройдено`,
+    'run.shareMore': `+${opts?.count ?? 0} ще...`,
+    'run.shareFooterDate': `Час пробіжки — ${opts?.date}`
+  };
+  return map[key] ?? key;
+};
+
+jest.mock('react-i18next', () => ({
+  useTranslation: () => ({ t: mockT, i18n: { language: 'uk' } })
+}));
+
 const baseActivity = {
   distance_meters: 5230,
   elapsed_time_seconds: 1500,

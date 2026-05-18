@@ -47,10 +47,9 @@ class SegmentMatcher
     !start_idx.nil? && !end_idx.nil? && start_idx < end_idx
   end
 
-  # Always record an effort for every rated segment the GPS passes through, so
-  # that re-runs of an already-unlocked segment update the user's best time.
-  # The unlock event (Golden Fever in-order chain) is only published the FIRST
-  # time a segment is matched — past unlocks are not re-fired.
+  # Rated segments are unlocked strictly in order for each runner. GPS may pass
+  # later rated routes, but they do not count until all earlier rated positions
+  # are already unlocked or unlocked earlier in this same activity.
   def match_ordered_for(tournament)
     rated_segments = tournament.tournament_segments
                                .where(is_rated: true)
@@ -61,36 +60,32 @@ class SegmentMatcher
 
     rated_segment_ids = rated_segments.map(&:segment_id)
 
-    # Segments the user had efforts for BEFORE this activity — used to decide
-    # which unlock events are "new" and which are re-runs.
+    # Segments the user had efforts for BEFORE this activity. Already unlocked
+    # segments may be re-run to improve time, but missing positions block all
+    # later rated unlocks.
     previously_completed = SegmentEffort
                            .where(user: @user, segment_id: rated_segment_ids)
                            .where.not(activity_id: @activity.id)
                            .pluck(:segment_id)
                            .to_set
 
-    # Try to match every rated segment — try_match handles "only keep faster
-    # time within the same activity" internally.
-    matched_now = rated_segments.each_with_object(Set.new) do |ts, set|
-      set.add(ts.segment_id) if try_match(ts.segment)
-    end
-
-    # Publish unlock events along the in-order chain, starting from the first
-    # not-previously-completed segment, while subsequent ones were matched in
-    # this run too. Stop at the first gap.
+    last_new_unlock_at = nil
     rated_segments.each do |ts|
-      next if previously_completed.include?(ts.segment_id)
-      break unless matched_now.include?(ts.segment_id)
+      if previously_completed.include?(ts.segment_id)
+        try_match(ts.segment)
+        next
+      end
 
-      effort = SegmentEffort.find_by(user: @user, segment: ts.segment, activity: @activity)
-      next unless effort
+      effort = try_match(ts.segment, after: last_new_unlock_at)
+      break unless effort
 
       TournamentEventPublisher.segment_unlocked!(tournament:, segment_effort: effort)
       previously_completed.add(ts.segment_id)
+      last_new_unlock_at = effort.started_at
     end
   end
 
-  def try_match(segment)
+  def try_match(segment, after: nil)
     return nil unless segment.start_point && segment.end_point && @activity.gps_track
 
     near_start = Activity.where(id: @activity.id)
@@ -107,6 +102,7 @@ class SegmentMatcher
 
     elapsed, started = interpolate_time(segment)
     return nil unless elapsed&.positive?
+    return nil if after && started < after
 
     existing = SegmentEffort.find_by(user: @user, segment:, activity: @activity)
     return existing if existing&.elapsed_time_seconds&.<=(elapsed)

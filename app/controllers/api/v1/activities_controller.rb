@@ -121,7 +121,15 @@ module Api
           rated = tournament.tournament_segments.where(is_rated: true).order(:order_number)
           next nil if rated.empty?
 
-          completed = SegmentEffort.where(user:, segment_id: rated.pluck(:segment_id)).pluck(:segment_id).to_set
+          rated_segment_ids = rated.pluck(:segment_id)
+          unlocked_in_activity = TournamentEvent
+                                 .joins(:segment_effort)
+                                 .where(tournament:, actor: user)
+                                 .where(segment_efforts: { activity_id: activity.id })
+                                 .exists?
+          next nil if unlocked_in_activity
+
+          completed = SegmentEffort.where(user:, segment_id: rated_segment_ids).pluck(:segment_id).to_set
           next_required = rated.find { |ts| completed.exclude?(ts.segment_id) }
           next nil unless next_required
 

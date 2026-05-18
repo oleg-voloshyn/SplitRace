@@ -365,6 +365,89 @@ class ApiLifecycleTest < ActionDispatch::IntegrationTest
     assert_equal 0, runner.notifications.where(tournament:).count
   end
 
+  test 'activity does not unlock later rated segments before the first missing rated segment' do
+    owner = create_user(email: 'activity-later-owner@example.com')
+    runner = create_user(email: 'activity-later-runner@example.com')
+    spectator = create_user(email: 'activity-later-spectator@example.com')
+    tournament = create_tournament(owner, status: 'active', total_segments_count: 4, rated_segments_count: 3)
+    skipped = create_segment(owner, name: 'Skipped Rated', lng_offset: 0.0)
+    second = create_segment(owner, name: 'Second Rated', lng_offset: 0.03)
+    third = create_segment(owner, name: 'Third Rated', lng_offset: 0.06)
+    tournament.tournament_segments.create!(segment: skipped, order_number: 1, is_rated: true)
+    tournament.tournament_segments.create!(segment: second, order_number: 2, is_rated: true)
+    tournament.tournament_segments.create!(segment: third, order_number: 3, is_rated: true)
+    tournament.tournament_participants.create!(user: runner)
+    tournament.tournament_participants.create!(user: spectator)
+
+    assert_no_difference 'SegmentEffort.count' do
+      assert_no_difference 'TournamentEvent.count' do
+        assert_no_difference 'Notification.count' do
+          post api_v1_activities_path,
+               params: {
+                 started_at: Time.zone.at(1_800).iso8601,
+                 finished_at: Time.zone.at(2_040).iso8601,
+                 distance_meters: 2_400,
+                 elapsed_time_seconds: 240,
+                 source: 'mobile_android',
+                 gps_points: [
+                   { lat: 50.45, lng: 30.55, ts: 1_800, accuracy: 5 },
+                   { lat: 50.46, lng: 30.56, ts: 1_900, accuracy: 5 },
+                   { lat: 50.45, lng: 30.58, ts: 1_940, accuracy: 5 },
+                   { lat: 50.46, lng: 30.59, ts: 2_040, accuracy: 5 }
+                 ]
+               },
+               headers: auth_headers(runner)
+        end
+      end
+    end
+
+    assert_response :created
+    body = response.parsed_body
+    assert_equal 0, body['segment_efforts_count']
+    assert_equal [{ 'tournament_name' => tournament.name, 'position' => 1 }], body['pending_rated_unlocks']
+    assert_empty TournamentEvent.where(tournament:)
+    assert_equal 0, spectator.notifications.where(tournament:).count
+    assert_equal 0, runner.notifications.where(tournament:).count
+  end
+
+  test 'activity only unlocks later rated segment after earlier segment was passed first' do
+    owner = create_user(email: 'activity-order-owner@example.com')
+    runner = create_user(email: 'activity-order-runner@example.com')
+    tournament = create_tournament(owner, status: 'active', total_segments_count: 3, rated_segments_count: 2)
+    first = create_segment(owner, name: 'First Rated', lng_offset: 0.0)
+    second = create_segment(owner, name: 'Second Rated', lng_offset: 0.03)
+    tournament.tournament_segments.create!(segment: first, order_number: 1, is_rated: true)
+    tournament.tournament_segments.create!(segment: second, order_number: 2, is_rated: true)
+    tournament.tournament_participants.create!(user: runner)
+
+    assert_difference 'SegmentEffort.count', 1 do
+      assert_difference 'TournamentEvent.count', 1 do
+        post api_v1_activities_path,
+             params: {
+               started_at: Time.zone.at(1_800).iso8601,
+               finished_at: Time.zone.at(2_040).iso8601,
+               distance_meters: 2_400,
+               elapsed_time_seconds: 240,
+               source: 'mobile_android',
+               gps_points: [
+                 { lat: 50.45, lng: 30.55, ts: 1_800, accuracy: 5 },
+                 { lat: 50.46, lng: 30.56, ts: 1_900, accuracy: 5 },
+                 { lat: 50.45, lng: 30.52, ts: 1_940, accuracy: 5 },
+                 { lat: 50.46, lng: 30.53, ts: 2_040, accuracy: 5 }
+               ]
+             },
+             headers: auth_headers(runner)
+      end
+    end
+
+    assert_response :created
+    effort_names = response.parsed_body['segment_efforts'].map { |effort| effort.dig('segment', 'name') }
+    assert_equal ['First Rated'], effort_names
+    assert_empty response.parsed_body['pending_rated_unlocks']
+    event_names = TournamentEvent.where(tournament:).order(:id).map { |event| event.segment.name }
+    assert_equal ['First Rated'], event_names
+  end
+
   private
 
   def create_user(email:, role: 'user', gender: 'other', first_name: nil)
@@ -401,14 +484,14 @@ class ApiLifecycleTest < ActionDispatch::IntegrationTest
     )
   end
 
-  def create_segment(user, name:)
+  def create_segment(user, name:, lng_offset: 0.0)
     Segment.create!(
       name:,
       created_by: user,
       is_active: true,
       city: 'Kyiv',
       country: 'UA',
-      **segment_geometry
+      **segment_geometry(lng_offset:)
     )
   end
 
@@ -421,11 +504,11 @@ class ApiLifecycleTest < ActionDispatch::IntegrationTest
     )
   end
 
-  def segment_geometry
+  def segment_geometry(lng_offset: 0.0)
     factory = RGeo::Geographic.spherical_factory(srid: 4326)
     points = [
-      factory.point(30.52, 50.45),
-      factory.point(30.53, 50.46)
+      factory.point(30.52 + lng_offset, 50.45),
+      factory.point(30.53 + lng_offset, 50.46)
     ]
 
     {

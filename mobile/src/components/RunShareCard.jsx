@@ -1,4 +1,5 @@
 import { ChevronRight, Footprints, MapPin, Zap } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { Image, Text, View } from 'react-native';
 
 const ACCENT = '#e53935';
@@ -30,12 +31,15 @@ const RUN_SHARE_FORMATS = {
 };
 
 function RunShareCard({ activity, forwardRef, format = 'story' }) {
+  const { i18n, t } = useTranslation();
   const cardFormat = RUN_SHARE_FORMATS[format] || RUN_SHARE_FORMATS.story;
   const segmentCount = activity.segment_efforts_count || activity.segment_efforts?.length || 0;
   const segments = activity.segment_efforts || [];
   const hasSegments = segmentCount > 0;
   const isStory = cardFormat.key === 'story';
   const isSquare = cardFormat.key === 'square';
+  const locale = i18n.language === 'uk' ? 'uk-UA' : 'en-US';
+  const date = new Date().toLocaleDateString(locale);
 
   return (
     <View
@@ -65,7 +69,7 @@ function RunShareCard({ activity, forwardRef, format = 'story' }) {
         </View>
         <View>
           <Text className="text-white text-[16px] font-black tracking-[2px]">SPLITRACE</Text>
-          <Text className="text-white/45 text-[10px] tracking-[0.5px] mt-px">Run • Compete • Improve</Text>
+          <Text className="text-white/45 text-[10px] tracking-[0.5px] mt-px">{t('run.shareTagline')}</Text>
         </View>
         <View className="ml-auto w-10 h-10 rounded-full bg-brand-red items-center justify-center">
           <Footprints size={20} color="#fff" strokeWidth={2.4} />
@@ -76,20 +80,20 @@ function RunShareCard({ activity, forwardRef, format = 'story' }) {
 
       {isStory && (
         <View className="mb-7">
-          <Text className="text-white/45 text-[12px] font-bold uppercase tracking-[2px]">My SplitRace run</Text>
+          <Text className="text-white/45 text-[12px] font-bold uppercase tracking-[2px]">{t('run.shareKicker')}</Text>
           <Text className="text-white text-[34px] font-black leading-[38px] mt-2">
-            {hasSegments ? 'Segment unlocked' : 'Run complete'}
+            {hasSegments ? t('run.segmentUnlocked') : t('run.runComplete')}
           </Text>
         </View>
       )}
 
       {/* Main stats */}
       <View className={`flex-row items-center bg-[#151a30] rounded-2xl p-4 ${isStory ? 'mb-5' : 'mb-4'}`}>
-        <StatBlock value={fmtDist(activity.distance_meters)} label="ДИСТАНЦІЯ" accent />
+        <StatBlock value={fmtDist(activity.distance_meters)} label={t('run.distance')} accent />
         <View className="w-px h-9 bg-white/10" />
-        <StatBlock value={fmtTime(activity.elapsed_time_seconds)} label="ЧАС" />
+        <StatBlock value={fmtTime(activity.elapsed_time_seconds)} label={t('run.time')} />
         <View className="w-px h-9 bg-white/10" />
-        <StatBlock value={fmtPace(activity.elapsed_time_seconds, activity.distance_meters)} label="ТЕМП /км" />
+        <StatBlock value={fmtPace(activity.elapsed_time_seconds, activity.distance_meters)} label={t('run.pace')} />
       </View>
 
       {/* Segments */}
@@ -97,7 +101,7 @@ function RunShareCard({ activity, forwardRef, format = 'story' }) {
         <View className="flex-row items-center gap-2 mb-2.5">
           {hasSegments ? <Zap size={16} color="#facc15" fill="#facc15" /> : <MapPin size={16} color="#fff" />}
           <Text className="text-white text-[13px] font-extrabold">
-            {hasSegments ? `${segmentCount} сегмент${segmentCount > 1 ? 'и' : ''} пройдено` : 'Сегменти не пройдені'}
+            {hasSegments ? t('run.shareSegmentsCompleted', { count: segmentCount }) : t('run.shareNoSegments')}
           </Text>
         </View>
         {hasSegments &&
@@ -111,7 +115,9 @@ function RunShareCard({ activity, forwardRef, format = 'story' }) {
             </View>
           ))}
         {segments.length > cardFormat.maxSegments && (
-          <Text className="text-white/45 text-[11px] mt-1">+{segments.length - cardFormat.maxSegments} ще...</Text>
+          <Text className="text-white/45 text-[11px] mt-1">
+            {t('run.shareMore', { count: segments.length - cardFormat.maxSegments })}
+          </Text>
         )}
       </View>
 
@@ -119,7 +125,7 @@ function RunShareCard({ activity, forwardRef, format = 'story' }) {
       <View className={`flex-row items-center justify-center gap-2 ${isStory || isSquare ? 'mt-5' : ''}`}>
         <Text className="text-white/45 text-[11px]">splitrace.app</Text>
         <View className="w-[3px] h-[3px] rounded-full bg-brand-red" />
-        <Text className="text-white/45 text-[11px]">Час пробіжки — {new Date().toLocaleDateString('uk-UA')}</Text>
+        <Text className="text-white/45 text-[11px]">{t('run.shareFooterDate', { date })}</Text>
       </View>
     </View>
   );
@@ -131,7 +137,7 @@ function StatBlock({ value, label, accent }) {
       <Text className={`text-[22px] font-black tracking-tight ${accent ? 'text-brand-red' : 'text-white'}`}>
         {value}
       </Text>
-      <Text className="text-white/45 text-[9px] font-bold uppercase tracking-wider mt-1">{label}</Text>
+      <Text className="text-white/45 text-[9px] font-bold uppercase tracking-wider mt-1">{label.toUpperCase()}</Text>
     </View>
   );
 }
