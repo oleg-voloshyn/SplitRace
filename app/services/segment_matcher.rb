@@ -1,5 +1,8 @@
 class SegmentMatcher
   PROXIMITY_METERS = 30
+  ROUTE_CORRIDOR_METERS = 30
+  ROUTE_SAMPLE_METERS = 20
+  MIN_ROUTE_COVERAGE = 0.75
 
   def initialize(activity)
     @activity = activity
@@ -44,7 +47,7 @@ class SegmentMatcher
 
     start_idx = closest_point_index(@activity.gps_points, segment.start_point)
     end_idx   = closest_point_index(@activity.gps_points, segment.end_point)
-    !start_idx.nil? && !end_idx.nil? && start_idx < end_idx
+    !start_idx.nil? && !end_idx.nil? && start_idx < end_idx && follows_route?(segment, start_idx:, end_idx:)
   end
 
   # Rated segments are unlocked strictly in order for each runner. GPS may pass
@@ -100,6 +103,11 @@ class SegmentMatcher
 
     return nil unless near_start && near_end
 
+    start_idx = closest_point_index(@activity.gps_points, segment.start_point)
+    end_idx   = closest_point_index(@activity.gps_points, segment.end_point)
+    return nil if start_idx.nil? || end_idx.nil? || start_idx >= end_idx
+    return nil unless follows_route?(segment, start_idx:, end_idx:)
+
     elapsed, started = interpolate_time(segment)
     return nil unless elapsed&.positive?
     return nil if after && started < after
@@ -125,6 +133,106 @@ class SegmentMatcher
     elapsed  = (end_ts - start_ts).to_i
 
     [elapsed, Time.zone.at(start_ts)]
+  end
+
+  def follows_route?(segment, start_idx:, end_idx:)
+    route_points = route_points_for(segment)
+    return true if route_points.size <= 2
+
+    activity_points = @activity.gps_points[start_idx..end_idx]
+    return false if activity_points.blank?
+
+    sampled_route = sample_route(route_points)
+    return false if sampled_route.empty?
+
+    matched_count = 0
+    search_from = 0
+
+    sampled_route.each do |route_point|
+      match_idx = closest_activity_index(activity_points, route_point, from: search_from)
+      next unless match_idx
+
+      matched_count += 1
+      search_from = match_idx
+    end
+
+    (matched_count.to_f / sampled_route.size) >= MIN_ROUTE_COVERAGE
+  end
+
+  def route_points_for(segment)
+    line = first_line(segment.polyline)
+    points = line_points(line)
+    return points if points.size >= 2
+
+    [coord_for(segment.start_point), coord_for(segment.end_point)].compact
+  end
+
+  def first_line(polyline)
+    return unless polyline
+
+    if polyline.respond_to?(:geometry_n)
+      polyline.geometry_n(0)
+    elsif polyline.respond_to?(:geometries)
+      polyline.geometries.first
+    else
+      polyline
+    end
+  end
+
+  def line_points(line)
+    return [] unless line
+
+    if line.respond_to?(:points)
+      line.points.map { |point| coord_for(point) }
+    elsif line.respond_to?(:num_points)
+      Array.new(line.num_points) { |i| coord_for(line.point_n(i)) }
+    else
+      []
+    end.compact
+  end
+
+  def coord_for(point)
+    return unless point
+
+    { 'lat' => point.lat.to_f, 'lng' => point.lon.to_f }
+  end
+
+  def sample_route(route_points)
+    samples = [route_points.first]
+
+    route_points.each_cons(2) do |from, to|
+      distance = haversine(from['lat'], from['lng'], to['lat'], to['lng'])
+      if distance.positive?
+        steps = (distance / ROUTE_SAMPLE_METERS).floor
+        1.upto(steps) do |step|
+          ratio = [(step * ROUTE_SAMPLE_METERS) / distance, 1.0].min
+          samples << {
+            'lat' => from['lat'] + ((to['lat'] - from['lat']) * ratio),
+            'lng' => from['lng'] + ((to['lng'] - from['lng']) * ratio)
+          }
+        end
+      end
+      samples << to
+    end
+
+    samples
+  end
+
+  def closest_activity_index(activity_points, route_point, from:)
+    min_dist = Float::INFINITY
+    min_idx = nil
+
+    activity_points.each_with_index do |point, idx|
+      next if idx < from
+
+      dist = haversine(point['lat'].to_f, point['lng'].to_f, route_point['lat'], route_point['lng'])
+      if dist < min_dist
+        min_dist = dist
+        min_idx = idx
+      end
+    end
+
+    min_idx if min_dist <= ROUTE_CORRIDOR_METERS
   end
 
   def closest_point_index(points, geo_point)

@@ -1,6 +1,20 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { Award, Check, Clock3, Flag, Medal, Share2, Target, Trophy } from 'lucide-react-native';
+import {
+  Award,
+  CalendarDays,
+  Check,
+  Clock3,
+  Flag,
+  MapPin,
+  Medal,
+  Route,
+  Share2,
+  Target,
+  Trophy,
+  UserRound,
+  Users
+} from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
@@ -23,7 +37,7 @@ import SegmentPreviewModal from '../components/SegmentPreviewModal';
 import SegmentsMap from '../components/SegmentsMap';
 import ShareFormatModal from '../components/ShareFormatModal';
 import { useAuth } from '../contexts/AuthContext';
-import { shareEntityImage, shareEntityLink } from '../utils/entityShare';
+import { shareEntityImage } from '../utils/entityShare';
 import { fmtTime } from '../utils/runUtils';
 
 function TournamentScreen() {
@@ -81,15 +95,6 @@ function TournamentScreen() {
     } finally {
       setJoining(false);
     }
-  }
-
-  function shareTournamentLink() {
-    const url = `${WEB_URL}/tournaments/${data.slug}`;
-    shareEntityLink({
-      title: data.name,
-      message: t('tournaments.shareText', { name: data.name }),
-      url
-    });
   }
 
   async function shareTournamentImage(format) {
@@ -178,6 +183,9 @@ function TournamentScreen() {
   const isParticipant = data.is_participating;
   const canJoin = data.status === 'active' && data.can_participate !== false && !isParticipant;
   const visibleSegments = segmentsForDisplay(data.segments ?? []);
+  const totalSegments = data.total_segments_count ?? data.segments?.length ?? 0;
+  const ratedSegments = data.rated_segments_count ?? 0;
+  const locationLabel = [data.city, data.country].filter(Boolean).join(', ') || t('tournaments.locationUnknown');
 
   return (
     <View className="flex-1 bg-gray-100">
@@ -201,28 +209,49 @@ function TournamentScreen() {
 
       {tab === 'info' && (
         <ScrollView className="flex-1" contentContainerClassName="p-4 pb-8">
-          <View className="self-start rounded px-2 py-1 mb-3" style={{ backgroundColor: badgeColor(data.status) }}>
-            <Text className="text-white text-[11px] font-bold">{t(`tournaments.${data.status}`).toUpperCase()}</Text>
+          <View className="bg-white rounded-2xl p-4 mb-3">
+            <View className="flex-row items-center justify-between mb-4">
+              <View className="rounded px-2 py-1" style={{ backgroundColor: badgeColor(data.status) }}>
+                <Text className="text-white text-[11px] font-bold">
+                  {t(`tournaments.${data.status}`).toUpperCase()}
+                </Text>
+              </View>
+              <TouchableOpacity
+                className="flex-row items-center gap-1.5 bg-brand-red rounded-xl py-2.5 px-3"
+                onPress={() => openShareModal('tournament', data)}
+              >
+                <Share2 size={16} color="#fff" />
+                <Text className="text-white font-bold text-sm">{t('tournaments.share')}</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View className="flex-row flex-wrap gap-2">
+              <TournamentInfoMetric
+                icon={<Users size={15} color="#6b7280" />}
+                label={t('tournaments.participantsLabel')}
+                value={String(data.participants_count ?? 0)}
+              />
+              <TournamentInfoMetric
+                icon={<Route size={15} color="#6b7280" />}
+                label={t('tournaments.segmentPlan')}
+                value={`${ratedSegments}/${totalSegments}`}
+              />
+              <TournamentInfoMetric
+                icon={<CalendarDays size={15} color="#6b7280" />}
+                label={t('tournaments.period')}
+                value={formatDateRange(data.starts_at, data.ends_at, t)}
+              />
+              <TournamentInfoMetric
+                icon={<MapPin size={15} color="#6b7280" />}
+                label={t('tournaments.location')}
+                value={locationLabel}
+              />
+            </View>
           </View>
-          <RichDescription html={data.description} className="mb-3" />
-          <View className="mb-3">
-            <Text className="text-gray-500 text-sm mb-1">
-              {t('tournaments.participants', { count: data.participants_count ?? 0 })}
-            </Text>
-            {data.starts_at && (
-              <Text className="text-gray-500 text-sm mb-1">
-                {t('tournaments.starts')}: {new Date(data.starts_at).toLocaleDateString()}
-              </Text>
-            )}
-            {data.ends_at && (
-              <Text className="text-gray-500 text-sm mb-1">
-                {t('tournaments.ends')}: {new Date(data.ends_at).toLocaleDateString()}
-              </Text>
-            )}
-          </View>
+
           {canJoin && (
             <TouchableOpacity
-              className="bg-brand-red rounded-lg p-3.5 items-center mt-5"
+              className="bg-brand-red rounded-xl p-3.5 items-center mb-3"
               onPress={join}
               disabled={joining}
             >
@@ -230,38 +259,50 @@ function TournamentScreen() {
             </TouchableOpacity>
           )}
           {isParticipant && (
-            <View className="bg-green-100 rounded-lg p-3 mt-5 flex-row items-center justify-center gap-1.5">
+            <View className="bg-green-100 rounded-xl p-3 mb-3 flex-row items-center justify-center gap-1.5">
               <Check size={16} color="#2e7d32" strokeWidth={2.5} />
               <Text className="text-green-800 font-semibold">{t('tournaments.youParticipate')}</Text>
             </View>
           )}
-          <View className="flex-row gap-2 mt-3 mb-3">
-            <TouchableOpacity
-              className="flex-row items-center gap-1.5 border border-gray-300 rounded-lg py-2.5 px-3 bg-white"
-              onPress={shareTournamentLink}
-            >
-              <Text className="text-brand-navy font-bold text-sm">{t('tournaments.shareLink')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              className="flex-row items-center gap-1.5 bg-brand-red rounded-lg py-2.5 px-3"
-              onPress={() => openShareModal('tournament', data)}
-            >
-              <Share2 size={16} color="#fff" />
-              <Text className="text-white font-bold text-sm">{t('tournaments.share')}</Text>
-            </TouchableOpacity>
-          </View>
-          {data.feed?.length > 0 && (
-            <View className="bg-white rounded-xl p-3 mb-3">
-              <Text className="text-base font-bold mb-2">{t('tournaments.feed')}</Text>
-              {data.feed.map((event) => (
+
+          <InfoSection title={t('tournaments.description')}>
+            {data.description ? (
+              <RichDescription html={data.description} />
+            ) : (
+              <Text className="text-gray-500 text-sm">{t('tournaments.noDescription')}</Text>
+            )}
+          </InfoSection>
+
+          <InfoSection title={t('tournaments.organizer')}>
+            <View className="flex-row items-center gap-2.5">
+              <View className="w-9 h-9 rounded-full bg-gray-100 items-center justify-center">
+                <UserRound size={18} color="#6b7280" />
+              </View>
+              <View className="flex-1">
+                <Text className="text-brand-navy font-bold text-sm" numberOfLines={1}>
+                  {data.created_by?.display_name ?? '-'}
+                </Text>
+                <Text className="text-gray-500 text-xs mt-0.5">
+                  {data.created_by?.account_type ? t(`auth.account_${data.created_by.account_type}`) : '-'}
+                </Text>
+              </View>
+            </View>
+          </InfoSection>
+
+          <View className="bg-white rounded-2xl p-4 mb-3">
+            <Text className="text-brand-navy font-extrabold text-base mb-2">{t('tournaments.latestNews')}</Text>
+            {data.feed?.length > 0 ? (
+              data.feed.slice(0, 3).map((event) => (
                 <View key={event.id} className="border-b border-gray-100 py-2">
                   <Text className="font-bold text-brand-navy">{event.title}</Text>
                   {event.body && <Text className="text-gray-700 text-[13px] mt-0.5">{event.body}</Text>}
-                  <Text className="text-gray-500 text-[11px] mt-1">{new Date(event.created_at).toLocaleString()}</Text>
+                  <Text className="text-gray-500 text-[11px] mt-1">{formatDateTime(event.created_at)}</Text>
                 </View>
-              ))}
-            </View>
-          )}
+              ))
+            ) : (
+              <Text className="text-gray-500 text-sm">{t('tournaments.noNews')}</Text>
+            )}
+          </View>
         </ScrollView>
       )}
 
@@ -475,6 +516,52 @@ function segmentsForDisplay(segments) {
   }
 
   return copy.sort((a, b) => (a.segment?.name || '').localeCompare(b.segment?.name || ''));
+}
+
+function InfoSection({ title, children }) {
+  return (
+    <View className="bg-white rounded-2xl p-4 mb-3">
+      <Text className="text-brand-navy font-extrabold text-base mb-2">{title}</Text>
+      {children}
+    </View>
+  );
+}
+
+function TournamentInfoMetric({ icon, label, value }) {
+  return (
+    <View className="w-[48%] rounded-xl bg-gray-50 p-3">
+      <View className="flex-row items-center gap-1.5 mb-1.5">
+        {icon}
+        <Text className="text-gray-500 text-[11px] font-bold uppercase" numberOfLines={1}>
+          {label}
+        </Text>
+      </View>
+      <Text className="text-brand-navy text-sm font-extrabold" numberOfLines={2}>
+        {value}
+      </Text>
+    </View>
+  );
+}
+
+function formatDateRange(startsAt, endsAt, t) {
+  if (!startsAt && !endsAt) {
+    return '-';
+  }
+  if (startsAt && endsAt) {
+    return `${formatShortDate(startsAt)} - ${formatShortDate(endsAt)}`;
+  }
+  if (startsAt) {
+    return `${t('tournaments.starts')}: ${formatShortDate(startsAt)}`;
+  }
+  return `${t('tournaments.ends')}: ${formatShortDate(endsAt)}`;
+}
+
+function formatShortDate(value) {
+  return new Date(value).toLocaleDateString();
+}
+
+function formatDateTime(value) {
+  return new Date(value).toLocaleString();
 }
 
 function LeaderboardCard({ entry, fallbackRank, isMe, onReport, t }) {
