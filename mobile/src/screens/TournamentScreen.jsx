@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { Check, Flag, Share2 } from 'lucide-react-native';
+import { Award, Check, Clock3, Flag, Medal, Share2, Target, Trophy } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Image,
   Modal,
   ScrollView,
   Text,
@@ -23,6 +24,7 @@ import SegmentsMap from '../components/SegmentsMap';
 import ShareFormatModal from '../components/ShareFormatModal';
 import { useAuth } from '../contexts/AuthContext';
 import { shareEntityImage, shareEntityLink } from '../utils/entityShare';
+import { fmtTime } from '../utils/runUtils';
 
 function TournamentScreen() {
   const { t } = useTranslation();
@@ -316,34 +318,19 @@ function TournamentScreen() {
         <FlatList
           className="flex-1"
           data={board ?? []}
+          contentContainerClassName="py-2 pb-8"
           keyExtractor={(r) => String(r.user?.id ?? Math.random())}
           ListEmptyComponent={<Text className="text-center text-gray-500 mt-16">{t('tournaments.noResults')}</Text>}
           renderItem={({ item: r, index }) => {
             const isMe = r.user?.id === user?.id;
             return (
-              <View
-                className={`flex-row items-center p-3.5 mx-3 mt-2 rounded-xl ${
-                  isMe ? 'bg-amber-50 border border-amber-400' : 'bg-white'
-                }`}
-              >
-                <Text className="w-9 text-gray-500 font-bold">#{r.rank ?? index + 1}</Text>
-                <Text className="flex-1 text-[15px]">{r.user?.full_name ?? '—'}</Text>
-                <View className="items-end mr-2">
-                  <Text className="font-bold text-[15px]">{r.score != null ? `${r.score.toFixed(1)} pts` : '—'}</Text>
-                  <Text className="text-gray-500 text-xs">
-                    {r.completed_segments ?? 0} {t('tournaments.segments')}
-                  </Text>
-                </View>
-                {!isMe && r.user?.id && (
-                  <TouchableOpacity
-                    onPress={() => setReportTarget({ user_id: r.user.id, full_name: r.user.full_name })}
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                    className="p-1 ml-1"
-                  >
-                    <Flag size={18} color="#bbb" />
-                  </TouchableOpacity>
-                )}
-              </View>
+              <LeaderboardCard
+                entry={r}
+                fallbackRank={index + 1}
+                isMe={isMe}
+                onReport={() => setReportTarget({ user_id: r.user.id, full_name: r.user.full_name })}
+                t={t}
+              />
             );
           }}
         />
@@ -488,6 +475,109 @@ function segmentsForDisplay(segments) {
   }
 
   return copy.sort((a, b) => (a.segment?.name || '').localeCompare(b.segment?.name || ''));
+}
+
+function LeaderboardCard({ entry, fallbackRank, isMe, onReport, t }) {
+  const rank = entry.rank ?? fallbackRank;
+  const completed = entry.completed_segments ?? 0;
+  const total = entry.rated_segments_count ?? 0;
+  const progress = total > 0 ? completed / total : 0;
+  const nextLabel = entry.next_required_position
+    ? t('tournaments.nextSegment', { position: entry.next_required_position })
+    : t('tournaments.completed');
+  const initials = initialsFor(entry.user?.full_name);
+
+  return (
+    <View className={`mx-3 mt-2 rounded-2xl p-3.5 ${isMe ? 'bg-amber-50 border border-amber-300' : 'bg-white'}`}>
+      <View className="flex-row items-center gap-3">
+        <View className="w-9 items-center">
+          <Text className="text-gray-500 text-[11px] font-bold">#{rank}</Text>
+          {rank <= 3 && <Trophy size={18} color={rank === 1 ? '#d97706' : '#9ca3af'} strokeWidth={2.4} />}
+        </View>
+        <View className="w-11 h-11 rounded-full bg-brand-navy items-center justify-center overflow-hidden">
+          {entry.user?.avatar_url ? (
+            <Image source={{ uri: entry.user.avatar_url }} className="w-full h-full" />
+          ) : (
+            <Text className="text-white font-black text-sm">{initials}</Text>
+          )}
+        </View>
+        <View className="flex-1">
+          <Text className="text-brand-navy text-[15px] font-extrabold" numberOfLines={1}>
+            {entry.user?.full_name ?? '—'}
+          </Text>
+          <Text className="text-gray-500 text-[12px] mt-0.5">
+            {t('tournaments.progress', { completed, total })} · {nextLabel}
+          </Text>
+        </View>
+        <View className="items-end">
+          <Text className="text-brand-red text-[18px] font-black">
+            {entry.score != null ? entry.score.toFixed(1) : '—'}
+          </Text>
+          <Text className="text-gray-500 text-[10px] font-bold">PTS</Text>
+        </View>
+        {!isMe && entry.user?.id && (
+          <TouchableOpacity onPress={onReport} className="p-1.5" hitSlop={8}>
+            <Flag size={16} color="#bbb" />
+          </TouchableOpacity>
+        )}
+      </View>
+
+      <View className="h-2 rounded-full bg-gray-100 overflow-hidden mt-3">
+        <View className="h-full rounded-full bg-brand-red" style={{ width: `${Math.min(progress * 100, 100)}%` }} />
+      </View>
+
+      <View className="flex-row flex-wrap gap-2 mt-3">
+        <LeaderboardPill
+          icon={<Clock3 size={13} color="#6b7280" />}
+          label={t('tournaments.totalTime')}
+          value={entry.total_time_seconds ? fmtTime(entry.total_time_seconds) : '—'}
+        />
+        <LeaderboardPill
+          icon={<Award size={13} color="#b45309" />}
+          label={t('tournaments.firstOpeners')}
+          value={String(entry.first_opener_bonus_count ?? 0)}
+        />
+        <LeaderboardPill
+          icon={<Target size={13} color="#6b7280" />}
+          label={t('tournaments.lastUnlock')}
+          value={formatLeaderboardDate(entry.last_unlock_at, t)}
+        />
+        {entry.gender_rank && (
+          <LeaderboardPill
+            icon={<Medal size={13} color="#6b7280" />}
+            label={t('tournaments.genderRank', { rank: entry.gender_rank })}
+            value={entry.user?.gender || '—'}
+          />
+        )}
+      </View>
+    </View>
+  );
+}
+
+function LeaderboardPill({ icon, label, value }) {
+  return (
+    <View className="flex-row items-center gap-1.5 bg-gray-50 rounded-full px-2.5 py-1.5">
+      {icon}
+      <Text className="text-gray-500 text-[10px] font-bold">{label}</Text>
+      <Text className="text-brand-navy text-[11px] font-extrabold">{value}</Text>
+    </View>
+  );
+}
+
+function initialsFor(name) {
+  return String(name || '?')
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('');
+}
+
+function formatLeaderboardDate(value, t) {
+  if (!value) {
+    return t('tournaments.noUnlockYet');
+  }
+  return new Date(value).toLocaleDateString();
 }
 
 export default TournamentScreen;

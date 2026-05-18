@@ -125,7 +125,7 @@ module Api
 
         scores = scores.joins(:user).where(users: { gender: }) if gender
 
-        render json: scores.map.with_index(1) { |s, i| score_json(s, i) }
+        render json: scores.map.with_index(1) { |s, i| score_json(s, i, @tournament) }
       end
 
       def feed
@@ -180,8 +180,21 @@ module Api
       end
 
       def tournament_json(tournament, detailed: false, owned: false, preview: false)
+        data = base_tournament_json(tournament)
+
+        if detailed || owned
+          data[:segments] = tournament_segments_json(tournament, owned:)
+          data[:feed] = tournament_events_json(tournament)
+        elsif preview
+          data[:segments_preview] = tournament_segments_json(tournament, owned: false, preview: true)
+        end
+
+        data
+      end
+
+      def base_tournament_json(tournament)
         can_participate = !current_user.club?
-        data = {
+        {
           id: tournament.id,
           name: tournament.name,
           slug: tournament.slug,
@@ -196,56 +209,57 @@ module Api
           country: tournament.country,
           review_note: tournament.review_note,
           submitted_for_review_at: tournament.submitted_for_review_at,
-          created_by: {
-            id: tournament.created_by.id,
-            display_name: tournament.created_by.display_name,
-            account_type: tournament.created_by.account_type
-          },
+          created_by: creator_json(tournament.created_by),
           is_owner: tournament.created_by_id == current_user.id,
           is_participating: can_participate && tournament.participating?(current_user),
           can_participate:
         }
+      end
 
-        if detailed || owned
-          segments = tournament.tournament_segments.includes(:segment)
-          segments = owned ? segments.order(:order_number) : segments.joins(:segment).order('segments.name ASC')
+      def creator_json(user)
+        {
+          id: user.id,
+          display_name: user.display_name,
+          account_type: user.account_type
+        }
+      end
 
-          data[:segments] = segments.map do |ts|
-            {
-              order_number: owned ? ts.order_number : nil,
-              is_rated: owned ? ts.is_rated : nil,
-              segment: {
-                id: ts.segment.id,
-                name: ts.segment.name,
-                description: ts.segment.description_html,
-                city: ts.segment.city,
-                country: ts.segment.country,
-                distance_meters: ts.segment.distance_meters,
-                start_point: ts.segment.start_point ? { lat: ts.segment.start_point.lat, lng: ts.segment.start_point.lon } : nil,
-                end_point: ts.segment.end_point ? { lat: ts.segment.end_point.lat, lng: ts.segment.end_point.lon } : nil,
-                polyline: polyline_to_coords(ts.segment.polyline)
-              }
-            }
-          end
-          data[:feed] = tournament_events_json(tournament)
-        elsif preview
-          data[:segments_preview] = tournament.tournament_segments
-                                              .includes(:segment)
-                                              .order(:order_number)
-                                              .map do |ts|
-            {
-              segment: {
-                id: ts.segment.id,
-                name: ts.segment.name,
-                start_point: ts.segment.start_point ? { lat: ts.segment.start_point.lat, lng: ts.segment.start_point.lon } : nil,
-                end_point: ts.segment.end_point ? { lat: ts.segment.end_point.lat, lng: ts.segment.end_point.lon } : nil,
-                polyline: polyline_to_coords(ts.segment.polyline)
-              }
-            }
-          end
-        end
+      def tournament_segments_json(tournament, owned:, preview: false)
+        segments = tournament.tournament_segments.includes(:segment)
+        segments = if owned || preview
+                     segments.order(:order_number)
+                   else
+                     segments.joins(:segment).order('segments.name ASC')
+                   end
 
+        segments.map { |ts| tournament_segment_json(ts, owned:, preview:) }
+      end
+
+      def tournament_segment_json(tournament_segment, owned:, preview:)
+        data = {
+          segment: segment_json(tournament_segment.segment, preview:)
+        }
+        data[:order_number] = owned ? tournament_segment.order_number : nil unless preview
+        data[:is_rated] = owned ? tournament_segment.is_rated : nil unless preview
         data
+      end
+
+      def segment_json(segment, preview:)
+        data = {
+          id: segment.id,
+          name: segment.name,
+          start_point: segment.start_point ? { lat: segment.start_point.lat, lng: segment.start_point.lon } : nil,
+          end_point: segment.end_point ? { lat: segment.end_point.lat, lng: segment.end_point.lon } : nil,
+          polyline: polyline_to_coords(segment.polyline)
+        }
+        return data if preview
+
+        data.merge(
+          description: segment.description_html,
+          city: segment.city,
+          country: segment.country,
+          distance_meters: segment.distance_meters
+        )
       end
 
       def tournament_events_json(tournament)
@@ -293,12 +307,38 @@ module Api
         nil
       end
 
-      def score_json(score, rank)
+      def score_json(score, rank, tournament)
+        rated_segments = tournament.tournament_segments.where(is_rated: true).order(:order_number)
+        rated_segment_ids = rated_segments.pluck(:segment_id)
+        best_efforts = SegmentEffort
+                       .where(user: score.user, segment_id: rated_segment_ids)
+                       .order(:segment_id, :elapsed_time_seconds)
+                       .to_a
+                       .uniq(&:segment_id)
+        completed_segment_ids = best_efforts.to_set(&:segment_id)
+        next_required = rated_segments.find { |ts| completed_segment_ids.exclude?(ts.segment_id) }
+        first_openers = TournamentScore.first_opener_by_segment(tournament, rated_segment_ids)
+        last_unlock_at = tournament.tournament_events
+                                   .where(actor: score.user, event_type: 'segment_unlocked')
+                                   .maximum(:created_at)
+
         {
           rank:,
-          user: { id: score.user.id, full_name: score.user.full_name, avatar_url: score.user.profile_avatar_url },
-          total_time_seconds: score.total_time_seconds,
+          overall_rank: score.rank,
+          gender_rank: score.gender_rank,
+          user: {
+            id: score.user.id,
+            full_name: score.user.full_name,
+            avatar_url: score.user.profile_avatar_url,
+            gender: score.user.gender
+          },
+          total_time_seconds: best_efforts.sum(&:elapsed_time_seconds),
           completed_segments: score.completed_segments_count,
+          rated_segments_count: rated_segment_ids.size,
+          next_required_position: next_required&.order_number,
+          first_opener_bonus_count: completed_segment_ids.count { |segment_id| first_openers[segment_id] == score.user_id },
+          last_unlock_at:,
+          rank_delta: nil,
           score: score.score
         }
       end

@@ -67,7 +67,16 @@
     "shareLink": "Поділитися посиланням",
     "distance": "Дистанція",
     "location": "Локація",
-    "feed": "Новини"
+    "feed": "Новини",
+    "progress": "{{completed}}/{{total}} відкрито",
+    "nextSegment": "Наступний #{{position}}",
+    "completed": "Завершено",
+    "totalTime": "Сумарний час",
+    "firstOpeners": "Першовідкриття",
+    "lastUnlock": "Останній unlock",
+    "noUnlockYet": "Ще не було unlock",
+    "overallRank": "Загальний #{{rank}}",
+    "genderRank": "Гендер #{{rank}}"
   },
   "segments": {
     "shareSegment": "Поділитися сегментом",

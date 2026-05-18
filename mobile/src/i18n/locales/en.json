@@ -67,7 +67,16 @@
     "shareLink": "Share link",
     "distance": "Distance",
     "location": "Location",
-    "feed": "News"
+    "feed": "News",
+    "progress": "{{completed}}/{{total}} opened",
+    "nextSegment": "Next #{{position}}",
+    "completed": "Completed",
+    "totalTime": "Total time",
+    "firstOpeners": "First opens",
+    "lastUnlock": "Last unlock",
+    "noUnlockYet": "No unlock yet",
+    "overallRank": "Overall #{{rank}}",
+    "genderRank": "Gender #{{rank}}"
   },
   "segments": {
     "shareSegment": "Share segment",
