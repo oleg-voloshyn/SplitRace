@@ -1,37 +1,35 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { useRoute } from '@react-navigation/native';
 import { Share2 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from 'react-native';
-import ViewShot from 'react-native-view-shot';
 import { WEB_URL } from '../api/client';
 import { useSegment } from '../api/queries';
 import EntityShareCard from '../components/EntityShareCard';
 import RichDescription from '../components/RichDescription';
-import { RUN_SHARE_FORMATS } from '../components/RunShareCard';
 import SegmentsMap from '../components/SegmentsMap';
 import ShareFormatModal from '../components/ShareFormatModal';
+import { useShareCard } from '../hooks/useShareCard';
 import { shareEntityImage, shareEntityLink } from '../utils/entityShare';
 
 function SegmentScreen() {
   const { t } = useTranslation();
   const { id } = useRoute().params;
   const { data: segment } = useSegment(id);
-  const [pendingShare, setPendingShare] = useState(null);
   const [showFormatModal, setShowFormatModal] = useState(false);
-  const shareCardRef = useRef(null);
-
-  useEffect(() => {
-    if (!pendingShare) {
-      return;
-    }
-
-    const timeout = setTimeout(() => {
-      shareEntityImage(shareCardRef, pendingShare).finally(() => setPendingShare(null));
-    }, 60);
-
-    return () => clearTimeout(timeout);
-  }, [pendingShare]);
+  const { share, HiddenCard } = useShareCard({
+    renderCard: (payload) => (
+      <EntityShareCard
+        entity={payload.entity}
+        kind="segment"
+        format={payload.format}
+        url={payload.url}
+        stats={payload.stats}
+        polylines={payload.polylines}
+      />
+    ),
+    onCapture: (ref, payload) => shareEntityImage(ref, payload)
+  });
 
   if (!segment) {
     return (
@@ -60,7 +58,7 @@ function SegmentScreen() {
 
   function shareImage(format) {
     const polylines = Array.isArray(segment.polyline) && segment.polyline.length >= 2 ? [segment.polyline] : [];
-    setPendingShare({
+    share({
       format,
       entity: segment,
       kind: 'segment',
@@ -110,28 +108,7 @@ function SegmentScreen() {
         }}
       />
 
-      {pendingShare && (
-        <ViewShot
-          ref={shareCardRef}
-          options={{ format: 'png', quality: 1 }}
-          style={{
-            position: 'absolute',
-            left: -10000,
-            top: 0,
-            width: RUN_SHARE_FORMATS[pendingShare.format].width,
-            height: RUN_SHARE_FORMATS[pendingShare.format].height
-          }}
-        >
-          <EntityShareCard
-            entity={pendingShare.entity}
-            kind="segment"
-            format={pendingShare.format}
-            url={pendingShare.url}
-            stats={pendingShare.stats}
-            polylines={pendingShare.polylines}
-          />
-        </ViewShot>
-      )}
+      <HiddenCard />
     </ScrollView>
   );
 }

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import {
   Award,
@@ -29,16 +29,15 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import ViewShot from 'react-native-view-shot';
 import { WEB_URL, api } from '../api/client';
 import { useJoinTournament, useLeaderboard, useReportCheating, useTournament } from '../api/queries';
 import EntityShareCard from '../components/EntityShareCard';
 import RichDescription from '../components/RichDescription';
-import { RUN_SHARE_FORMATS } from '../components/RunShareCard';
 import SegmentPreviewModal from '../components/SegmentPreviewModal';
 import SegmentsMap from '../components/SegmentsMap';
 import ShareFormatModal from '../components/ShareFormatModal';
 import { useAuth } from '../contexts/AuthContext';
+import { useShareCard } from '../hooks/useShareCard';
 import { shareEntityImage } from '../utils/entityShare';
 import { fmtTime } from '../utils/runUtils';
 
@@ -51,10 +50,21 @@ function TournamentScreen() {
   const joinMutation = useJoinTournament(slug);
   const [tab, setTab] = useState('info');
   const [reportTarget, setReportTarget] = useState(null);
-  const [pendingShare, setPendingShare] = useState(null);
   const [shareTarget, setShareTarget] = useState(null); // { kind: 'tournament' | 'segment', entity }
   const [previewSegment, setPreviewSegment] = useState(null);
-  const shareCardRef = useRef(null);
+  const { share, HiddenCard } = useShareCard({
+    renderCard: (payload) => (
+      <EntityShareCard
+        entity={payload.entity}
+        kind={payload.kind}
+        format={payload.format}
+        url={payload.url}
+        stats={payload.stats}
+        polylines={payload.polylines}
+      />
+    ),
+    onCapture: (ref, payload) => shareEntityImage(ref, payload)
+  });
 
   const {
     items: board,
@@ -71,18 +81,6 @@ function TournamentScreen() {
     }
   }, [data?.name, navigation]);
 
-  useEffect(() => {
-    if (!pendingShare) {
-      return;
-    }
-
-    const timeout = setTimeout(() => {
-      shareEntityImage(shareCardRef, pendingShare).finally(() => setPendingShare(null));
-    }, 60);
-
-    return () => clearTimeout(timeout);
-  }, [pendingShare]);
-
   async function join() {
     try {
       await joinMutation.mutateAsync();
@@ -97,7 +95,7 @@ function TournamentScreen() {
     const polylines = (data.segments ?? [])
       .map((ts) => ts.segment?.polyline)
       .filter((line) => Array.isArray(line) && line.length >= 2);
-    setPendingShare({
+    share({
       format,
       entity: data,
       kind: 'tournament',
@@ -130,7 +128,7 @@ function TournamentScreen() {
     } catch {
       // Network error — fall back to icon hero.
     }
-    setPendingShare({
+    share({
       format,
       entity: segment,
       kind: 'segment',
@@ -393,28 +391,7 @@ function TournamentScreen() {
         onSelect={handleShareFormatSelected}
       />
 
-      {pendingShare && (
-        <ViewShot
-          ref={shareCardRef}
-          options={{ format: 'png', quality: 1 }}
-          style={{
-            position: 'absolute',
-            left: -10000,
-            top: 0,
-            width: RUN_SHARE_FORMATS[pendingShare.format].width,
-            height: RUN_SHARE_FORMATS[pendingShare.format].height
-          }}
-        >
-          <EntityShareCard
-            entity={pendingShare.entity}
-            kind={pendingShare.kind}
-            format={pendingShare.format}
-            url={pendingShare.url}
-            stats={pendingShare.stats}
-            polylines={pendingShare.polylines}
-          />
-        </ViewShot>
-      )}
+      <HiddenCard />
     </View>
   );
 }

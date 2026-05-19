@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { City, Country } from 'country-state-city';
 import * as Sharing from 'expo-sharing';
@@ -15,13 +15,13 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import ViewShot from 'react-native-view-shot';
 import { useActivities, useMyTournaments, useUpdateMe } from '../api/queries';
 import LeafletMap from '../components/LeafletMap';
-import { RUN_SHARE_FORMATS, RunShareCard } from '../components/RunShareCard';
+import { RunShareCard } from '../components/RunShareCard';
 import SearchableListModal from '../components/SearchableListModal';
 import ShareFormatModal from '../components/ShareFormatModal';
 import { useAuth } from '../contexts/AuthContext';
+import { useShareCard } from '../hooks/useShareCard';
 import { SUPPORTED_LANGS } from '../i18n';
 import { buildShareText } from '../utils/runUtils';
 
@@ -40,11 +40,13 @@ function ProfileScreen() {
   const myTournaments = myTournamentsList.items;
   const updateMe = useUpdateMe();
   const [expandedId, setExpandedId] = useState(null);
-  const [pendingShare, setPendingShare] = useState(null);
   const [shareActivity, setShareActivity] = useState(null);
   const [showCountryPicker, setShowCountryPicker] = useState(false);
   const [showCityPicker, setShowCityPicker] = useState(false);
-  const shareCardRef = useRef(null);
+  const { share, HiddenCard } = useShareCard({
+    renderCard: ({ activity, format }) => <RunShareCard activity={activity} format={format} />,
+    onCapture: (ref, { activity }) => shareActivityImage(ref, activity, t)
+  });
   const isClub = user?.account_type === 'club';
   const countries = useMemo(() => Country.getAllCountries(), []);
   const cities = useMemo(
@@ -59,18 +61,6 @@ function ProfileScreen() {
       refetchMyTournaments();
     }, [refetchMyTournaments])
   );
-
-  useEffect(() => {
-    if (!pendingShare) {
-      return;
-    }
-
-    const timeout = setTimeout(() => {
-      shareActivityImage(shareCardRef, pendingShare.activity, t).finally(() => setPendingShare(null));
-    }, 60);
-
-    return () => clearTimeout(timeout);
-  }, [pendingShare, t]);
 
   function startEdit() {
     setForm(profileFormFromUser(user));
@@ -372,7 +362,7 @@ function ProfileScreen() {
           const activity = shareActivity;
           setShareActivity(null);
           if (activity) {
-            setPendingShare({ activity, format });
+            share({ activity, format });
           }
         }}
       />
@@ -405,21 +395,7 @@ function ProfileScreen() {
         keyFor={(c) => `${c.stateCode}-${c.name}`}
         labelFor={(c) => c.name}
       />
-      {pendingShare && (
-        <ViewShot
-          ref={shareCardRef}
-          options={{ format: 'png', quality: 1 }}
-          style={{
-            position: 'absolute',
-            left: -10000,
-            top: 0,
-            width: RUN_SHARE_FORMATS[pendingShare.format].width,
-            height: RUN_SHARE_FORMATS[pendingShare.format].height
-          }}
-        >
-          <RunShareCard activity={pendingShare.activity} format={pendingShare.format} />
-        </ViewShot>
-      )}
+      <HiddenCard />
     </ScrollView>
   );
 }
