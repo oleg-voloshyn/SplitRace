@@ -5,9 +5,9 @@ class MatchSegmentsJob < ApplicationJob
     activity = Activity.find_by(id: activity_id)
     return unless activity
 
-    SegmentMatcher.new(activity).call
+    score_changed_tournament_ids = SegmentMatcher.new(activity).call
 
-    activity.user.tournaments.where(status: 'active').find_each do |tournament|
+    activity.user.tournaments.where(status: 'active', id: score_changed_tournament_ids).find_each do |tournament|
       TournamentScore.recalculate_all(tournament)
     end
   end

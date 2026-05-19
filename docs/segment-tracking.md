@@ -22,6 +22,9 @@ Segment tracking is built around four rules:
 4. Suspicious GPS is surfaced for review and severe GPS signals are rejected
    from segment matching. The app marks suspicious activity; it does not ban
    users automatically.
+5. Re-running an already unlocked rated segment can improve the runner's best
+   tournament effort, but it never creates a second unlock, feed event, or
+   notification for the same tournament segment.
 
 ## Data Model
 
@@ -75,7 +78,7 @@ sequenceDiagram
   Matcher->>Matcher: min points, distance, duration, route progress coverage
   Matcher->>Unlock: record! when next required segment is matched
   Unlock->>Feed: segment_unlocked!
-  API->>Score: recalculate_all(active tournaments)
+  API->>Score: recalculate_all(tournaments with new unlock or improved best)
   API-->>App: ActivityResource with efforts, passed segments, pending unlocks
 ```
 
@@ -83,7 +86,8 @@ The hot path starts in
 [ActivitiesController#create](../app/controllers/api/v1/activities_controller.rb).
 It parses `gps_points`, runs GPS safety analysis, builds `gps_track`, saves the
 activity, runs [SegmentMatcher](../app/services/segment_matcher.rb), and then
-recalculates scores for active tournaments.
+recalculates scores only for active tournaments whose unlock state or best
+effort changed.
 
 ## Matching Algorithm
 
@@ -233,7 +237,8 @@ The matcher uses unlocks as the source of truth:
 1. Load already unlocked rated segments for the user and tournament.
 2. Walk rated `TournamentSegment` records by `order_number`.
 3. If a segment was previously unlocked, the user may re-run it to improve
-   time, but it does not block order.
+   time, but it does not block order. Slower repeat efforts are stored as
+   activity history, but they do not mark the tournament score as changed.
 4. For the first missing segment, try to match it in the current activity.
 5. If matched, create `TournamentSegmentUnlock`.
 6. Stop at the first missing segment that was not matched.
@@ -250,12 +255,16 @@ Scoring uses tournament unlocks as the completion set:
   the segment was unlocked;
 - first opener bonus uses the first `TournamentSegmentUnlock` for that
   tournament and segment;
+- repeat runs after unlock can update the best effort if they are faster, while
+  slower repeats do not trigger score recalculation;
 - leaderboard resources use the same unlock-aware helpers.
 
 Feed and notifications are also driven by unlocks:
 
 - `TournamentEventPublisher.segment_unlocked!` creates a `TournamentEvent`
   linked to `tournament_segment_unlock`;
+- if the unlock already has an event, the existing event is returned and no
+  duplicate feed item or notification is created;
 - all other tournament participants receive localized `Notification` rows and
   Expo push delivery attempts;
 - the actor does not receive their own notification.
@@ -269,6 +278,7 @@ Feed and notifications are also driven by unlocks:
 | User joins before tournament start | Runs before tournament launch could count. | Effective window starts at `tournament.starts_at`. |
 | Tournament has an end date | Late runs could count. | Efforts at or after `tournament.ends_at` are excluded. |
 | Rated segment order | A later rated segment could unlock first. | Unlocks are walked by `TournamentSegment.order_number`; first missing segment blocks later ones. |
+| Repeating an unlocked rated segment | A retry could create duplicate unlocks/feed or waste scoring work. | The unlock remains unique; faster retries can improve best effort and recalc score, slower retries do not. |
 | First opener bonus | Historical efforts could win first opener. | Bonus uses first `TournamentSegmentUnlock` in the tournament. |
 | GPS spoofing | Fake routes, jumps, or car-like speeds could produce efforts. | Suspicious activity is flagged; severe GPS reasons reject segment matching. |
 | Sparse GPS | Two GPS points could hit start and finish. | Minimum 4 points, distance, duration, and coverage are required. |

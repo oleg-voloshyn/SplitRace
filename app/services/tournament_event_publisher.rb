@@ -2,6 +2,7 @@ class TournamentEventPublisher
   def self.segment_unlocked!(unlock: nil, tournament: nil, segment_effort: nil)
     unlock ||= record_unlock!(tournament:, segment_effort:)
     return unless unlock
+    return unlock.tournament_event if unlock.tournament_event
 
     tournament = unlock.tournament
     segment_effort = unlock.segment_effort

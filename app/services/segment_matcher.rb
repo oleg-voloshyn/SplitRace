@@ -18,11 +18,13 @@ class SegmentMatcher
     @activity = activity
     @user     = activity.user
     @gps_points = activity.gps_points_for_matching
+    @score_changed_tournament_ids = Set.new
+    @changed_segment_effort_ids = Set.new
   end
 
   def call
-    return if @activity.gps_match_rejected?
-    return if gps_points.blank?
+    return [] if @activity.gps_match_rejected?
+    return [] if gps_points.blank?
 
     passed_ids = []
 
@@ -39,6 +41,7 @@ class SegmentMatcher
     end
 
     @activity.update_columns(passed_segment_ids: passed_ids.uniq) if passed_ids.any?
+    @score_changed_tournament_ids.to_a
   end
 
   private
@@ -84,32 +87,34 @@ class SegmentMatcher
 
     return if rated_segments.empty?
 
-    # Segments the user had efforts for BEFORE this activity. Already unlocked
-    # segments may be re-run to improve time, but missing positions block all
-    # later rated unlocks.
-    previously_completed = TournamentSegmentUnlock
-                           .where(tournament:, user: @user, tournament_segment_id: rated_segments.map(&:id))
-                           .pluck(:segment_id)
-                           .to_set
+    # Unlocks are the durable tournament state. Already unlocked segments may
+    # be re-run to improve time, but missing positions block all later rated
+    # unlocks.
+    previous_unlocks = TournamentSegmentUnlock
+                       .where(tournament:, user: @user, tournament_segment_id: rated_segments.map(&:id))
+                       .index_by(&:segment_id)
 
     last_new_unlock_at = nil
     rated_segments.each do |ts|
-      if previously_completed.include?(ts.segment_id)
-        try_match(ts.segment, tournament:, participant:)
+      if (existing_unlock = previous_unlocks[ts.segment_id])
+        result = try_match(ts.segment, tournament:, participant:, best_after: existing_unlock.unlocked_at)
+        @score_changed_tournament_ids.add(tournament.id) if result&.fetch(:best_improved)
         next
       end
 
-      effort = try_match(ts.segment, after: last_new_unlock_at, tournament:, participant:)
+      result = try_match(ts.segment, after: last_new_unlock_at, tournament:, participant:)
+      effort = result&.fetch(:effort)
       break unless effort
 
       unlock = TournamentSegmentUnlock.record!(tournament:, tournament_segment: ts, segment_effort: effort)
       TournamentEventPublisher.segment_unlocked!(unlock:)
-      previously_completed.add(ts.segment_id)
+      @score_changed_tournament_ids.add(tournament.id)
+      previous_unlocks[ts.segment_id] = unlock
       last_new_unlock_at = effort.started_at
     end
   end
 
-  def try_match(segment, after: nil, tournament: nil, participant: nil)
+  def try_match(segment, after: nil, tournament: nil, participant: nil, best_after: nil)
     return nil unless segment.start_point && segment.end_point && @activity.gps_track
 
     proximity = proximity_tolerance_for(segment)
@@ -139,11 +144,45 @@ class SegmentMatcher
       return nil unless SegmentEffort.started_in_tournament_window?(tournament, participant, started)
     end
 
-    existing = SegmentEffort.find_by(user: @user, segment:, activity: @activity)
-    return existing if existing&.elapsed_time_seconds&.<=(elapsed)
+    previous_best = if best_after && tournament && participant
+                      best_tournament_effort_for(segment, tournament:, participant:, after: best_after)
+                    end
 
-    SegmentEffort.find_or_initialize_by(user: @user, segment:, activity: @activity)
-                 .tap { |e| e.update!(elapsed_time_seconds: elapsed, started_at: started) }
+    existing = SegmentEffort.find_by(user: @user, segment:, activity: @activity)
+    if existing&.elapsed_time_seconds&.<=(elapsed)
+      return {
+        effort: existing,
+        best_improved: effort_improves_best?(existing, previous_best) &&
+          @changed_segment_effort_ids.include?(existing.id)
+      }
+    end
+
+    effort = SegmentEffort.find_or_initialize_by(user: @user, segment:, activity: @activity)
+    best_improved = effort_time_improves_best?(elapsed, previous_best)
+    changed = effort.new_record? ||
+              effort.elapsed_time_seconds != elapsed ||
+              effort.started_at.to_i != started.to_i
+    effort.update!(elapsed_time_seconds: elapsed, started_at: started)
+    @changed_segment_effort_ids.add(effort.id) if changed
+    { effort:, best_improved: }
+  end
+
+  def best_tournament_effort_for(segment, tournament:, participant:, after:)
+    SegmentEffort
+      .in_tournament_window(tournament, participant)
+      .where(user: @user, segment:)
+      .where('segment_efforts.started_at >= ?', after)
+      .where.not(activity_id: @activity.id)
+      .order(:elapsed_time_seconds, :started_at, :id)
+      .first
+  end
+
+  def effort_improves_best?(effort, previous_best)
+    previous_best.nil? || effort.elapsed_time_seconds < previous_best.elapsed_time_seconds
+  end
+
+  def effort_time_improves_best?(elapsed, previous_best)
+    previous_best.nil? || elapsed < previous_best.elapsed_time_seconds
   end
 
   def activity_overlaps_tournament_window?(tournament, participant)

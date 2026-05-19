@@ -492,6 +492,77 @@ class ApiLifecycleTest < ActionDispatch::IntegrationTest
     assert_equal ['First Rated'], event_names
   end
 
+  test 'repeat rated segment keeps one unlock and only recalculates score when best effort improves' do
+    owner = create_user(email: 'activity-repeat-owner@example.com')
+    runner = create_user(email: 'activity-repeat-runner@example.com')
+    spectator = create_user(email: 'activity-repeat-spectator@example.com')
+    tournament = create_tournament(owner, status: 'active', total_segments_count: 2, rated_segments_count: 1)
+    segment = create_segment(owner, name: 'Repeat Rated', lng_offset: 0.0)
+    tournament.tournament_segments.create!(segment:, order_number: 1, is_rated: true)
+    participant = tournament.tournament_participants.create!(user: runner, joined_at: Time.zone.at(1_700))
+    tournament.tournament_participants.create!(user: spectator, joined_at: Time.zone.at(1_700))
+
+    recalculate_calls = []
+    original_recalculate = TournamentScore.method(:recalculate_all)
+    TournamentScore.define_singleton_method(:recalculate_all) do |changed_tournament|
+      recalculate_calls << changed_tournament.id
+      original_recalculate.call(changed_tournament)
+    end
+
+    begin
+      assert_difference 'SegmentEffort.count', 1 do
+        assert_difference 'TournamentSegmentUnlock.count', 1 do
+          assert_difference 'TournamentEvent.count', 1 do
+            post api_v1_activities_path,
+                 params: activity_payload_for_segment(start_ts: 1_800, end_ts: 1_980),
+                 headers: auth_headers(runner)
+          end
+        end
+      end
+
+      assert_response :created
+      assert_equal [tournament.id], recalculate_calls
+      assert_equal 1, TournamentSegmentUnlock.where(tournament:, user: runner, segment:).count
+      assert_equal 1, TournamentEvent.where(tournament:, segment:).count
+      recalculate_calls.clear
+
+      assert_difference 'SegmentEffort.count', 1 do
+        assert_no_difference 'TournamentSegmentUnlock.count' do
+          assert_no_difference 'TournamentEvent.count' do
+            assert_no_difference 'Notification.count' do
+              post api_v1_activities_path,
+                   params: activity_payload_for_segment(start_ts: 2_100, end_ts: 2_310),
+                   headers: auth_headers(runner)
+            end
+          end
+        end
+      end
+
+      assert_response :created
+      assert_equal 1, response.parsed_body['segment_efforts_count']
+      assert_empty recalculate_calls
+
+      assert_difference 'SegmentEffort.count', 1 do
+        assert_no_difference 'TournamentSegmentUnlock.count' do
+          assert_no_difference 'TournamentEvent.count' do
+            assert_no_difference 'Notification.count' do
+              post api_v1_activities_path,
+                   params: activity_payload_for_segment(start_ts: 2_500, end_ts: 2_650),
+                   headers: auth_headers(runner)
+            end
+          end
+        end
+      end
+
+      assert_response :created
+      assert_equal [tournament.id], recalculate_calls
+      best_effort = TournamentScore.best_efforts_for(tournament, participant, segment_ids: [segment.id]).first
+      assert_equal 150, best_effort.elapsed_time_seconds
+    ensure
+      TournamentScore.define_singleton_method(:recalculate_all, original_recalculate)
+    end
+  end
+
   private
 
   def create_user(email:, role: 'user', gender: 'other', first_name: nil)
@@ -590,6 +661,17 @@ class ApiLifecycleTest < ActionDispatch::IntegrationTest
         accuracy: 5
       }
     end
+  end
+
+  def activity_payload_for_segment(start_ts:, end_ts:, lng_offset: 0.0)
+    {
+      started_at: Time.zone.at(start_ts).iso8601,
+      finished_at: Time.zone.at(end_ts).iso8601,
+      distance_meters: 700,
+      elapsed_time_seconds: end_ts - start_ts,
+      source: 'mobile_android',
+      gps_points: gps_points_for_segment(lng_offset:, start_ts:, end_ts:)
+    }
   end
 
   def auth_headers(user)

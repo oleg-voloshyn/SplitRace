@@ -56,6 +56,29 @@ class ApiNotificationsTest < ActionDispatch::IntegrationTest
     assert_includes body.fetch('items').first['title'], 'Opening Segment'
   end
 
+  test 'publishing an existing segment unlock does not duplicate feed or notifications' do
+    owner = create_user(email: 'duplicate-owner@example.com')
+    runner = create_user(email: 'duplicate-runner@example.com', first_name: 'Runner')
+    spectator = create_user(email: 'duplicate-spectator@example.com')
+    tournament = create_tournament(owner)
+    segment = create_segment(owner, name: 'No Duplicate Segment')
+    tournament.tournament_segments.create!(segment:, order_number: 1, is_rated: true)
+    tournament.tournament_participants.create!(user: runner)
+    tournament.tournament_participants.create!(user: spectator)
+    effort = create_effort(runner, segment)
+
+    first_event = TournamentEventPublisher.segment_unlocked!(tournament:, segment_effort: effort)
+
+    assert_no_difference 'TournamentSegmentUnlock.count' do
+      assert_no_difference 'TournamentEvent.count' do
+        assert_no_difference 'Notification.count' do
+          second_event = TournamentEventPublisher.segment_unlocked!(tournament:, segment_effort: effort)
+          assert_equal first_event, second_event
+        end
+      end
+    end
+  end
+
   test 'user can register and unregister expo push token' do
     user = create_user(email: 'push@example.com')
     token = 'ExpoPushToken[test-token]'

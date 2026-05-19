@@ -23,8 +23,8 @@ module Api
 
         if activity.save
           begin
-            SegmentMatcher.new(activity).call
-            activity.user.tournaments.where(status: 'active').find_each do |t|
+            score_changed_tournament_ids = SegmentMatcher.new(activity).call
+            activity.user.tournaments.where(status: 'active', id: score_changed_tournament_ids).find_each do |t|
               TournamentScore.recalculate_all(t)
             end
           rescue => e
