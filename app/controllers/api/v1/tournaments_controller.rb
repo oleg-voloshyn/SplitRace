@@ -34,7 +34,7 @@ module Api
       end
 
       def update
-        unless %w[draft rejected].include?(@tournament.status)
+        unless @tournament.editable?
           return render json: { error: 'Tournament can only be edited while in draft or rejected status' },
                         status: :unprocessable_content
         end
@@ -47,7 +47,7 @@ module Api
       end
 
       def destroy
-        unless @tournament.status == 'draft'
+        unless @tournament.draft?
           return render json: { error: 'Only draft tournaments can be deleted' },
                         status: :unprocessable_content
         end
@@ -90,10 +90,10 @@ module Api
       end
 
       def submit_for_review
-        return render json: { error: 'Tournament is not ready for review' }, status: :unprocessable_content unless @tournament.ready_for_review?
-
         @tournament.submit_for_review!
         render json: serialize_tournament(@tournament, view: :owned)
+      rescue AASM::InvalidTransition
+        render json: { error: 'Tournament is not ready for review' }, status: :unprocessable_content
       end
 
       def join
@@ -102,7 +102,7 @@ module Api
         end
 
         return render json: { error: 'Already joined' }, status: :unprocessable_content if @tournament.participating?(current_user)
-        return render json: { error: 'Tournament is not active' }, status: :unprocessable_content unless @tournament.status == 'active'
+        return render json: { error: 'Tournament is not active' }, status: :unprocessable_content unless @tournament.active?
 
         @tournament.tournament_participants.create!(user: current_user)
         render json: { joined: true }
@@ -151,11 +151,15 @@ module Api
       def activate
         @tournament.activate!
         render json: serialize_tournament(@tournament)
+      rescue AASM::InvalidTransition => e
+        render json: { error: e.message }, status: :unprocessable_content
       end
 
       def complete
         @tournament.complete!
         render json: serialize_tournament(@tournament)
+      rescue AASM::InvalidTransition => e
+        render json: { error: e.message }, status: :unprocessable_content
       end
 
       private

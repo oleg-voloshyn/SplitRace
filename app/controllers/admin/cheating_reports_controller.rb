@@ -11,16 +11,19 @@ module Admin
 
     def update
       @report = CheatingReport.find(params[:id])
-      new_status = params[:status]
-      notes = params[:admin_notes]
+      notes   = params[:admin_notes]
 
-      unless %w[dismissed upheld].include?(new_status)
+      case params[:status]
+      when 'dismissed' then @report.dismiss!(@current_admin, notes)
+      when 'upheld'    then @report.uphold!(@current_admin, notes)
+      else
         redirect_to admin_cheating_report_path(@report), alert: 'Invalid action.'
         return
       end
 
-      @report.mark_reviewed!(@current_admin, new_status, notes)
-      redirect_to admin_cheating_reports_path, notice: "Report #{new_status}."
+      redirect_to admin_cheating_reports_path, notice: "Report #{@report.status}."
+    rescue AASM::InvalidTransition
+      redirect_to admin_cheating_report_path(@report), alert: 'Report has already been reviewed.'
     end
   end
 end
