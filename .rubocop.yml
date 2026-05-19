@@ -39,6 +39,8 @@ Metrics/BlockLength:
 
 Metrics/ClassLength:
   Max: 450
+  Exclude:
+    - "test/integration/**/*"
 
 Metrics/CyclomaticComplexity:
   Max: 50
@@ -51,6 +53,7 @@ Metrics/MethodLength:
     - build
   Exclude:
     - "app/models/tournament_score.rb"
+    - "db/migrate/**/*"
 
 Metrics/ModuleLength:
   Max: 350

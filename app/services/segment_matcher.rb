@@ -140,8 +140,9 @@ class SegmentMatcher
     elapsed, started = interpolate_time(segment)
     return nil unless elapsed&.positive?
     return nil if after && started < after
-    if tournament && participant
-      return nil unless SegmentEffort.started_in_tournament_window?(tournament, participant, started)
+
+    if tournament && participant && !SegmentEffort.started_in_tournament_window?(tournament, participant, started)
+      return nil
     end
 
     previous_best = if best_after && tournament && participant
@@ -153,7 +154,7 @@ class SegmentMatcher
       return {
         effort: existing,
         best_improved: effort_improves_best?(existing, previous_best) &&
-          @changed_segment_effort_ids.include?(existing.id)
+                       @changed_segment_effort_ids.include?(existing.id)
       }
     end
 
@@ -171,7 +172,7 @@ class SegmentMatcher
     SegmentEffort
       .in_tournament_window(tournament, participant)
       .where(user: @user, segment:)
-      .where('segment_efforts.started_at >= ?', after)
+      .where(segment_efforts: { started_at: after.. })
       .where.not(activity_id: @activity.id)
       .order(:elapsed_time_seconds, :started_at, :id)
       .first
@@ -186,8 +187,8 @@ class SegmentMatcher
   end
 
   def activity_overlaps_tournament_window?(tournament, participant)
-    if (window_start = SegmentEffort.tournament_window_start(tournament, participant))
-      return false if (@activity.finished_at || @activity.started_at) < window_start
+    if (window_start = SegmentEffort.tournament_window_start(tournament, participant)) && ((@activity.finished_at || @activity.started_at) < window_start)
+      return false
     end
 
     return false if tournament.ends_at && @activity.started_at >= tournament.ends_at
@@ -352,7 +353,7 @@ class SegmentMatcher
     accuracy = point['accuracy'] || point[:accuracy]
     return base_tolerance unless accuracy.to_f.positive?
 
-    [base_tolerance, [accuracy.to_f + GPS_ACCURACY_PADDING_METERS, MIN_GPS_TOLERANCE_METERS].max].min
+    (accuracy.to_f + GPS_ACCURACY_PADDING_METERS).clamp(MIN_GPS_TOLERANCE_METERS, base_tolerance)
   end
 
   def route_projection_for(route_points)
@@ -394,8 +395,7 @@ class SegmentMatcher
     max_progress_jump = actual_move + progress_jump_padding(tolerance)
     eligible = candidates.select do |candidate|
       progress_delta = candidate[:measure] - previous[:measure]
-      progress_delta >= -PROGRESS_BACKTRACK_TOLERANCE_METERS &&
-        progress_delta <= max_progress_jump
+      progress_delta.between?(-PROGRESS_BACKTRACK_TOLERANCE_METERS, max_progress_jump)
     end
 
     eligible.min_by { |candidate| [candidate[:distance], candidate[:measure]] }&.merge(point:)

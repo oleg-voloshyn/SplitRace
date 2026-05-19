@@ -10,15 +10,15 @@ class SegmentEffort < ApplicationRecord
 
   before_save :calculate_pace
 
-  scope :in_tournament_window, lambda { |tournament, participant|
+  scope :in_tournament_window, ->(tournament, participant) {
     relation = all
 
     if (window_start = SegmentEffort.tournament_window_start(tournament, participant))
-      relation = relation.where('segment_efforts.started_at >= ?', window_start)
+      relation = relation.where(segment_efforts: { started_at: window_start.. })
     end
 
     if tournament.ends_at
-      relation = relation.where('segment_efforts.started_at < ?', tournament.ends_at)
+      relation = relation.where(segment_efforts: { started_at: ...tournament.ends_at })
     end
 
     relation
@@ -31,8 +31,8 @@ class SegmentEffort < ApplicationRecord
   def self.started_in_tournament_window?(tournament, participant, started_at)
     return false unless started_at
 
-    if (window_start = tournament_window_start(tournament, participant))
-      return false if started_at < window_start
+    if (window_start = tournament_window_start(tournament, participant)) && (started_at < window_start)
+      return false
     end
 
     return false if tournament.ends_at && started_at >= tournament.ends_at

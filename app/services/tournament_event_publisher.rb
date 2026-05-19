@@ -31,7 +31,7 @@ class TournamentEventPublisher
       event_type: 'segment_unlocked',
       title: default_text[:title],
       body: default_text[:body],
-      metadata: metadata
+      metadata:
     )
 
     tournament.tournament_participants.includes(:user).find_each do |participant|

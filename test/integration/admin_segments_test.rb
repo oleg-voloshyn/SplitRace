@@ -110,7 +110,7 @@ class AdminSegmentsTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :unprocessable_content
-    assert_select ".alert", text: /#{Regexp.escape(Segment::MIN_DISTANCE_ERROR)}/
+    assert_select ".alert", text: /#{Regexp.escape(Segment::MIN_DISTANCE_ERROR)}/o
   end
 
   test "index renders delete form with confirmation modal wiring" do

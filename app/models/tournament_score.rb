@@ -104,12 +104,12 @@ class TournamentScore < ApplicationRecord
     return {} if segment_ids.empty?
 
     tournament.tournament_segment_unlocks
-      .where(segment_id: segment_ids)
-      .order(:segment_id, :unlocked_at, :id)
-      .pluck(:segment_id, :user_id)
-      .each_with_object({}) do |(segment_id, user_id), first_openers|
-        first_openers[segment_id] ||= user_id
-      end
+              .where(segment_id: segment_ids)
+              .order(:segment_id, :unlocked_at, :id)
+              .pluck(:segment_id, :user_id)
+              .each_with_object({}) do |(segment_id, user_id), first_openers|
+                first_openers[segment_id] ||= user_id
+              end
   end
 
   def self.eligible_unlocks_for(tournament, participant, segment_ids:)

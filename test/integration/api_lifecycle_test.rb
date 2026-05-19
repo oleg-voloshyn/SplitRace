@@ -471,15 +471,15 @@ class ApiLifecycleTest < ActionDispatch::IntegrationTest
       assert_difference 'TournamentSegmentUnlock.count', 1 do
         assert_difference 'TournamentEvent.count', 1 do
           post api_v1_activities_path,
-                 params: {
-                   started_at: Time.zone.at(1_800).iso8601,
-                   finished_at: Time.zone.at(2_800).iso8601,
-                   distance_meters: 5_000,
-                   elapsed_time_seconds: 1_000,
-                   source: 'mobile_android',
-                   gps_points:
-                 },
-                 headers: auth_headers(runner)
+               params: {
+                 started_at: Time.zone.at(1_800).iso8601,
+                 finished_at: Time.zone.at(2_800).iso8601,
+                 distance_meters: 5_000,
+                 elapsed_time_seconds: 1_000,
+                 source: 'mobile_android',
+                 gps_points:
+               },
+               headers: auth_headers(runner)
         end
       end
     end

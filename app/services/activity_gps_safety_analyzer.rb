@@ -148,8 +148,8 @@ class ActivityGpsSafetyAnalyzer
     lat2 = radians(second[:lat])
     delta_lat = radians(second[:lat] - first[:lat])
     delta_lng = radians(second[:lng] - first[:lng])
-    a = Math.sin(delta_lat / 2)**2 +
-        Math.cos(lat1) * Math.cos(lat2) * Math.sin(delta_lng / 2)**2
+    a = (Math.sin(delta_lat / 2)**2) +
+        (Math.cos(lat1) * Math.cos(lat2) * (Math.sin(delta_lng / 2)**2))
     6_371_000 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
   end
 

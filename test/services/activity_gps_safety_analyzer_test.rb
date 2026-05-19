@@ -31,7 +31,7 @@ class ActivityGpsSafetyAnalyzerTest < ActiveSupport::TestCase
     matching_points = Activity.gps_points_for_matching(points)
 
     assert_equal 2, matching_points.size
-    assert_equal [5, 6], matching_points.map { |point| point['accuracy'] }
+    assert_equal([5, 6], matching_points.pluck('accuracy'))
   end
 
   test 'does not use explicitly inaccurate GPS points for matching' do
