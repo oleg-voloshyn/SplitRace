@@ -17,24 +17,37 @@ class TournamentScore < ApplicationRecord
     return if rated_segments.empty?
 
     rated_segment_ids  = rated_segments.map(&:segment_id)
-    participants       = tournament.tournament_participants.includes(:user)
-    total_participants = participants.count
+    participants       = tournament.tournament_participants.includes(:user).to_a
+    total_participants = participants.size
     first_opener_by_segment = first_opener_by_segment(tournament, rated_segment_ids)
+    participant_contexts = participants.to_h do |tp|
+      unlock_started_by_segment = unlock_started_by_segment(tournament, tp, segment_ids: rated_segment_ids)
+      best_efforts_by_segment = best_efforts_for(
+        tournament,
+        tp,
+        segment_ids: rated_segment_ids,
+        unlock_started_by_segment:
+      ).index_by(&:segment_id)
+
+      [
+        tp.user_id,
+        {
+          user: tp.user,
+          unlock_started_by_segment:,
+          best_efforts_by_segment:
+        }
+      ]
+    end
 
     # Find who completed ALL segments and when (for bonus ranking)
     completion_times = {}
     participants.each do |tp|
-      done = SegmentEffort
-             .where(user: tp.user, segment_id: rated_segment_ids)
-             .select(:segment_id).distinct.count
+      unlock_started_by_segment = participant_contexts.fetch(tp.user_id).fetch(:unlock_started_by_segment)
+      done = unlock_started_by_segment.size
 
       next unless done == rated_segment_ids.size
 
-      last_effort = SegmentEffort
-                    .where(user: tp.user, segment_id: rated_segment_ids)
-                    .order(:started_at)
-                    .last
-      completion_times[tp.user_id] = last_effort.started_at
+      completion_times[tp.user_id] = rated_segment_ids.map { |segment_id| unlock_started_by_segment[segment_id] }.max
     end
 
     # 0-based rank among completers sorted by completion time
@@ -46,27 +59,22 @@ class TournamentScore < ApplicationRecord
     participants.each do |tp|
       user   = tp.user
       gender = user.gender
+      context = participant_contexts.fetch(tp.user_id)
 
       total_score     = 0.0
-      completed_count = 0
+      completed_count = context.fetch(:unlock_started_by_segment).size
 
       rated_segments.each do |ts|
-        best_effort = SegmentEffort
-                      .where(user:, segment_id: ts.segment_id)
-                      .order(:elapsed_time_seconds)
-                      .first
+        best_effort = context.fetch(:best_efforts_by_segment)[ts.segment_id]
 
         next unless best_effort
 
-        completed_count += 1
-
         # Fastest time for this segment among tournament participants of same gender
-        fastest_q = SegmentEffort
-                    .joins(user: :tournament_participants)
-                    .where(tournament_participants: { tournament_id: tournament.id })
-                    .where(segment_id: ts.segment_id)
-        fastest_q = fastest_q.where(users: { gender: }) if gender.present?
-        fastest   = fastest_q.minimum(:elapsed_time_seconds)
+        fastest = participant_contexts.values.filter_map do |candidate_context|
+          next if gender.present? && candidate_context.fetch(:user).gender != gender
+
+          candidate_context.fetch(:best_efforts_by_segment)[ts.segment_id]&.elapsed_time_seconds
+        end.min
 
         if fastest && best_effort.elapsed_time_seconds.positive?
           total_score += (fastest.to_f / best_effort.elapsed_time_seconds) * 100.0
@@ -95,15 +103,60 @@ class TournamentScore < ApplicationRecord
   def self.first_opener_by_segment(tournament, segment_ids)
     return {} if segment_ids.empty?
 
-    participant_user_ids = tournament.tournament_participants.select(:user_id)
+    participants_by_user_id = tournament.tournament_participants.index_by(&:user_id)
 
-    SegmentEffort
-      .where(user_id: participant_user_ids, segment_id: segment_ids)
-      .order(:segment_id, :started_at, :id)
-      .pluck(:segment_id, :user_id)
-      .each_with_object({}) do |(segment_id, user_id), first_openers|
+    tournament.tournament_events
+      .joins(:segment_effort)
+      .where(event_type: 'segment_unlocked', segment_id: segment_ids, actor_id: participants_by_user_id.keys)
+      .where('segment_efforts.user_id = tournament_events.actor_id')
+      .order('tournament_events.segment_id ASC, segment_efforts.started_at ASC, tournament_events.id ASC')
+      .pluck('tournament_events.segment_id', 'tournament_events.actor_id', 'segment_efforts.started_at')
+      .each_with_object({}) do |(segment_id, user_id, started_at), first_openers|
+        participant = participants_by_user_id[user_id]
+        next unless participant
+        next unless SegmentEffort.started_in_tournament_window?(tournament, participant, started_at)
+
         first_openers[segment_id] ||= user_id
       end
+  end
+
+  def self.eligible_unlock_events_for(tournament, participant, segment_ids:)
+    return TournamentEvent.none unless participant
+
+    tournament.tournament_events
+              .joins(:segment_effort)
+              .where(actor_id: participant.user_id, event_type: 'segment_unlocked', segment_id: segment_ids)
+              .where(segment_efforts: { user_id: participant.user_id })
+              .merge(SegmentEffort.in_tournament_window(tournament, participant))
+  end
+
+  def self.unlock_started_by_segment(tournament, participant, segment_ids:)
+    eligible_unlock_events_for(tournament, participant, segment_ids:)
+      .order('segment_efforts.started_at ASC, tournament_events.id ASC')
+      .pluck('tournament_events.segment_id', 'segment_efforts.started_at')
+      .each_with_object({}) do |(segment_id, started_at), unlocks|
+        unlocks[segment_id] ||= started_at
+      end
+  end
+
+  def self.unlocked_segment_ids_for(tournament, participant, segment_ids:)
+    unlock_started_by_segment(tournament, participant, segment_ids:).keys
+  end
+
+  def self.best_efforts_for(tournament, participant, segment_ids:, unlock_started_by_segment: nil)
+    return [] unless participant
+
+    unlock_started_by_segment ||= self.unlock_started_by_segment(tournament, participant, segment_ids:)
+    return [] if unlock_started_by_segment.empty?
+
+    SegmentEffort
+      .in_tournament_window(tournament, participant)
+      .where(user_id: participant.user_id, segment_id: unlock_started_by_segment.keys)
+      .order(:segment_id, :elapsed_time_seconds, :started_at, :id)
+      .select do |effort|
+        effort.started_at >= unlock_started_by_segment.fetch(effort.segment_id)
+      end
+      .uniq(&:segment_id)
   end
 
   def self.update_ranks(tournament)

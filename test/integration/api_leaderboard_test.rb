@@ -9,7 +9,7 @@ class ApiLeaderboardTest < ActionDispatch::IntegrationTest
     second_segment = create_segment(owner, name: 'Leaderboard Second', lng_offset: 0.03)
     tournament.tournament_segments.create!(segment: first_segment, order_number: 1, is_rated: true)
     tournament.tournament_segments.create!(segment: second_segment, order_number: 2, is_rated: true)
-    tournament.tournament_participants.create!(user: runner)
+    tournament.tournament_participants.create!(user: runner, joined_at: Time.zone.at(1_700))
     TournamentScore.create!(tournament:, user: runner, score: 180, completed_segments_count: 1, rank: 1, gender_rank: 1)
     activity = runner.activities.create!(
       started_at: Time.zone.at(1_800),
@@ -36,7 +36,7 @@ class ApiLeaderboardTest < ActionDispatch::IntegrationTest
     get leaderboard_api_v1_tournament_path(tournament.slug), headers: auth_headers(owner)
 
     assert_response :success
-    leader = response.parsed_body.first
+    leader = response.parsed_body.fetch('items').first
     assert_equal 1, leader['overall_rank']
     assert_equal 1, leader['gender_rank']
     assert_equal 2, leader['rated_segments_count']

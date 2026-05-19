@@ -125,7 +125,7 @@ class ApiLifecycleTest < ActionDispatch::IntegrationTest
     get api_v1_tournaments_path, headers: auth_headers(viewer)
 
     assert_response :success
-    names = response.parsed_body.pluck('name')
+    names = response.parsed_body.fetch('items').pluck('name')
     assert_includes names, active.name
     assert_includes names, completed.name
     assert_not_includes names, 'Draft Cup'
@@ -273,14 +273,15 @@ class ApiLifecycleTest < ActionDispatch::IntegrationTest
     get leaderboard_api_v1_tournament_path(tournament.slug), headers: auth_headers(owner)
 
     assert_response :success
-    leaderboard_names = response.parsed_body.map { |row| row.dig('user', 'full_name') }
+    leaderboard = response.parsed_body.fetch('items')
+    leaderboard_names = leaderboard.map { |row| row.dig('user', 'full_name') }
     assert_equal ['leader-male@example.com', 'leader-female@example.com'], leaderboard_names
-    assert_equal [1, 2], response.parsed_body.pluck('rank')
+    assert_equal [1, 2], leaderboard.pluck('rank')
 
     get leaderboard_api_v1_tournament_path(tournament.slug, gender: 'female'), headers: auth_headers(owner)
 
     assert_response :success
-    gender_leaderboard_names = response.parsed_body.map { |row| row.dig('user', 'full_name') }
+    gender_leaderboard_names = response.parsed_body.fetch('items').map { |row| row.dig('user', 'full_name') }
     assert_equal ['leader-female@example.com'], gender_leaderboard_names
   end
 
@@ -335,7 +336,7 @@ class ApiLifecycleTest < ActionDispatch::IntegrationTest
     tournament = create_tournament(owner, status: 'active')
     segment = create_segment(owner, name: 'Matched Segment')
     tournament.tournament_segments.create!(segment:, order_number: 1, is_rated: true)
-    tournament.tournament_participants.create!(user: runner)
+    tournament.tournament_participants.create!(user: runner, joined_at: Time.zone.at(1_700))
 
     assert_difference 'Activity.count', 1 do
       assert_difference 'SegmentEffort.count', 1 do
@@ -365,6 +366,47 @@ class ApiLifecycleTest < ActionDispatch::IntegrationTest
     assert_equal 0, runner.notifications.where(tournament:).count
   end
 
+  test 'activity does not treat pre start segment effort as an unlocked tournament segment' do
+    owner = create_user(email: 'activity-window-owner@example.com')
+    runner = create_user(email: 'activity-window-runner@example.com')
+    tournament = create_tournament(
+      owner,
+      status: 'active',
+      total_segments_count: 3,
+      rated_segments_count: 2
+    )
+    tournament.update!(starts_at: Time.zone.at(2_000))
+    first = create_segment(owner, name: 'Window First', lng_offset: 0.0)
+    second = create_segment(owner, name: 'Window Second', lng_offset: 0.03)
+    tournament.tournament_segments.create!(segment: first, order_number: 1, is_rated: true)
+    tournament.tournament_segments.create!(segment: second, order_number: 2, is_rated: true)
+    tournament.tournament_participants.create!(user: runner, joined_at: Time.zone.at(1_900))
+    create_effort(user: runner, segment: first, elapsed: 100, started_at: Time.zone.at(1_950))
+
+    assert_no_difference 'SegmentEffort.count' do
+      assert_no_difference 'TournamentEvent.count' do
+        post api_v1_activities_path,
+             params: {
+               started_at: Time.zone.at(2_100).iso8601,
+               finished_at: Time.zone.at(2_220).iso8601,
+               distance_meters: 1_500,
+               elapsed_time_seconds: 120,
+               source: 'mobile_android',
+               gps_points: [
+                 { lat: 50.45, lng: 30.55, ts: 2_100, accuracy: 5 },
+                 { lat: 50.46, lng: 30.56, ts: 2_220, accuracy: 5 }
+               ]
+             },
+             headers: auth_headers(runner)
+      end
+    end
+
+    assert_response :created
+    assert_equal 0, response.parsed_body['segment_efforts_count']
+    assert_equal [{ 'tournament_name' => tournament.name, 'position' => 1 }],
+                 response.parsed_body['pending_rated_unlocks']
+  end
+
   test 'activity does not unlock later rated segments before the first missing rated segment' do
     owner = create_user(email: 'activity-later-owner@example.com')
     runner = create_user(email: 'activity-later-runner@example.com')
@@ -376,8 +418,8 @@ class ApiLifecycleTest < ActionDispatch::IntegrationTest
     tournament.tournament_segments.create!(segment: skipped, order_number: 1, is_rated: true)
     tournament.tournament_segments.create!(segment: second, order_number: 2, is_rated: true)
     tournament.tournament_segments.create!(segment: third, order_number: 3, is_rated: true)
-    tournament.tournament_participants.create!(user: runner)
-    tournament.tournament_participants.create!(user: spectator)
+    tournament.tournament_participants.create!(user: runner, joined_at: Time.zone.at(1_700))
+    tournament.tournament_participants.create!(user: spectator, joined_at: Time.zone.at(1_700))
 
     assert_no_difference 'SegmentEffort.count' do
       assert_no_difference 'TournamentEvent.count' do
@@ -418,7 +460,7 @@ class ApiLifecycleTest < ActionDispatch::IntegrationTest
     second = create_segment(owner, name: 'Second Rated', lng_offset: 0.03)
     tournament.tournament_segments.create!(segment: first, order_number: 1, is_rated: true)
     tournament.tournament_segments.create!(segment: second, order_number: 2, is_rated: true)
-    tournament.tournament_participants.create!(user: runner)
+    tournament.tournament_participants.create!(user: runner, joined_at: Time.zone.at(1_700))
 
     assert_difference 'SegmentEffort.count', 1 do
       assert_difference 'TournamentEvent.count', 1 do
@@ -501,6 +543,23 @@ class ApiLifecycleTest < ActionDispatch::IntegrationTest
       notification_type: 'segment_unlocked',
       title:,
       body: "#{title} body"
+    )
+  end
+
+  def create_effort(user:, segment:, elapsed:, started_at:)
+    activity = user.activities.create!(
+      started_at: started_at - 1.minute,
+      finished_at: started_at + elapsed.seconds,
+      distance_meters: segment.distance_meters,
+      elapsed_time_seconds: elapsed,
+      source: 'mobile_android'
+    )
+    SegmentEffort.create!(
+      user:,
+      segment:,
+      activity:,
+      elapsed_time_seconds: elapsed,
+      started_at:
     )
   end
 

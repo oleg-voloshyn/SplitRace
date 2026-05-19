@@ -15,7 +15,7 @@ class SegmentRouteMatchingTest < ActionDispatch::IntegrationTest
     tournament = create_tournament(owner)
     segment = create_segment_from_coords(owner, name: 'Around Building', coords: ROUTE)
     tournament.tournament_segments.create!(segment:, order_number: 1, is_rated: true)
-    tournament.tournament_participants.create!(user: runner)
+    tournament.tournament_participants.create!(user: runner, joined_at: Time.zone.at(1_700))
 
     assert_no_difference 'SegmentEffort.count' do
       assert_no_difference 'TournamentEvent.count' do
@@ -46,7 +46,7 @@ class SegmentRouteMatchingTest < ActionDispatch::IntegrationTest
     tournament = create_tournament(owner)
     segment = create_segment_from_coords(owner, name: 'Around Building', coords: ROUTE)
     tournament.tournament_segments.create!(segment:, order_number: 1, is_rated: true)
-    tournament.tournament_participants.create!(user: runner)
+    tournament.tournament_participants.create!(user: runner, joined_at: Time.zone.at(1_700))
 
     assert_difference 'SegmentEffort.count', 1 do
       assert_difference 'TournamentEvent.count', 1 do

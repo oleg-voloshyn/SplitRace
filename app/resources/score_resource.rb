@@ -39,19 +39,34 @@ class ScoreResource
   end
 
   attribute :last_unlock_at do |score|
-    params[:tournament].tournament_events
-                       .where(actor: score.user, event_type: 'segment_unlocked')
-                       .maximum(:created_at)
+    participant = participant_for(score)
+    next nil unless participant
+
+    TournamentScore
+      .eligible_unlock_events_for(params[:tournament], participant, segment_ids: params[:rated_segment_ids])
+      .maximum(:created_at)
   end
 
   attribute(:rank_delta) { nil }
   attribute :score, &:score
 
   def best_efforts(score)
-    @best_efforts ||= SegmentEffort
-                      .where(user: score.user, segment_id: params[:rated_segment_ids])
-                      .order(:segment_id, :elapsed_time_seconds)
-                      .to_a
-                      .uniq(&:segment_id)
+    @best_efforts ||= {}
+    @best_efforts[score.id] ||= begin
+      participant = participant_for(score)
+      if participant
+        TournamentScore.best_efforts_for(params[:tournament], participant, segment_ids: params[:rated_segment_ids])
+      else
+        []
+      end
+    end
+  end
+
+  def participant_for(score)
+    participants_by_user_id[score.user_id] || params[:tournament].participant_for(score.user)
+  end
+
+  def participants_by_user_id
+    @participants_by_user_id ||= params[:participants_by_user_id] || {}
   end
 end

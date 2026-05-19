@@ -129,6 +129,7 @@ module Api
         rated_segments    = @tournament.tournament_segments.where(is_rated: true).order(:order_number).to_a
         rated_segment_ids = rated_segments.map(&:segment_id)
         first_openers     = TournamentScore.first_opener_by_segment(@tournament, rated_segment_ids)
+        participants_by_user_id = @tournament.tournament_participants.index_by(&:user_id)
 
         items = records.map.with_index(1) do |score, i|
           ScoreResource.new(score, params: {
@@ -136,7 +137,8 @@ module Api
                               tournament: @tournament,
                               rated_segments:,
                               rated_segment_ids:,
-                              first_openers:
+                              first_openers:,
+                              participants_by_user_id:
                             }).serializable_hash
         end
 

@@ -14,8 +14,15 @@ class SegmentMatcher
 
     passed_ids = []
 
-    @user.tournaments.where(status: 'active').find_each do |tournament|
-      match_ordered_for(tournament)
+    @user.tournament_participants
+         .includes(tournament: { tournament_segments: :segment })
+         .joins(:tournament)
+         .where(tournaments: { status: 'active' })
+         .find_each do |participant|
+      tournament = participant.tournament
+      next unless activity_overlaps_tournament_window?(tournament, participant)
+
+      match_ordered_for(tournament, participant)
       passed_ids.concat(passing_segment_ids(tournament))
     end
 
@@ -53,7 +60,7 @@ class SegmentMatcher
   # Rated segments are unlocked strictly in order for each runner. GPS may pass
   # later rated routes, but they do not count until all earlier rated positions
   # are already unlocked or unlocked earlier in this same activity.
-  def match_ordered_for(tournament)
+  def match_ordered_for(tournament, participant)
     rated_segments = tournament.tournament_segments
                                .where(is_rated: true)
                                .order(:order_number)
@@ -66,20 +73,18 @@ class SegmentMatcher
     # Segments the user had efforts for BEFORE this activity. Already unlocked
     # segments may be re-run to improve time, but missing positions block all
     # later rated unlocks.
-    previously_completed = SegmentEffort
-                           .where(user: @user, segment_id: rated_segment_ids)
-                           .where.not(activity_id: @activity.id)
-                           .pluck(:segment_id)
+    previously_completed = TournamentScore
+                           .unlocked_segment_ids_for(tournament, participant, segment_ids: rated_segment_ids)
                            .to_set
 
     last_new_unlock_at = nil
     rated_segments.each do |ts|
       if previously_completed.include?(ts.segment_id)
-        try_match(ts.segment)
+        try_match(ts.segment, tournament:, participant:)
         next
       end
 
-      effort = try_match(ts.segment, after: last_new_unlock_at)
+      effort = try_match(ts.segment, after: last_new_unlock_at, tournament:, participant:)
       break unless effort
 
       TournamentEventPublisher.segment_unlocked!(tournament:, segment_effort: effort)
@@ -88,7 +93,7 @@ class SegmentMatcher
     end
   end
 
-  def try_match(segment, after: nil)
+  def try_match(segment, after: nil, tournament: nil, participant: nil)
     return nil unless segment.start_point && segment.end_point && @activity.gps_track
 
     near_start = Activity.where(id: @activity.id)
@@ -111,12 +116,25 @@ class SegmentMatcher
     elapsed, started = interpolate_time(segment)
     return nil unless elapsed&.positive?
     return nil if after && started < after
+    if tournament && participant
+      return nil unless SegmentEffort.started_in_tournament_window?(tournament, participant, started)
+    end
 
     existing = SegmentEffort.find_by(user: @user, segment:, activity: @activity)
     return existing if existing&.elapsed_time_seconds&.<=(elapsed)
 
     SegmentEffort.find_or_initialize_by(user: @user, segment:, activity: @activity)
                  .tap { |e| e.update!(elapsed_time_seconds: elapsed, started_at: started) }
+  end
+
+  def activity_overlaps_tournament_window?(tournament, participant)
+    if (window_start = SegmentEffort.tournament_window_start(tournament, participant))
+      return false if (@activity.finished_at || @activity.started_at) < window_start
+    end
+
+    return false if tournament.ends_at && @activity.started_at >= tournament.ends_at
+
+    true
   end
 
   def interpolate_time(segment)

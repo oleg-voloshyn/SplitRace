@@ -31,7 +31,10 @@ class ActivityResource
                              .exists?
       next nil if unlocked_in_activity
 
-      completed     = SegmentEffort.where(user:, segment_id: rated_segment_ids).pluck(:segment_id).to_set
+      participant = tournament.participant_for(user)
+      completed = TournamentScore
+                  .unlocked_segment_ids_for(tournament, participant, segment_ids: rated_segment_ids)
+                  .to_set
       next_required = rated.find { |ts| completed.exclude?(ts.segment_id) }
       next nil unless next_required
 
