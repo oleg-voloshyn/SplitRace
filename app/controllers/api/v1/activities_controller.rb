@@ -13,7 +13,13 @@ module Api
 
         activity = current_user.activities.build(activity_params)
         activity.gps_points = gps_pts if gps_pts.present?
-        activity.gps_track  = build_gps_track(gps_pts) if gps_pts.present?
+        if gps_pts.present?
+          safety_report = ActivityGpsSafetyAnalyzer.call(activity:, points: gps_pts)
+          activity.suspicious = safety_report.suspicious
+          activity.suspicious_reasons = safety_report.reasons
+          activity.gps_quality = safety_report.metrics
+          activity.gps_track = build_gps_track(Activity.gps_points_for_matching(gps_pts))
+        end
 
         if activity.save
           begin

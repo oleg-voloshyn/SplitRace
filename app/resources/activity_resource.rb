@@ -1,7 +1,8 @@
 class ActivityResource
   include Alba::Resource
 
-  attributes :id, :started_at, :finished_at, :distance_meters, :elapsed_time_seconds, :source
+  attributes :id, :started_at, :finished_at, :distance_meters, :elapsed_time_seconds, :source,
+             :suspicious, :suspicious_reasons
 
   attribute(:segment_efforts_count) { |a| a.segment_efforts.count }
 

@@ -3,6 +3,7 @@ module Admin
     def index
       scope = Activity.includes(:user, :segment_efforts).order(started_at: :desc)
       scope = scope.where(user_id: params[:user_id]) if params[:user_id].present?
+      scope = scope.suspicious if params[:suspicious] == '1'
       @user       = User.find(params[:user_id]) if params[:user_id].present?
       @activities = scope.limit(200)
     end

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_19_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_19_123000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "postgis"
@@ -21,12 +21,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_19_120000) do
     t.integer "elapsed_time_seconds"
     t.datetime "finished_at"
     t.jsonb "gps_points", default: []
+    t.jsonb "gps_quality", default: {}, null: false
     t.geography "gps_track", limit: {srid: 4326, type: "line_string", geographic: true}
     t.integer "passed_segment_ids", default: [], array: true
     t.string "source", default: "web_pwa", null: false
     t.datetime "started_at", null: false
+    t.boolean "suspicious", default: false, null: false
+    t.jsonb "suspicious_reasons", default: [], null: false
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
+    t.index ["suspicious"], name: "index_activities_on_suspicious"
     t.index ["user_id", "started_at"], name: "index_activities_on_user_id_and_started_at"
     t.index ["user_id"], name: "index_activities_on_user_id"
   end

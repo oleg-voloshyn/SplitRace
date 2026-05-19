@@ -288,6 +288,11 @@ class AdminFlowsTest < ActionDispatch::IntegrationTest
       distance_meters: 1_500,
       elapsed_time_seconds: 600,
       source: "mobile_android",
+      suspicious: true,
+      suspicious_reasons: [
+        { "code" => "teleport_jump", "message" => "GPS points jump too far in too little time." }
+      ],
+      gps_quality: { "max_point_speed_mps" => 42.5 },
       gps_points: [
         { "lat" => 50.45, "lng" => 30.52, "ts" => Time.current.to_i },
         { "lat" => 50.46, "lng" => 30.53, "ts" => 10.minutes.from_now.to_i }
@@ -304,6 +309,7 @@ class AdminFlowsTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "h1", /Activities/
     assert_select "td", text: "mobile_android"
+    assert_select ".badge", text: "Suspicious"
     assert_select "a[href='#{admin_activity_path(activity)}']", text: "View"
 
     get admin_activity_path(activity)
@@ -311,6 +317,12 @@ class AdminFlowsTest < ActionDispatch::IntegrationTest
     assert_select "h1", /Activity by/
     assert_select "#activity-map"
     assert_select "td", text: segment.name
+    assert_select ".badge", text: "Suspicious"
+    assert_select "li", text: "GPS points jump too far in too little time."
+
+    get admin_activities_path(user_id: runner.id, suspicious: "1")
+    assert_response :success
+    assert_select "a[href='#{admin_activity_path(activity)}']", text: "View"
   end
 
   test "segments index supports search sorting and pagination" do

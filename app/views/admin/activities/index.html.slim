@@ -7,6 +7,10 @@
   - if @user
     = link_to "← All users", admin_users_path, class: "btn btn-outline-secondary"
 
+.mb-3
+  = link_to "All", admin_activities_path(user_id: params[:user_id]), class: "btn btn-sm #{params[:suspicious] == '1' ? 'btn-outline-dark' : 'btn-dark'} me-2"
+  = link_to "Suspicious", admin_activities_path(user_id: params[:user_id], suspicious: "1"), class: "btn btn-sm #{params[:suspicious] == '1' ? 'btn-danger' : 'btn-outline-danger'}"
+
 .card
   .card-body.p-0
     table.table.table-hover.mb-0
@@ -19,11 +23,12 @@
           th Pace
           th Segments
           th Source
+          th GPS
           th
       tbody
         - if @activities.empty?
           tr
-            td colspan="8" class="text-muted text-center py-4" No activities yet
+            td colspan="9" class="text-muted text-center py-4" No activities yet
         - @activities.each do |a|
           tr
             td.ps-3= a.started_at&.strftime("%d %b %Y %H:%M")
@@ -41,5 +46,10 @@
               - else
                 span.text-muted —
             td.text-muted.small= a.source
+            td
+              - if a.suspicious?
+                span.badge.bg-danger Suspicious
+              - else
+                span.badge.bg-success OK
             td.text-end.pe-3
               = link_to "View", admin_activity_path(a), class: "btn btn-sm btn-outline-secondary"

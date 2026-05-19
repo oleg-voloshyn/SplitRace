@@ -72,6 +72,39 @@ class SegmentRouteMatchingTest < ActionDispatch::IntegrationTest
     assert_equal 'Around Building', response.parsed_body.dig('segment_efforts', 0, 'segment', 'name')
   end
 
+  test 'does not unlock segment when matching route has rejected GPS quality' do
+    owner = create_user(email: 'route-bad-gps-owner@example.com')
+    runner = create_user(email: 'route-bad-gps-runner@example.com')
+    tournament = create_tournament(owner)
+    segment = create_segment_from_coords(owner, name: 'Noisy Building', coords: ROUTE)
+    tournament.tournament_segments.create!(segment:, order_number: 1, is_rated: true)
+    tournament.tournament_participants.create!(user: runner, joined_at: Time.zone.at(1_700))
+
+    assert_no_difference 'SegmentEffort.count' do
+      assert_no_difference 'TournamentSegmentUnlock.count' do
+        assert_no_difference 'TournamentEvent.count' do
+          post api_v1_activities_path,
+               params: {
+                 started_at: Time.zone.at(1_800).iso8601,
+                 finished_at: Time.zone.at(2_100).iso8601,
+                 distance_meters: 350,
+                 elapsed_time_seconds: 300,
+                 source: 'mobile_android',
+                 gps_points: gps_points_for_route(ROUTE, start_ts: 1_800, accuracy: 90)
+               },
+               headers: auth_headers(runner)
+        end
+      end
+    end
+
+    assert_response :created
+    body = response.parsed_body
+    assert_equal true, body['suspicious']
+    assert_equal 0, body['segment_efforts_count']
+    assert_includes runner.activities.last.suspicious_reasons.map { |reason| reason.fetch('code') },
+                    'too_many_low_accuracy_points'
+  end
+
   private
 
   def create_user(email:)
@@ -113,7 +146,7 @@ class SegmentRouteMatchingTest < ActionDispatch::IntegrationTest
     )
   end
 
-  def gps_points_for_route(coords, start_ts:)
+  def gps_points_for_route(coords, start_ts:, accuracy: 5)
     dense_points = []
 
     coords.each_cons(2) do |from, to|
@@ -128,7 +161,7 @@ class SegmentRouteMatchingTest < ActionDispatch::IntegrationTest
     end
 
     dense_points.map.with_index do |(lat, lng), index|
-      { lat:, lng:, ts: start_ts + (index * 10), accuracy: 5 }
+      { lat:, lng:, ts: start_ts + (index * 10), accuracy: }
     end
   end
 

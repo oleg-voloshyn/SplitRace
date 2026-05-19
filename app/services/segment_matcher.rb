@@ -7,10 +7,12 @@ class SegmentMatcher
   def initialize(activity)
     @activity = activity
     @user     = activity.user
+    @gps_points = activity.gps_points_for_matching
   end
 
   def call
-    return if @activity.gps_points.blank?
+    return if @activity.gps_match_rejected?
+    return if gps_points.blank?
 
     passed_ids = []
 
@@ -52,8 +54,8 @@ class SegmentMatcher
                        .exists?
     return false unless near_end
 
-    start_idx = closest_point_index(@activity.gps_points, segment.start_point)
-    end_idx   = closest_point_index(@activity.gps_points, segment.end_point)
+    start_idx = closest_point_index(gps_points, segment.start_point)
+    end_idx   = closest_point_index(gps_points, segment.end_point)
     !start_idx.nil? && !end_idx.nil? && start_idx < end_idx && follows_route?(segment, start_idx:, end_idx:)
   end
 
@@ -108,8 +110,8 @@ class SegmentMatcher
 
     return nil unless near_start && near_end
 
-    start_idx = closest_point_index(@activity.gps_points, segment.start_point)
-    end_idx   = closest_point_index(@activity.gps_points, segment.end_point)
+    start_idx = closest_point_index(gps_points, segment.start_point)
+    end_idx   = closest_point_index(gps_points, segment.end_point)
     return nil if start_idx.nil? || end_idx.nil? || start_idx >= end_idx
     return nil unless follows_route?(segment, start_idx:, end_idx:)
 
@@ -138,7 +140,7 @@ class SegmentMatcher
   end
 
   def interpolate_time(segment)
-    points = @activity.gps_points
+    points = gps_points
     return unless points.size >= 2
 
     start_idx = closest_point_index(points, segment.start_point)
@@ -157,7 +159,7 @@ class SegmentMatcher
     route_points = route_points_for(segment)
     return true if route_points.size <= 2
 
-    activity_points = @activity.gps_points[start_idx..end_idx]
+    activity_points = gps_points[start_idx..end_idx]
     return false if activity_points.blank?
 
     sampled_route = sample_route(route_points)
@@ -279,4 +281,6 @@ class SegmentMatcher
         (Math.cos(lat1 * rad) * Math.cos(lat2 * rad) * (Math.sin(dlng / 2)**2))
     6_371_000 * 2 * Math.asin(Math.sqrt(a))
   end
+
+  attr_reader :gps_points
 end

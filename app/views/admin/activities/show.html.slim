@@ -32,7 +32,27 @@
         p.mb-2.text-muted.small= @activity.source
 
         h6.text-muted.mb-1 GPS points
-        p.mb-0= @activity.gps_points.is_a?(Array) ? @activity.gps_points.size : 0
+        p.mb-2= @activity.gps_points.is_a?(Array) ? @activity.gps_points.size : 0
+
+        h6.text-muted.mb-1 GPS safety
+        - if @activity.suspicious?
+          p.mb-2
+            span.badge.bg-danger Suspicious
+        - else
+          p.mb-2
+            span.badge.bg-success OK
+
+        - if @activity.suspicious_reasons.present?
+          ul.small.text-muted.ps-3.mb-2
+            - @activity.suspicious_reasons.each do |reason|
+              li= reason["message"] || reason[:message] || reason["code"] || reason[:code]
+
+        - if @activity.gps_quality.present?
+          h6.text-muted.mb-1 GPS metrics
+          dl.small.text-muted.mb-0
+            - @activity.gps_quality.each do |key, value|
+              dt= key.to_s.humanize
+              dd.mb-1= value
 
   .col-md-8
     .card.mb-3

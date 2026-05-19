@@ -28,6 +28,36 @@ class ApiActivitiesTest < ActionDispatch::IntegrationTest
     assert_equal '05:00', activity['segment_efforts'].first['formatted_time']
   end
 
+  test 'activity create stores suspicious GPS signal without rejecting upload' do
+    user = create_user
+
+    post api_v1_activities_path,
+         params: {
+           started_at: Time.zone.at(1_000).iso8601,
+           finished_at: Time.zone.at(1_600).iso8601,
+           distance_meters: 10_000,
+           elapsed_time_seconds: 600,
+           source: 'mobile_android',
+           gps_points: [
+             { lat: 50.45, lng: 30.52, ts: 1_000, accuracy: 5 },
+             { lat: 50.46, lng: 30.53, ts: 1_001, accuracy: 75 },
+             { lat: 50.90, lng: 30.90, ts: 1_002, accuracy: 80 },
+             { lat: 50.91, lng: 30.91, ts: 1_003, accuracy: 85 }
+           ]
+         },
+         headers: auth_headers(user)
+
+    assert_response :created
+    body = response.parsed_body
+    assert_equal true, body['suspicious']
+
+    activity = user.activities.order(:created_at).last
+    assert_predicate activity, :suspicious?
+    codes = activity.suspicious_reasons.map { |reason| reason.fetch('code') }
+    assert_includes codes, 'teleport_jump'
+    assert_includes codes, 'too_many_low_accuracy_points'
+  end
+
   private
 
   def create_user

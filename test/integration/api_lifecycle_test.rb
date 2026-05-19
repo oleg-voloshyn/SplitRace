@@ -344,7 +344,7 @@ class ApiLifecycleTest < ActionDispatch::IntegrationTest
              params: {
                started_at: Time.zone.at(1_800).iso8601,
                finished_at: Time.zone.at(1_920).iso8601,
-               distance_meters: 1_500,
+               distance_meters: 1_000,
                elapsed_time_seconds: 120,
                source: 'mobile_android',
                gps_points: [
@@ -473,15 +473,15 @@ class ApiLifecycleTest < ActionDispatch::IntegrationTest
           post api_v1_activities_path,
                params: {
                  started_at: Time.zone.at(1_800).iso8601,
-                 finished_at: Time.zone.at(2_040).iso8601,
-                 distance_meters: 2_400,
-                 elapsed_time_seconds: 240,
+                 finished_at: Time.zone.at(2_500).iso8601,
+                 distance_meters: 2_000,
+                 elapsed_time_seconds: 700,
                  source: 'mobile_android',
                  gps_points: [
                    { lat: 50.45, lng: 30.55, ts: 1_800, accuracy: 5 },
-                   { lat: 50.46, lng: 30.56, ts: 1_900, accuracy: 5 },
-                   { lat: 50.45, lng: 30.52, ts: 1_940, accuracy: 5 },
-                   { lat: 50.46, lng: 30.53, ts: 2_040, accuracy: 5 }
+                   { lat: 50.46, lng: 30.56, ts: 1_940, accuracy: 5 },
+                   { lat: 50.45, lng: 30.52, ts: 2_300, accuracy: 5 },
+                   { lat: 50.46, lng: 30.53, ts: 2_440, accuracy: 5 }
                  ]
                },
                headers: auth_headers(runner)
