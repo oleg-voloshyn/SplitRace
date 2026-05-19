@@ -1,28 +1,108 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { City, Country } from 'country-state-city';
-import { ChevronLeft, ChevronRight, Info, MapPin, Plus, Search, Star } from 'lucide-react-native';
+import { Calendar, ChevronLeft, ChevronRight, Info, MapPin, Plus, Search, Star } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Alert, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { api } from '../api/client';
 import SearchableListModal from '../components/SearchableListModal';
 import SegmentPreviewModal from '../components/SegmentPreviewModal';
 
-const TOTAL_STEPS = 5;
+const TOTAL_STEPS = 6;
+const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+function localDateString(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function addDaysToDateString(dateString, days) {
+  const date = parseLocalDate(dateString) || new Date();
+  date.setDate(date.getDate() + days);
+  return localDateString(date);
+}
+
+function parseLocalDate(value) {
+  if (!DATE_PATTERN.test(value || '')) {
+    return null;
+  }
+
+  const [year, month, day] = value.split('-').map(Number);
+  const date = new Date(year, month - 1, day);
+  if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
+    return null;
+  }
+
+  return date;
+}
+
+function localDateTimeIso(dateString, boundary) {
+  const date = parseLocalDate(dateString);
+  if (!date) {
+    return null;
+  }
+
+  if (boundary === 'end') {
+    date.setHours(23, 59, 59, 999);
+  } else {
+    date.setHours(0, 0, 0, 0);
+  }
+
+  return date.toISOString();
+}
+
+function formatDateInput(value) {
+  const digits = value.replace(/[^0-9]/g, '').slice(0, 8);
+  if (digits.length <= 4) {
+    return digits;
+  }
+  if (digits.length <= 6) {
+    return `${digits.slice(0, 4)}-${digits.slice(4)}`;
+  }
+  return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6)}`;
+}
+
+function getTournamentDateValidation(startsAt, endsAt) {
+  const today = localDateString(new Date());
+  const startDate = parseLocalDate(startsAt);
+  const endDate = parseLocalDate(endsAt);
+
+  if (!startDate) {
+    return { valid: false, startError: 'creator.dateRequired', today };
+  }
+  if (!endDate) {
+    return { valid: false, endError: 'creator.dateRequired', today };
+  }
+  if (startsAt < today) {
+    return { valid: false, startError: 'creator.startDateInPast', today };
+  }
+  if (endsAt < startsAt) {
+    return { valid: false, endError: 'creator.endDateBeforeStart', today };
+  }
+
+  return { valid: true, today };
+}
 
 function NewTournamentScreen() {
   const { t } = useTranslation();
   const navigation = useNavigation();
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
-  const [form, setForm] = useState({
-    name: '',
-    description: '',
-    country: null, // ISO code, e.g. "UA"
-    countryLabel: '',
-    city: '',
-    totalSegments: '4',
-    ratedSegments: '2'
+  const [form, setForm] = useState(() => {
+    const today = localDateString(new Date());
+    return {
+      name: '',
+      description: '',
+      country: null, // ISO code, e.g. "UA"
+      countryLabel: '',
+      city: '',
+      startsAt: today,
+      endsAt: addDaysToDateString(today, 7),
+      totalSegments: '4',
+      ratedSegments: '2'
+    };
   });
   // Map of segmentId -> { rated: boolean, order: number (insertion order) }
   const [selectedSegments, setSelectedSegments] = useState({});
@@ -46,7 +126,7 @@ function NewTournamentScreen() {
   // from NewSegmentScreen after creating one inline).
   useFocusEffect(
     useCallback(() => {
-      if (step === 5) {
+      if (step === 6) {
         loadSegments();
       }
     }, [step, loadSegments])
@@ -105,6 +185,9 @@ function NewTournamentScreen() {
       return Boolean(form.country);
     } // city is optional
     if (step === 4) {
+      return getTournamentDateValidation(form.startsAt, form.endsAt).valid;
+    }
+    if (step === 5) {
       const total = Number(form.totalSegments);
       const rated = Number(form.ratedSegments);
       return Number.isInteger(total) && total > 0 && Number.isInteger(rated) && rated > 0 && rated < total;
@@ -117,6 +200,12 @@ function NewTournamentScreen() {
   }
 
   async function handleSubmit() {
+    const dateValidation = getTournamentDateValidation(form.startsAt, form.endsAt);
+    if (!dateValidation.valid) {
+      Alert.alert(t('common.error'), t(dateValidation.startError || dateValidation.endError || 'creator.dateRequired'));
+      return;
+    }
+
     setSubmitting(true);
     try {
       const tournament = await api.createTournament({
@@ -124,6 +213,8 @@ function NewTournamentScreen() {
         description: form.description.trim(),
         city: form.city.trim(),
         country: form.country || '',
+        starts_at: localDateTimeIso(form.startsAt, 'start'),
+        ends_at: localDateTimeIso(form.endsAt, 'end'),
         total_segments_count: String(totalTarget),
         rated_segments_count: String(ratedTarget)
       });
@@ -164,8 +255,9 @@ function NewTournamentScreen() {
             t={t}
           />
         )}
-        {step === 4 && <SegmentsCountStep form={form} setField={setField} t={t} />}
-        {step === 5 && (
+        {step === 4 && <DatesStep form={form} setField={setField} t={t} />}
+        {step === 5 && <SegmentsCountStep form={form} setField={setField} t={t} />}
+        {step === 6 && (
           <PickSegmentsStep
             mySegments={mySegments}
             selectedSegments={selectedSegments}
@@ -310,6 +402,69 @@ function LocationStep({ form, cities, onPickCountry, onPickCity, onClearCity, t 
       </TouchableOpacity>
       {hasCountry && cities.length === 0 && (
         <Text className="text-xs text-gray-500 mt-2">{t('creator.noResults')}</Text>
+      )}
+    </View>
+  );
+}
+
+function DatesStep({ form, setField, t }) {
+  const validation = getTournamentDateValidation(form.startsAt, form.endsAt);
+  return (
+    <View>
+      <Text className="text-xl font-bold text-brand-navy mb-1">{t('creator.tournamentDates')}</Text>
+      <Text className="text-xs text-gray-500 mt-1 leading-[18px]">{t('creator.tournamentDatesHelp')}</Text>
+
+      <DateInput
+        label={t('creator.startsAt')}
+        value={form.startsAt}
+        onChange={(value) => setField('startsAt', formatDateInput(value))}
+        placeholder={t('creator.datePlaceholder')}
+        error={validation.startError ? t(validation.startError) : null}
+        t={t}
+      />
+
+      <DateInput
+        label={t('creator.endsAt')}
+        value={form.endsAt}
+        onChange={(value) => setField('endsAt', formatDateInput(value))}
+        placeholder={t('creator.datePlaceholder')}
+        error={validation.endError ? t(validation.endError) : null}
+        t={t}
+      />
+
+      <View className="bg-white rounded-lg border border-gray-200 px-3 py-2.5 mt-4">
+        <Text className="text-[12px] text-gray-500 leading-[17px]">
+          {t('creator.dateInputHelp', { date: validation.today })}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+function DateInput({ label, value, onChange, placeholder, error, t }) {
+  return (
+    <View className="mt-4">
+      <Text className="text-sm font-semibold text-brand-navy mb-1.5">{label}</Text>
+      <View
+        className={`flex-row items-center bg-white border rounded-lg px-3 ${
+          error ? 'border-red-500' : 'border-gray-300'
+        }`}
+      >
+        <Calendar size={16} color={error ? '#dc2626' : '#6b7280'} />
+        <TextInput
+          className="flex-1 p-3 text-base text-brand-navy"
+          value={value}
+          onChangeText={onChange}
+          placeholder={placeholder}
+          placeholderTextColor="#9ca3af"
+          keyboardType="number-pad"
+          maxLength={10}
+        />
+      </View>
+      {error ? (
+        <Text className="text-red-600 text-xs mt-1.5 leading-[16px]">{error}</Text>
+      ) : (
+        <Text className="text-gray-500 text-xs mt-1.5 leading-[16px]">{t('creator.datePlaceholder')}</Text>
       )}
     </View>
   );
