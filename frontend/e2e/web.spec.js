@@ -93,8 +93,10 @@ test('creator can draw a segment on the map and submit rich text description', a
 
   const map = page.locator('.sr-creator-map');
   await expect(map).toBeVisible();
-  await map.click({ position: { x: 180, y: 170 } });
-  await map.click({ position: { x: 260, y: 220 } });
+  // Spread the two clicks far enough that the resulting route clears
+  // Segment::MIN_DISTANCE_METERS (400 m) regardless of map zoom in CI.
+  await map.click({ position: { x: 40, y: 40 } });
+  await map.click({ position: { x: 520, y: 360 } });
   await expect(page.getByText(/Route points:\s*2/)).toBeVisible();
 
   await page.getByRole('button', { name: 'Create segment' }).click();
@@ -106,6 +108,8 @@ test('creator can create a tournament through the five step wizard', async ({ pa
   const prefix = `E2E Wizard ${Date.now()}`;
 
   for (let index = 1; index <= 4; index += 1) {
+    // ~1.1 km north/south between the two points clears the 400 m server-side
+    // minimum that Segment::MIN_DISTANCE_METERS enforces.
     const response = await request.post('/api/v1/segments', {
       headers: { Authorization: `Bearer ${auth.token}` },
       data: {
@@ -113,8 +117,8 @@ test('creator can create a tournament through the five step wizard', async ({ pa
         city: 'Kyiv',
         country: 'UA',
         points: [
-          { lat: 50.45 + index / 1000, lng: 30.52 },
-          { lat: 50.451 + index / 1000, lng: 30.521 }
+          { lat: 50.45 + index / 100, lng: 30.52 },
+          { lat: 50.46 + index / 100, lng: 30.521 }
         ]
       }
     });

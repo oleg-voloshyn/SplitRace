@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { api } from '../api/client';
 
 function Notifications() {
-  const [data, setData] = useState({ notifications: [], unread_count: 0 });
+  const [data, setData] = useState({ items: [], unread_count: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -30,10 +30,10 @@ function Notifications() {
       </div>
 
       {loading && <p>Loading...</p>}
-      {!loading && data.notifications.length === 0 && <p className="sr-card">No notifications yet.</p>}
+      {!loading && data.items.length === 0 && <p className="sr-card">No notifications yet.</p>}
 
       <div className="sr-feed-list">
-        {data.notifications.map((notification) => (
+        {data.items.map((notification) => (
           <div key={notification.id} className={`sr-card sr-notification ${notification.read_at ? '' : 'unread'}`}>
             <div>
               <strong>{notification.title}</strong>

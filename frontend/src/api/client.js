@@ -31,6 +31,13 @@ async function request(path, options = {}) {
   return data;
 }
 
+// Backend paginated endpoints return `{ items, pagy }`. Web reads the first
+// page only for now; unwrap so callers keep an array shape.
+async function listRequest(path) {
+  const data = await request(path);
+  return data.items ?? [];
+}
+
 const api = {
   // Auth
   register: (params) => request('/auth/register', { method: 'POST', body: JSON.stringify(params) }),
@@ -44,14 +51,14 @@ const api = {
   readAllNotifications: () => request('/notifications/read_all', { method: 'POST' }),
 
   // Segments
-  segments: () => request('/segments'),
+  segments: () => listRequest('/segments'),
   segment: (id) => request(`/segments/${id}`),
-  mySegments: () => request('/segments?mine=1'),
+  mySegments: () => listRequest('/segments?mine=1'),
   createSegment: (params) => request('/segments', { method: 'POST', body: JSON.stringify(params) }),
 
   // Tournaments
-  tournaments: () => request('/tournaments'),
-  myTournaments: () => request('/tournaments/mine'),
+  tournaments: () => listRequest('/tournaments'),
+  myTournaments: () => listRequest('/tournaments/mine'),
   createTournament: (params) => request('/tournaments', { method: 'POST', body: JSON.stringify(params) }),
   tournament: (slug) => request(`/tournaments/${slug}`),
   tournamentFeed: (slug) => request(`/tournaments/${slug}/feed`),
@@ -60,10 +67,10 @@ const api = {
   submitTournamentForReview: (slug) => request(`/tournaments/${slug}/submit_for_review`, { method: 'POST' }),
   joinTournament: (slug) => request(`/tournaments/${slug}/join`, { method: 'POST' }),
   leaveTournament: (slug) => request(`/tournaments/${slug}/leave`, { method: 'DELETE' }),
-  leaderboard: (slug, gender) => request(`/tournaments/${slug}/leaderboard${gender ? `?gender=${gender}` : ''}`),
+  leaderboard: (slug, gender) => listRequest(`/tournaments/${slug}/leaderboard${gender ? `?gender=${gender}` : ''}`),
 
   // Activities
-  activities: () => request('/activities'),
+  activities: () => listRequest('/activities'),
   saveActivity: (params) => request('/activities', { method: 'POST', body: JSON.stringify(params) }),
 
   // Cheating reports
