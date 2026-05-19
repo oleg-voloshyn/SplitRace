@@ -7,7 +7,7 @@ import { ArrowRight, Check, Play, Square, Trophy } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { Alert, Platform, ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import ViewShot from 'react-native-view-shot';
-import { api } from '../api/client';
+import { useSaveActivity } from '../api/queries';
 import LeafletMap from '../components/LeafletMap';
 import { RUN_SHARE_FORMATS, RunShareCard } from '../components/RunShareCard';
 import ShareFormatButtons from '../components/ShareFormatButtons';
@@ -57,6 +57,7 @@ TaskManager.defineTask(LOCATION_TASK, async ({ data, error }) => {
 
 function RunTrackerScreen() {
   const { t } = useTranslation();
+  const saveActivity = useSaveActivity();
   const [status, setStatus] = useState('idle');
   const [points, setPoints] = useState([]);
   const [duration, setDuration] = useState(0);
@@ -301,7 +302,7 @@ function RunTrackerScreen() {
     const elapsed = Math.floor(accumulatedMs.current / 1000);
 
     try {
-      const activity = await api.saveActivity({
+      const activity = await saveActivity.mutateAsync({
         started_at: new Date(startTime.current).toISOString(),
         finished_at: new Date().toISOString(),
         elapsed_time_seconds: elapsed,

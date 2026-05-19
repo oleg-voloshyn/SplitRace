@@ -4,7 +4,7 @@ import { City, Country } from 'country-state-city';
 import { Calendar, ChevronLeft, ChevronRight, Info, MapPin, Plus, Search, Star } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Alert, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { api } from '../api/client';
+import { useAddTournamentSegment, useCreateTournament, useMySegments } from '../api/queries';
 import SearchableListModal from '../components/SearchableListModal';
 import SegmentPreviewModal from '../components/SegmentPreviewModal';
 
@@ -131,7 +131,11 @@ function NewTournamentScreen() {
   const { t } = useTranslation();
   const navigation = useNavigation();
   const [step, setStep] = useState(1);
-  const [submitting, setSubmitting] = useState(false);
+  const { data: mySegments, refetch: refetchSegments } = useMySegments();
+  const createTournament = useCreateTournament();
+  // Segment association happens inside handleSubmit after the tournament is
+  // created. We instantiate without a slug and pass it per-mutation below.
+  const addSegment = useAddTournamentSegment();
   const [form, setForm] = useState(() => {
     const today = localDateString(new Date());
     return {
@@ -148,30 +152,20 @@ function NewTournamentScreen() {
   });
   // Map of segmentId -> { rated: boolean, order: number (insertion order), ratedOrder?: number }
   const [selectedSegments, setSelectedSegments] = useState({});
-  const [mySegments, setMySegments] = useState(null);
   const [showCountryPicker, setShowCountryPicker] = useState(false);
   const [showCityPicker, setShowCityPicker] = useState(false);
 
   const countries = useMemo(() => Country.getAllCountries(), []);
   const cities = useMemo(() => (form.country ? City.getCitiesOfCountry(form.country) || [] : []), [form.country]);
 
-  const loadSegments = useCallback(async () => {
-    try {
-      const segs = await api.mySegments();
-      setMySegments(segs);
-    } catch {
-      setMySegments([]);
-    }
-  }, []);
-
   // Refresh segments whenever this screen regains focus (e.g. user came back
   // from NewSegmentScreen after creating one inline).
   useFocusEffect(
     useCallback(() => {
       if (step === 6) {
-        loadSegments();
+        refetchSegments();
       }
-    }, [step, loadSegments])
+    }, [step, refetchSegments])
   );
 
   function setField(key, value) {
@@ -292,9 +286,8 @@ function NewTournamentScreen() {
       return;
     }
 
-    setSubmitting(true);
     try {
-      const tournament = await api.createTournament({
+      const tournament = await createTournament.mutateAsync({
         name: form.name.trim(),
         description: form.description.trim(),
         city: form.city.trim(),
@@ -309,7 +302,8 @@ function NewTournamentScreen() {
       // TournamentSegment.order_number is the source of truth for unlock order.
       const ordered = buildTournamentSegmentSubmitOrder(selectedSegments);
       for (const [index, [segmentId, meta]] of ordered.entries()) {
-        await api.addTournamentSegment(tournament.slug, {
+        await addSegment.mutateAsync({
+          slug: tournament.slug,
           segment_id: segmentId,
           order_number: String(index + 1),
           is_rated: meta.rated ? '1' : '0'
@@ -320,8 +314,6 @@ function NewTournamentScreen() {
       navigation.goBack();
     } catch (error) {
       Alert.alert(t('common.error'), error?.errors?.join(', ') || error?.error || t('creator.failed'));
-    } finally {
-      setSubmitting(false);
     }
   }
 
@@ -366,7 +358,7 @@ function NewTournamentScreen() {
         step={step}
         canGoNext={canGoNext()}
         canSubmit={canSubmit()}
-        submitting={submitting}
+        submitting={createTournament.isPending || addSegment.isPending}
         onBack={() => setStep((s) => Math.max(1, s - 1))}
         onNext={() => setStep((s) => Math.min(TOTAL_STEPS, s + 1))}
         onSubmit={handleSubmit}

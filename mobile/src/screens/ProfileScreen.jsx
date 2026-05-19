@@ -16,13 +16,12 @@ import {
   View
 } from 'react-native';
 import ViewShot from 'react-native-view-shot';
-import { api } from '../api/client';
+import { useActivities, useMyTournaments, useUpdateMe } from '../api/queries';
 import LeafletMap from '../components/LeafletMap';
 import { RUN_SHARE_FORMATS, RunShareCard } from '../components/RunShareCard';
 import SearchableListModal from '../components/SearchableListModal';
 import ShareFormatModal from '../components/ShareFormatModal';
 import { useAuth } from '../contexts/AuthContext';
-import { usePaginatedList } from '../hooks/usePaginatedList';
 import { SUPPORTED_LANGS } from '../i18n';
 import { buildShareText } from '../utils/runUtils';
 
@@ -34,13 +33,12 @@ function ProfileScreen() {
   const [form, setForm] = useState(() => profileFormFromUser(user));
   const [bottomTab, setBottomTab] = useState('activities');
 
-  const fetchActivities = useCallback((page) => api.activities(page), []);
-  const activitiesList = usePaginatedList(fetchActivities);
+  const activitiesList = useActivities();
   const activities = activitiesList.items;
 
-  const fetchMyTournaments = useCallback((page) => api.myTournaments(page), []);
-  const myTournamentsList = usePaginatedList(fetchMyTournaments);
+  const myTournamentsList = useMyTournaments();
   const myTournaments = myTournamentsList.items;
+  const updateMe = useUpdateMe();
   const [expandedId, setExpandedId] = useState(null);
   const [pendingShare, setPendingShare] = useState(null);
   const [shareActivity, setShareActivity] = useState(null);
@@ -55,11 +53,11 @@ function ProfileScreen() {
   );
 
   // Refresh "My tournaments" from page 1 each time the Profile screen regains focus.
-  const reloadMyTournaments = myTournamentsList.reload;
+  const refetchMyTournaments = myTournamentsList.refetch;
   useFocusEffect(
     useCallback(() => {
-      reloadMyTournaments();
-    }, [reloadMyTournaments])
+      refetchMyTournaments();
+    }, [refetchMyTournaments])
   );
 
   useEffect(() => {
@@ -81,7 +79,7 @@ function ProfileScreen() {
 
   async function handleSave() {
     try {
-      const updated = await api.updateMe(profilePayload(form, isClub));
+      const updated = await updateMe.mutateAsync(profilePayload(form, isClub));
       setUser(updated);
       setEditing(false);
     } catch {
@@ -299,15 +297,16 @@ function ProfileScreen() {
       {bottomTab === 'tournaments' && (
         <MyTournamentsTab
           myTournaments={myTournaments}
-          hasNext={myTournamentsList.hasNext}
-          loadingMore={myTournamentsList.loadingMore}
-          onLoadMore={myTournamentsList.onEndReached}
+          loading={myTournamentsList.isLoading}
+          hasNext={myTournamentsList.hasNextPage}
+          loadingMore={myTournamentsList.isFetchingNextPage}
+          onLoadMore={() => myTournamentsList.hasNextPage && myTournamentsList.fetchNextPage()}
           navigation={navigation}
           t={t}
         />
       )}
 
-      {bottomTab === 'activities' && activities === null && (
+      {bottomTab === 'activities' && activitiesList.isLoading && (
         <Text className="text-gray-500 text-center mt-5">{t('common.loading')}</Text>
       )}
       {bottomTab === 'activities' && activities?.length === 0 && (
@@ -360,9 +359,9 @@ function ProfileScreen() {
         ))}
       {bottomTab === 'activities' && (
         <LoadMoreButton
-          hasNext={activitiesList.hasNext}
-          loading={activitiesList.loadingMore}
-          onPress={activitiesList.onEndReached}
+          hasNext={activitiesList.hasNextPage}
+          loading={activitiesList.isFetchingNextPage}
+          onPress={() => activitiesList.hasNextPage && activitiesList.fetchNextPage()}
           t={t}
         />
       )}
@@ -425,8 +424,8 @@ function ProfileScreen() {
   );
 }
 
-function MyTournamentsTab({ myTournaments, hasNext, loadingMore, onLoadMore, navigation, t }) {
-  if (myTournaments === null) {
+function MyTournamentsTab({ myTournaments, loading, hasNext, loadingMore, onLoadMore, navigation, t }) {
+  if (loading) {
     return <Text className="text-gray-500 text-center mt-5">{t('common.loading')}</Text>;
   }
   if (myTournaments.length === 0) {

@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { api, tokenStore } from '../api/client';
+import { queryClient } from '../api/queryClient';
 import { registerForPushNotificationsAsync, unregisterPushNotificationsAsync } from '../services/pushNotifications';
 
 const AuthContext = createContext(null);
@@ -51,6 +52,7 @@ function AuthProvider({ children }) {
     await unregisterPushNotificationsAsync().catch(() => {});
     await tokenStore.delete();
     setUser(null);
+    queryClient.clear();
   }
 
   return (

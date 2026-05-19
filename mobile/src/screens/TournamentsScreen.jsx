@@ -1,19 +1,24 @@
-import { useCallback } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { MapPin, Trophy, Users } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, FlatList, RefreshControl, Text, TouchableOpacity, View } from 'react-native';
-import { api } from '../api/client';
+import { useTournaments } from '../api/queries';
 import SegmentsMap from '../components/SegmentsMap';
-import { usePaginatedList } from '../hooks/usePaginatedList';
 
 function TournamentsScreen() {
   const { t } = useTranslation();
   const navigation = useNavigation();
-  const fetchPage = useCallback((page) => api.tournaments(page), []);
-  const { items: tournaments, loading, loadingMore, refreshing, onEndReached, onRefresh } = usePaginatedList(fetchPage);
+  const {
+    items: tournaments,
+    isLoading,
+    isFetchingNextPage,
+    isRefetching,
+    hasNextPage,
+    fetchNextPage,
+    refetch
+  } = useTournaments();
 
-  if (loading) {
+  if (isLoading) {
     return (
       <View className="flex-1 items-center justify-center">
         <ActivityIndicator color="#e53935" />
@@ -26,10 +31,10 @@ function TournamentsScreen() {
       className="flex-1 bg-gray-100 p-3"
       data={tournaments}
       keyExtractor={(tn) => tn.id.toString()}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#e53935" />}
-      onEndReached={onEndReached}
+      refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor="#e53935" />}
+      onEndReached={() => hasNextPage && fetchNextPage()}
       onEndReachedThreshold={0.4}
-      ListFooterComponent={loadingMore ? <ActivityIndicator color="#e53935" className="py-4" /> : null}
+      ListFooterComponent={isFetchingNextPage ? <ActivityIndicator color="#e53935" className="py-4" /> : null}
       ListEmptyComponent={<Text className="text-center text-gray-500 mt-16">{t('tournaments.noTournaments')}</Text>}
       renderItem={({ item: tn }) => {
         const preview = (tn.segments_preview ?? []).filter((s) => s.segment?.polyline?.length >= 2);

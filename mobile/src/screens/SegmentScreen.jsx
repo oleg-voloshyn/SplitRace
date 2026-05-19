@@ -4,7 +4,8 @@ import { Share2 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import ViewShot from 'react-native-view-shot';
-import { WEB_URL, api } from '../api/client';
+import { WEB_URL } from '../api/client';
+import { useSegment } from '../api/queries';
 import EntityShareCard from '../components/EntityShareCard';
 import RichDescription from '../components/RichDescription';
 import { RUN_SHARE_FORMATS } from '../components/RunShareCard';
@@ -15,17 +16,10 @@ import { shareEntityImage, shareEntityLink } from '../utils/entityShare';
 function SegmentScreen() {
   const { t } = useTranslation();
   const { id } = useRoute().params;
-  const [segment, setSegment] = useState(null);
+  const { data: segment } = useSegment(id);
   const [pendingShare, setPendingShare] = useState(null);
   const [showFormatModal, setShowFormatModal] = useState(false);
   const shareCardRef = useRef(null);
-
-  useEffect(() => {
-    api
-      .segment(id)
-      .then(setSegment)
-      .catch(() => {});
-  }, [id]);
 
   useEffect(() => {
     if (!pendingShare) {

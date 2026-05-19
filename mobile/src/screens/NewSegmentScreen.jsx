@@ -4,7 +4,7 @@ import * as Location from 'expo-location';
 import { MapPin } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { Alert, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { api } from '../api/client';
+import { useCreateSegment } from '../api/queries';
 import SegmentMapPicker from '../components/SegmentMapPicker';
 import { formatDistance, reverseGeocode, routeDistance } from '../utils/geoUtils';
 
@@ -21,7 +21,8 @@ function NewSegmentScreen() {
   const navigation = useNavigation();
   const [form, setForm] = useState(initialSegment);
   const [userLocation, setUserLocation] = useState(null);
-  const [submitting, setSubmitting] = useState(false);
+  const createSegment = useCreateSegment();
+  const submitting = createSegment.isPending;
   const distanceMeters = routeDistance(form.points);
   const routeTooShort = form.points.length >= 2 && distanceMeters < MIN_SEGMENT_DISTANCE_METERS;
 
@@ -44,15 +45,12 @@ function NewSegmentScreen() {
       Alert.alert(t('common.error'), t('creator.segmentTooShort', { meters: MIN_SEGMENT_DISTANCE_METERS }));
       return;
     }
-    setSubmitting(true);
     try {
-      await api.createSegment(form);
+      await createSegment.mutateAsync(form);
       Alert.alert(t('creator.title'), t('creator.segmentCreated'));
       navigation.goBack();
     } catch (error) {
       Alert.alert(t('common.error'), error?.errors?.join(', ') || t('creator.failed'));
-    } finally {
-      setSubmitting(false);
     }
   }
 

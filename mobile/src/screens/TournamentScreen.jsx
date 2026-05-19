@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import {
   Award,
@@ -31,6 +31,7 @@ import {
 } from 'react-native';
 import ViewShot from 'react-native-view-shot';
 import { WEB_URL, api } from '../api/client';
+import { useJoinTournament, useLeaderboard, useReportCheating, useTournament } from '../api/queries';
 import EntityShareCard from '../components/EntityShareCard';
 import RichDescription from '../components/RichDescription';
 import { RUN_SHARE_FORMATS } from '../components/RunShareCard';
@@ -38,7 +39,6 @@ import SegmentPreviewModal from '../components/SegmentPreviewModal';
 import SegmentsMap from '../components/SegmentsMap';
 import ShareFormatModal from '../components/ShareFormatModal';
 import { useAuth } from '../contexts/AuthContext';
-import { usePaginatedList } from '../hooks/usePaginatedList';
 import { shareEntityImage } from '../utils/entityShare';
 import { fmtTime } from '../utils/runUtils';
 
@@ -47,30 +47,23 @@ function TournamentScreen() {
   const navigation = useNavigation();
   const { slug } = useRoute().params;
   const { user } = useAuth();
-  const [data, setData] = useState(null);
+  const { data } = useTournament(slug);
+  const joinMutation = useJoinTournament(slug);
   const [tab, setTab] = useState('info');
-  const [joining, setJoining] = useState(false);
   const [reportTarget, setReportTarget] = useState(null);
   const [pendingShare, setPendingShare] = useState(null);
   const [shareTarget, setShareTarget] = useState(null); // { kind: 'tournament' | 'segment', entity }
   const [previewSegment, setPreviewSegment] = useState(null);
   const shareCardRef = useRef(null);
 
-  useEffect(() => {
-    api
-      .tournament(slug)
-      .then(setData)
-      .catch(() => {});
-  }, [slug]);
-
-  const fetchLeaderboardPage = useCallback((page) => api.leaderboard(slug, page), [slug]);
   const {
     items: board,
-    loadingMore: boardLoadingMore,
-    refreshing: boardRefreshing,
-    onEndReached: boardEndReached,
-    onRefresh: boardRefresh
-  } = usePaginatedList(fetchLeaderboardPage);
+    isFetchingNextPage: boardLoadingMore,
+    isRefetching: boardRefreshing,
+    hasNextPage: boardHasNext,
+    fetchNextPage: boardFetchNext,
+    refetch: boardRefresh
+  } = useLeaderboard(slug);
 
   useEffect(() => {
     if (data?.name) {
@@ -91,15 +84,10 @@ function TournamentScreen() {
   }, [pendingShare]);
 
   async function join() {
-    setJoining(true);
     try {
-      await api.joinTournament(slug);
-      const updated = await api.tournament(slug);
-      setData(updated);
+      await joinMutation.mutateAsync();
     } catch (e) {
       Alert.alert(t('common.error'), e?.error || t('tournaments.couldNotJoin'));
-    } finally {
-      setJoining(false);
     }
   }
 
@@ -259,9 +247,11 @@ function TournamentScreen() {
             <TouchableOpacity
               className="bg-brand-red rounded-xl p-3.5 items-center mb-3"
               onPress={join}
-              disabled={joining}
+              disabled={joinMutation.isPending}
             >
-              <Text className="text-white font-bold text-base">{joining ? '...' : t('tournaments.join')}</Text>
+              <Text className="text-white font-bold text-base">
+                {joinMutation.isPending ? '...' : t('tournaments.join')}
+              </Text>
             </TouchableOpacity>
           )}
           {isParticipant && (
@@ -368,7 +358,7 @@ function TournamentScreen() {
           contentContainerClassName="py-2 pb-8"
           keyExtractor={(r) => String(r.user?.id ?? Math.random())}
           refreshControl={<RefreshControl refreshing={boardRefreshing} onRefresh={boardRefresh} tintColor="#e53935" />}
-          onEndReached={boardEndReached}
+          onEndReached={() => boardHasNext && boardFetchNext()}
           onEndReachedThreshold={0.4}
           ListFooterComponent={boardLoadingMore ? <ActivityIndicator color="#e53935" className="py-4" /> : null}
           ListEmptyComponent={<Text className="text-center text-gray-500 mt-16">{t('tournaments.noResults')}</Text>}
@@ -431,20 +421,20 @@ function TournamentScreen() {
 
 function ReportModal({ target, tournamentSlug, onClose }) {
   const { t } = useTranslation();
+  const reportCheating = useReportCheating();
   const [reason, setReason] = useState('');
-  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
+  const submitting = reportCheating.isPending;
 
   async function submit() {
     if (reason.trim().length < 10) {
       setError(t('report.tooShort'));
       return;
     }
-    setSubmitting(true);
     setError(null);
     try {
-      await api.reportCheating({
+      await reportCheating.mutateAsync({
         reported_user_id: target.user_id,
         tournament_slug: tournamentSlug,
         reason
@@ -453,8 +443,6 @@ function ReportModal({ target, tournamentSlug, onClose }) {
       setTimeout(onClose, 1500);
     } catch (e) {
       setError(e?.errors?.join(', ') || t('report.failed'));
-    } finally {
-      setSubmitting(false);
     }
   }
 

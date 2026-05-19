@@ -1,45 +1,54 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { ChevronDown, ChevronUp, Plus, Star, Trash2 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Alert, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { api } from '../api/client';
+import {
+  useAddTournamentSegment,
+  useDeleteTournament,
+  useMySegments,
+  useRemoveTournamentSegment,
+  useSubmitTournamentForReview,
+  useTournament,
+  useUpdateTournament
+} from '../api/queries';
 import SegmentPreviewModal from '../components/SegmentPreviewModal';
 
 function EditTournamentScreen() {
   const { t } = useTranslation();
   const navigation = useNavigation();
   const { slug } = useRoute().params;
-  const [tournament, setTournament] = useState(null);
-  const [mySegments, setMySegments] = useState([]);
+  const { data: tournament, refetch: refetchTournament } = useTournament(slug);
+  const { data: mySegments = [], refetch: refetchSegments } = useMySegments();
+  const updateMutation = useUpdateTournament(slug);
+  const deleteMutation = useDeleteTournament();
+  const addSegmentMutation = useAddTournamentSegment();
+  const removeSegmentMutation = useRemoveTournamentSegment(slug);
+  const submitMutation = useSubmitTournamentForReview(slug);
   const [form, setForm] = useState(null);
-  const [saving, setSaving] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [deleting, setDeleting] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [previewSegment, setPreviewSegment] = useState(null);
 
-  const load = useCallback(async () => {
-    try {
-      const [t1, segs] = await Promise.all([api.tournament(slug), api.mySegments()]);
-      setTournament(t1);
-      setMySegments(segs);
+  // Seed the form once when the tournament first loads. Subsequent edits stay
+  // in local state until the user saves.
+  useEffect(() => {
+    if (tournament && !form) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setForm({
-        name: t1.name || '',
-        description: stripTags(t1.description) || '',
-        total_segments_count: String(t1.total_segments_count ?? ''),
-        rated_segments_count: String(t1.rated_segments_count ?? '')
+        name: tournament.name || '',
+        description: stripTags(tournament.description) || '',
+        total_segments_count: String(tournament.total_segments_count ?? ''),
+        rated_segments_count: String(tournament.rated_segments_count ?? '')
       });
-      navigation.setOptions({ title: t1.name });
-    } catch {
-      Alert.alert(t('common.error'), t('creator.failed'));
+      navigation.setOptions({ title: tournament.name });
     }
-  }, [slug, navigation, t]);
+  }, [tournament, form, navigation]);
 
   useFocusEffect(
     useCallback(() => {
-      load();
-    }, [load])
+      refetchTournament();
+      refetchSegments();
+    }, [refetchTournament, refetchSegments])
   );
 
   if (!tournament || !form) {
@@ -63,31 +72,27 @@ function EditTournamentScreen() {
   }
 
   async function saveChanges() {
-    setSaving(true);
     try {
-      const updated = await api.updateTournament(slug, {
+      await updateMutation.mutateAsync({
         name: form.name.trim(),
         description: form.description.trim(),
         total_segments_count: form.total_segments_count,
         rated_segments_count: form.rated_segments_count
       });
-      setTournament(updated);
       Alert.alert(t('creator.title'), t('creator.tournamentUpdated'));
     } catch (error) {
       Alert.alert(t('common.error'), error?.errors?.join(', ') || error?.error || t('creator.failed'));
-    } finally {
-      setSaving(false);
     }
   }
 
   async function addSegment(segment) {
     try {
-      const updated = await api.addTournamentSegment(slug, {
+      await addSegmentMutation.mutateAsync({
+        slug,
         segment_id: segment.id,
         order_number: String((tournament.segments?.length || 0) + 1),
         is_rated: '0'
       });
-      setTournament(updated);
       setShowAdd(false);
     } catch (error) {
       Alert.alert(t('common.error'), error?.error || error?.errors?.join(', ') || t('creator.failed'));
@@ -96,8 +101,7 @@ function EditTournamentScreen() {
 
   async function removeSegment(segmentId) {
     try {
-      const updated = await api.removeTournamentSegment(slug, segmentId);
-      setTournament(updated);
+      await removeSegmentMutation.mutateAsync(segmentId);
     } catch (error) {
       Alert.alert(t('common.error'), error?.error || error?.errors?.join(', ') || t('creator.failed'));
     }
@@ -111,27 +115,21 @@ function EditTournamentScreen() {
   }
 
   async function deleteTournament() {
-    setDeleting(true);
     try {
-      await api.deleteTournament(slug);
+      await deleteMutation.mutateAsync(slug);
       navigation.goBack();
     } catch (error) {
-      setDeleting(false);
       Alert.alert(t('common.error'), error?.error || t('creator.failed'));
     }
   }
 
   async function submitForReview() {
-    setSubmitting(true);
     try {
-      const updated = await api.submitTournamentForReview(slug);
-      setTournament(updated);
+      await submitMutation.mutateAsync();
       Alert.alert(t('creator.title'), t('creator.submitted'));
       navigation.goBack();
     } catch (error) {
       Alert.alert(t('common.error'), error?.error || t('creator.failed'));
-    } finally {
-      setSubmitting(false);
     }
   }
 
@@ -201,11 +199,11 @@ function EditTournamentScreen() {
 
         {isEditable && (
           <TouchableOpacity
-            className={`mt-4 bg-brand-navy rounded-lg p-3 items-center ${saving ? 'opacity-60' : ''}`}
+            className={`mt-4 bg-brand-navy rounded-lg p-3 items-center ${updateMutation.isPending ? 'opacity-60' : ''}`}
             onPress={saveChanges}
-            disabled={saving}
+            disabled={updateMutation.isPending}
           >
-            <Text className="text-white font-bold">{saving ? '...' : t('creator.saveChanges')}</Text>
+            <Text className="text-white font-bold">{updateMutation.isPending ? '...' : t('creator.saveChanges')}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -288,24 +286,28 @@ function EditTournamentScreen() {
 
       {isEditable && (
         <TouchableOpacity
-          className={`bg-brand-red rounded-lg p-3.5 items-center ${submitting ? 'opacity-60' : ''}`}
+          className={`bg-brand-red rounded-lg p-3.5 items-center ${submitMutation.isPending ? 'opacity-60' : ''}`}
           onPress={submitForReview}
-          disabled={submitting}
+          disabled={submitMutation.isPending}
         >
-          <Text className="text-white font-bold text-base">{submitting ? '...' : t('creator.submitReview')}</Text>
+          <Text className="text-white font-bold text-base">
+            {submitMutation.isPending ? '...' : t('creator.submitReview')}
+          </Text>
         </TouchableOpacity>
       )}
 
       {isDraft && (
         <TouchableOpacity
           className={`mt-3 flex-row items-center justify-center gap-2 rounded-lg p-3 border border-red-300 bg-white ${
-            deleting ? 'opacity-60' : ''
+            deleteMutation.isPending ? 'opacity-60' : ''
           }`}
           onPress={confirmDelete}
-          disabled={deleting}
+          disabled={deleteMutation.isPending}
         >
           <Trash2 size={16} color="#dc2626" />
-          <Text className="text-red-700 font-bold">{deleting ? '...' : t('creator.deleteTournament')}</Text>
+          <Text className="text-red-700 font-bold">
+            {deleteMutation.isPending ? '...' : t('creator.deleteTournament')}
+          </Text>
         </TouchableOpacity>
       )}
 
