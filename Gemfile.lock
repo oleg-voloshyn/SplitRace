@@ -235,6 +235,8 @@ GEM
       stringio
     puma (8.0.1)
       nio4r (~> 2.0)
+    pundit (2.5.2)
+      activesupport (>= 3.0.0)
     racc (1.8.1)
     rack (3.2.6)
     rack-cors (3.0.0)
@@ -405,6 +407,7 @@ DEPENDENCIES
   pagy (~> 9.0)
   pg (~> 1.1)
   puma (>= 5.0)
+  pundit (~> 2.4)
   rack-cors (~> 3.0)
   rails (~> 8.1)
   redis (~> 5.0)
