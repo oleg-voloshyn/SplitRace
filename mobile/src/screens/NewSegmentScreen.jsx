@@ -14,6 +14,7 @@ const initialSegment = {
   country: '',
   points: []
 };
+const MIN_SEGMENT_DISTANCE_METERS = 400;
 
 function NewSegmentScreen() {
   const { t } = useTranslation();
@@ -21,6 +22,8 @@ function NewSegmentScreen() {
   const [form, setForm] = useState(initialSegment);
   const [userLocation, setUserLocation] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const distanceMeters = routeDistance(form.points);
+  const routeTooShort = form.points.length >= 2 && distanceMeters < MIN_SEGMENT_DISTANCE_METERS;
 
   useEffect(() => {
     Location.getLastKnownPositionAsync()
@@ -35,6 +38,10 @@ function NewSegmentScreen() {
   async function handleSubmit() {
     if (form.points.length < 2) {
       Alert.alert(t('common.error'), t('creator.routeRequired'));
+      return;
+    }
+    if (routeTooShort) {
+      Alert.alert(t('common.error'), t('creator.segmentTooShort', { meters: MIN_SEGMENT_DISTANCE_METERS }));
       return;
     }
     setSubmitting(true);
@@ -90,8 +97,7 @@ function NewSegmentScreen() {
 
       <View className="flex-row flex-wrap gap-3 mt-2 mb-4">
         <Text className="text-gray-700 text-[13px]">
-          {t('creator.distance')}:{' '}
-          <Text className="font-bold text-brand-navy">{formatDistance(routeDistance(form.points))}</Text>
+          {t('creator.distance')}: <Text className="font-bold text-brand-navy">{formatDistance(distanceMeters)}</Text>
         </Text>
         {form.city || form.country ? (
           <View className="flex-row items-center gap-1">
@@ -100,6 +106,15 @@ function NewSegmentScreen() {
           </View>
         ) : null}
       </View>
+      {routeTooShort ? (
+        <Text className="text-brand-red text-xs mb-4">
+          {t('creator.segmentTooShort', { meters: MIN_SEGMENT_DISTANCE_METERS })}
+        </Text>
+      ) : (
+        <Text className="text-gray-500 text-xs mb-4">
+          {t('creator.segmentMinimumHint', { meters: MIN_SEGMENT_DISTANCE_METERS })}
+        </Text>
+      )}
 
       <TouchableOpacity
         className={`bg-brand-red rounded-lg p-3.5 items-center ${submitting ? 'opacity-60' : ''}`}

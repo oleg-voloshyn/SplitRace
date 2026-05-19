@@ -4,6 +4,8 @@
   const cityField = document.getElementById('segment-city');
   const countryField = document.getElementById('segment-country');
   const locationLabel = document.getElementById('segment-location');
+  const distanceWarning = document.getElementById('segment-distance-warning');
+  const MIN_SEGMENT_DISTANCE_METERS = <%= Segment::MIN_DISTANCE_METERS.to_i %>;
   const EXISTING = JSON.parse(waypointsField.value || '[]');
   const DEFAULT_CENTER = [50.45, 30.52];
 
@@ -55,8 +57,10 @@
     if (waypoints.length > 1) {
       const dist = haversineTotal(waypoints);
       document.getElementById('segment-distance').textContent = (dist / 1000).toFixed(2) + ' km';
+      distanceWarning.classList.toggle('d-none', dist >= MIN_SEGMENT_DISTANCE_METERS);
     } else {
       document.getElementById('segment-distance').textContent = '—';
+      distanceWarning.classList.add('d-none');
     }
   }
 

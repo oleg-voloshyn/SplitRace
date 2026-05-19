@@ -238,6 +238,8 @@
     "mapHint": "Tap the map to draw the segment route",
     "routePoints": "{{count}} route points",
     "distance": "Distance",
+    "segmentMinimumHint": "Segments must be at least {{meters}} m long.",
+    "segmentTooShort": "Segment route must be at least {{meters}} m.",
     "undoPoint": "↩ Undo",
     "clearRoute": "✕ Clear",
     "routeRequired": "Draw a route — at least 2 points required"

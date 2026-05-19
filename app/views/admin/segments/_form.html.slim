@@ -38,6 +38,8 @@
         | Location:
         strong#segment-location= [segment.city, segment.country].compact.join(", ").presence || "—"
     #segment-map style="height: 420px; border-radius: 8px; border: 1px solid #dee2e6;"
+    .form-text.text-danger.d-none#segment-distance-warning
+      = Segment::MIN_DISTANCE_ERROR
     = f.hidden_field :waypoints_json, id: "waypoints-json", value: segment_waypoints_json(segment)
 
   .col-12

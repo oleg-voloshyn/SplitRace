@@ -163,8 +163,8 @@ function RunTrackerScreen() {
   async function startLocationUpdates() {
     await Location.startLocationUpdatesAsync(LOCATION_TASK, {
       accuracy: Location.Accuracy.BestForNavigation,
-      timeInterval: 3000,
-      distanceInterval: 5,
+      timeInterval: 1000,
+      distanceInterval: 2,
       foregroundService: {
         notificationTitle: 'SplitRace — Recording run',
         notificationBody: 'Your route is being tracked.',

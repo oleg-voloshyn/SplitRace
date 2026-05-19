@@ -95,6 +95,24 @@ class AdminSegmentsTest < ActionDispatch::IntegrationTest
     assert_redirected_to admin_segments_path
   end
 
+  test "create rejects short segment route" do
+    assert_no_difference "Segment.count" do
+      post admin_segments_path, params: {
+        segment: {
+          name: "Tiny Segment",
+          is_active: "1",
+          waypoints_json: [
+            { lat: 50.45, lng: 30.52 },
+            { lat: 50.45, lng: 30.521 }
+          ].to_json
+        }
+      }
+    end
+
+    assert_response :unprocessable_content
+    assert_select ".alert", text: /#{Regexp.escape(Segment::MIN_DISTANCE_ERROR)}/
+  end
+
   test "index renders delete form with confirmation modal wiring" do
     get admin_segments_path
 

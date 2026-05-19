@@ -105,6 +105,38 @@ class SegmentRouteMatchingTest < ActionDispatch::IntegrationTest
                     'too_many_low_accuracy_points'
   end
 
+  test 'does not unlock short segment from sparse start and finish points only' do
+    owner = create_user(email: 'route-sparse-owner@example.com')
+    runner = create_user(email: 'route-sparse-runner@example.com')
+    tournament = create_tournament(owner)
+    segment = create_segment_from_coords(owner, name: 'Sparse Short Segment', coords: [[50.45, 30.52], [50.45, 30.526]])
+    tournament.tournament_segments.create!(segment:, order_number: 1, is_rated: true)
+    tournament.tournament_participants.create!(user: runner, joined_at: Time.zone.at(1_700))
+
+    assert_no_difference 'SegmentEffort.count' do
+      assert_no_difference 'TournamentSegmentUnlock.count' do
+        assert_no_difference 'TournamentEvent.count' do
+          post api_v1_activities_path,
+               params: {
+                 started_at: Time.zone.at(1_800).iso8601,
+                 finished_at: Time.zone.at(1_920).iso8601,
+                 distance_meters: 430,
+                 elapsed_time_seconds: 120,
+                 source: 'mobile_android',
+                 gps_points: [
+                   { lat: 50.45, lng: 30.52, ts: 1_800, accuracy: 5 },
+                   { lat: 50.45, lng: 30.526, ts: 1_920, accuracy: 5 }
+                 ]
+               },
+               headers: auth_headers(runner)
+        end
+      end
+    end
+
+    assert_response :created
+    assert_equal 0, response.parsed_body['segment_efforts_count']
+  end
+
   private
 
   def create_user(email:)
@@ -142,8 +174,21 @@ class SegmentRouteMatchingTest < ActionDispatch::IntegrationTest
       start_point: points.first,
       end_point: points.last,
       polyline: factory.multi_line_string([factory.line_string(points)]),
-      distance_meters: 350
+      distance_meters: route_distance(coords)
     )
+  end
+
+  def route_distance(coords)
+    coords.each_cons(2).sum { |from, to| haversine(from[0], from[1], to[0], to[1]) }.round(2)
+  end
+
+  def haversine(lat1, lng1, lat2, lng2)
+    rad = Math::PI / 180
+    dlat = (lat2 - lat1) * rad
+    dlng = (lng2 - lng1) * rad
+    a = (Math.sin(dlat / 2)**2) +
+        (Math.cos(lat1 * rad) * Math.cos(lat2 * rad) * (Math.sin(dlng / 2)**2))
+    6_371_000 * 2 * Math.asin(Math.sqrt(a))
   end
 
   def gps_points_for_route(coords, start_ts:, accuracy: 5)

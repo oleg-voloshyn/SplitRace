@@ -88,6 +88,23 @@ class ApiCreatorFlowsTest < ActionDispatch::IntegrationTest
     assert_includes response.parsed_body['errors'].join, 'Route contains invalid coordinates'
   end
 
+  test 'segment creation rejects routes shorter than minimum distance' do
+    user = create_user(email: 'short-segment@example.com')
+
+    post api_v1_segments_path,
+         params: {
+           name: 'Too Short',
+           points: [
+             { lat: 50.45, lng: 30.52 },
+             { lat: 50.45, lng: 30.521 }
+           ]
+         },
+         headers: auth_headers(user)
+
+    assert_response :unprocessable_content
+    assert_includes response.parsed_body['errors'].join, Segment::MIN_DISTANCE_ERROR
+  end
+
   test 'segment descriptions are sanitized on api creation' do
     user = create_user(email: 'rich-text@example.com')
 

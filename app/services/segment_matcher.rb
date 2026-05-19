@@ -3,6 +3,9 @@ class SegmentMatcher
   ROUTE_CORRIDOR_METERS = 30
   ROUTE_SAMPLE_METERS = 20
   MIN_ROUTE_COVERAGE = 0.75
+  SHORT_SEGMENT_DISTANCE_METERS = 800
+  MIN_SHORT_SEGMENT_GPS_POINTS = 4
+  MIN_SEGMENT_GPS_POINTS = 2
 
   def initialize(activity)
     @activity = activity
@@ -56,6 +59,8 @@ class SegmentMatcher
 
     start_idx = closest_point_index(gps_points, segment.start_point)
     end_idx   = closest_point_index(gps_points, segment.end_point)
+    return false unless enough_gps_points_for_segment?(segment, start_idx:, end_idx:)
+
     !start_idx.nil? && !end_idx.nil? && start_idx < end_idx && follows_route?(segment, start_idx:, end_idx:)
   end
 
@@ -113,6 +118,7 @@ class SegmentMatcher
     start_idx = closest_point_index(gps_points, segment.start_point)
     end_idx   = closest_point_index(gps_points, segment.end_point)
     return nil if start_idx.nil? || end_idx.nil? || start_idx >= end_idx
+    return nil unless enough_gps_points_for_segment?(segment, start_idx:, end_idx:)
     return nil unless follows_route?(segment, start_idx:, end_idx:)
 
     elapsed, started = interpolate_time(segment)
@@ -271,6 +277,20 @@ class SegmentMatcher
     end
 
     min_idx if min_dist <= PROXIMITY_METERS
+  end
+
+  def enough_gps_points_for_segment?(segment, start_idx:, end_idx:)
+    return false if start_idx.nil? || end_idx.nil? || start_idx >= end_idx
+
+    (end_idx - start_idx + 1) >= minimum_gps_points_for(segment)
+  end
+
+  def minimum_gps_points_for(segment)
+    if segment.distance_meters.to_f < SHORT_SEGMENT_DISTANCE_METERS
+      MIN_SHORT_SEGMENT_GPS_POINTS
+    else
+      MIN_SEGMENT_GPS_POINTS
+    end
   end
 
   def haversine(lat1, lng1, lat2, lng2)
