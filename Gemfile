@@ -47,6 +47,9 @@ gem 'alba', '~> 3.10'
 # State machines
 gem 'aasm', '~> 5.5'
 
+# Authorization
+gem 'pundit', '~> 2.4'
+
 group :development, :test do
   gem 'debug', platforms: %i[mri windows]
   gem 'dotenv-rails', '~> 3.1'
