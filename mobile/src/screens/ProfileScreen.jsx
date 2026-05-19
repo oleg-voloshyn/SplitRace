@@ -4,7 +4,17 @@ import { City, Country } from 'country-state-city';
 import * as Sharing from 'expo-sharing';
 import { AlertTriangle, Check, ChevronRight, MapPin, Pencil, Share2 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
-import { Alert, Image, ScrollView, Share, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  ScrollView,
+  Share,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
+} from 'react-native';
 import ViewShot from 'react-native-view-shot';
 import { api } from '../api/client';
 import LeafletMap from '../components/LeafletMap';
@@ -12,6 +22,7 @@ import { RUN_SHARE_FORMATS, RunShareCard } from '../components/RunShareCard';
 import SearchableListModal from '../components/SearchableListModal';
 import ShareFormatModal from '../components/ShareFormatModal';
 import { useAuth } from '../contexts/AuthContext';
+import { usePaginatedList } from '../hooks/usePaginatedList';
 import { SUPPORTED_LANGS } from '../i18n';
 import { buildShareText } from '../utils/runUtils';
 
@@ -21,9 +32,15 @@ function ProfileScreen() {
   const { user, setUser, logout } = useAuth();
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState(() => profileFormFromUser(user));
-  const [activities, setActivities] = useState(null);
-  const [myTournaments, setMyTournaments] = useState(null);
   const [bottomTab, setBottomTab] = useState('activities');
+
+  const fetchActivities = useCallback((page) => api.activities(page), []);
+  const activitiesList = usePaginatedList(fetchActivities);
+  const activities = activitiesList.items;
+
+  const fetchMyTournaments = useCallback((page) => api.myTournaments(page), []);
+  const myTournamentsList = usePaginatedList(fetchMyTournaments);
+  const myTournaments = myTournamentsList.items;
   const [expandedId, setExpandedId] = useState(null);
   const [pendingShare, setPendingShare] = useState(null);
   const [shareActivity, setShareActivity] = useState(null);
@@ -37,21 +54,12 @@ function ProfileScreen() {
     [form.countryCode]
   );
 
-  useEffect(() => {
-    api
-      .activities()
-      .then(setActivities)
-      .catch(() => setActivities([]));
-  }, []);
-
-  // Refresh "My tournaments" each time the Profile screen regains focus.
+  // Refresh "My tournaments" from page 1 each time the Profile screen regains focus.
+  const reloadMyTournaments = myTournamentsList.reload;
   useFocusEffect(
     useCallback(() => {
-      api
-        .myTournaments()
-        .then(setMyTournaments)
-        .catch(() => setMyTournaments([]));
-    }, [])
+      reloadMyTournaments();
+    }, [reloadMyTournaments])
   );
 
   useEffect(() => {
@@ -288,7 +296,16 @@ function ProfileScreen() {
         ))}
       </View>
 
-      {bottomTab === 'tournaments' && <MyTournamentsTab myTournaments={myTournaments} navigation={navigation} t={t} />}
+      {bottomTab === 'tournaments' && (
+        <MyTournamentsTab
+          myTournaments={myTournaments}
+          hasNext={myTournamentsList.hasNext}
+          loadingMore={myTournamentsList.loadingMore}
+          onLoadMore={myTournamentsList.onEndReached}
+          navigation={navigation}
+          t={t}
+        />
+      )}
 
       {bottomTab === 'activities' && activities === null && (
         <Text className="text-gray-500 text-center mt-5">{t('common.loading')}</Text>
@@ -341,6 +358,14 @@ function ProfileScreen() {
             )}
           </View>
         ))}
+      {bottomTab === 'activities' && (
+        <LoadMoreButton
+          hasNext={activitiesList.hasNext}
+          loading={activitiesList.loadingMore}
+          onPress={activitiesList.onEndReached}
+          t={t}
+        />
+      )}
       <ShareFormatModal
         visible={Boolean(shareActivity)}
         onClose={() => setShareActivity(null)}
@@ -400,7 +425,7 @@ function ProfileScreen() {
   );
 }
 
-function MyTournamentsTab({ myTournaments, navigation, t }) {
+function MyTournamentsTab({ myTournaments, hasNext, loadingMore, onLoadMore, navigation, t }) {
   if (myTournaments === null) {
     return <Text className="text-gray-500 text-center mt-5">{t('common.loading')}</Text>;
   }
@@ -446,7 +471,27 @@ function MyTournamentsTab({ myTournaments, navigation, t }) {
           </TouchableOpacity>
         );
       })}
+      <LoadMoreButton hasNext={hasNext} loading={loadingMore} onPress={onLoadMore} t={t} />
     </>
+  );
+}
+
+function LoadMoreButton({ hasNext, loading, onPress, t }) {
+  if (!hasNext) {
+    return null;
+  }
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      disabled={loading}
+      className="bg-white rounded-xl py-3 items-center border border-gray-200 mt-1 mb-2"
+    >
+      {loading ? (
+        <ActivityIndicator color="#1a1a2e" />
+      ) : (
+        <Text className="text-brand-navy font-bold text-sm">{t('common.loadMore')}</Text>
+      )}
+    </TouchableOpacity>
   );
 }
 

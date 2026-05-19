@@ -1,52 +1,19 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { MapPin, Trophy, Users } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, FlatList, RefreshControl, Text, TouchableOpacity, View } from 'react-native';
 import { api } from '../api/client';
 import SegmentsMap from '../components/SegmentsMap';
+import { usePaginatedList } from '../hooks/usePaginatedList';
 
 function TournamentsScreen() {
   const { t } = useTranslation();
   const navigation = useNavigation();
-  const [tournaments, setTournaments] = useState(null);
-  const [refreshing, setRefreshing] = useState(false);
+  const fetchPage = useCallback((page) => api.tournaments(page), []);
+  const { items: tournaments, loading, loadingMore, refreshing, onEndReached, onRefresh } = usePaginatedList(fetchPage);
 
-  const load = useCallback(async () => {
-    try {
-      setTournaments(await api.tournaments());
-    } catch {
-      setTournaments([]);
-    }
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const all = await api.tournaments();
-        if (cancelled) {
-          return;
-        }
-        setTournaments(all);
-      } catch {
-        if (!cancelled) {
-          setTournaments([]);
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  async function onRefresh() {
-    setRefreshing(true);
-    await load();
-    setRefreshing(false);
-  }
-
-  if (!tournaments) {
+  if (loading) {
     return (
       <View className="flex-1 items-center justify-center">
         <ActivityIndicator color="#e53935" />
@@ -60,6 +27,9 @@ function TournamentsScreen() {
       data={tournaments}
       keyExtractor={(tn) => tn.id.toString()}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#e53935" />}
+      onEndReached={onEndReached}
+      onEndReachedThreshold={0.4}
+      ListFooterComponent={loadingMore ? <ActivityIndicator color="#e53935" className="py-4" /> : null}
       ListEmptyComponent={<Text className="text-center text-gray-500 mt-16">{t('tournaments.noTournaments')}</Text>}
       renderItem={({ item: tn }) => {
         const preview = (tn.segments_preview ?? []).filter((s) => s.segment?.polyline?.length >= 2);

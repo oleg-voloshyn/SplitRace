@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import {
   Award,
@@ -22,6 +22,7 @@ import {
   FlatList,
   Image,
   Modal,
+  RefreshControl,
   ScrollView,
   Text,
   TextInput,
@@ -37,6 +38,7 @@ import SegmentPreviewModal from '../components/SegmentPreviewModal';
 import SegmentsMap from '../components/SegmentsMap';
 import ShareFormatModal from '../components/ShareFormatModal';
 import { useAuth } from '../contexts/AuthContext';
+import { usePaginatedList } from '../hooks/usePaginatedList';
 import { shareEntityImage } from '../utils/entityShare';
 import { fmtTime } from '../utils/runUtils';
 
@@ -46,7 +48,6 @@ function TournamentScreen() {
   const { slug } = useRoute().params;
   const { user } = useAuth();
   const [data, setData] = useState(null);
-  const [board, setBoard] = useState(null);
   const [tab, setTab] = useState('info');
   const [joining, setJoining] = useState(false);
   const [reportTarget, setReportTarget] = useState(null);
@@ -60,11 +61,16 @@ function TournamentScreen() {
       .tournament(slug)
       .then(setData)
       .catch(() => {});
-    api
-      .leaderboard(slug)
-      .then(setBoard)
-      .catch(() => {});
   }, [slug]);
+
+  const fetchLeaderboardPage = useCallback((page) => api.leaderboard(slug, page), [slug]);
+  const {
+    items: board,
+    loadingMore: boardLoadingMore,
+    refreshing: boardRefreshing,
+    onEndReached: boardEndReached,
+    onRefresh: boardRefresh
+  } = usePaginatedList(fetchLeaderboardPage);
 
   useEffect(() => {
     if (data?.name) {
@@ -361,6 +367,10 @@ function TournamentScreen() {
           data={board ?? []}
           contentContainerClassName="py-2 pb-8"
           keyExtractor={(r) => String(r.user?.id ?? Math.random())}
+          refreshControl={<RefreshControl refreshing={boardRefreshing} onRefresh={boardRefresh} tintColor="#e53935" />}
+          onEndReached={boardEndReached}
+          onEndReachedThreshold={0.4}
+          ListFooterComponent={boardLoadingMore ? <ActivityIndicator color="#e53935" className="py-4" /> : null}
           ListEmptyComponent={<Text className="text-center text-gray-500 mt-16">{t('tournaments.noResults')}</Text>}
           renderItem={({ item: r, index }) => {
             const isMe = r.user?.id === user?.id;

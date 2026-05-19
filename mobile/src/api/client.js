@@ -24,11 +24,12 @@ async function request(path, options = {}) {
   return data;
 }
 
-// Backend paginated endpoints return `{ items, pagy }`. For now mobile only
-// uses the first page — unwrap to keep call sites array-shaped.
-async function listRequest(path, options) {
-  const data = await request(path, options);
-  return data.items ?? [];
+// Backend paginated endpoints return `{ items, pagy }`. listRequest returns
+// the whole envelope so callers can drive infinite scroll via pagy.next.
+function listRequest(path, page = 1, limit) {
+  const sep = path.includes('?') ? '&' : '?';
+  const qs = `page=${page}${limit ? `&limit=${limit}` : ''}`;
+  return request(`${path}${sep}${qs}`);
 }
 
 const api = {
@@ -42,16 +43,17 @@ const api = {
   register: (params) => request('/auth/register', { method: 'POST', body: JSON.stringify(params) }),
   me: () => request('/me'),
   updateMe: (params) => request('/me', { method: 'PATCH', body: JSON.stringify(params) }),
-  notifications: () => request('/notifications'),
+  notifications: (page = 1) => listRequest('/notifications', page),
   readAllNotifications: () => request('/notifications/read_all', { method: 'POST' }),
   registerPushToken: (params) =>
     request('/push_tokens', { method: 'POST', body: JSON.stringify({ push_token: params }) }),
   unregisterPushToken: (token) => request('/push_tokens', { method: 'DELETE', body: JSON.stringify({ token }) }),
   segment: (id) => request(`/segments/${id}`),
-  mySegments: () => listRequest('/segments?mine=1'),
+  // Segment picker needs the full list at once — bump limit, take items.
+  mySegments: async () => (await listRequest('/segments?mine=1', 1, 200)).items ?? [],
   createSegment: (params) => request('/segments', { method: 'POST', body: JSON.stringify(params) }),
-  tournaments: () => listRequest('/tournaments'),
-  myTournaments: () => listRequest('/tournaments/mine'),
+  tournaments: (page = 1) => listRequest('/tournaments', page),
+  myTournaments: (page = 1) => listRequest('/tournaments/mine', page),
   createTournament: (params) => request('/tournaments', { method: 'POST', body: JSON.stringify(params) }),
   updateTournament: (slug, params) =>
     request(`/tournaments/${slug}`, { method: 'PATCH', body: JSON.stringify(params) }),
@@ -63,8 +65,8 @@ const api = {
     request(`/tournaments/${slug}/add_segment`, { method: 'POST', body: JSON.stringify(params) }),
   submitTournamentForReview: (slug) => request(`/tournaments/${slug}/submit_for_review`, { method: 'POST' }),
   joinTournament: (slug) => request(`/tournaments/${slug}/join`, { method: 'POST' }),
-  leaderboard: (slug) => listRequest(`/tournaments/${slug}/leaderboard`),
-  activities: () => listRequest('/activities'),
+  leaderboard: (slug, page = 1) => listRequest(`/tournaments/${slug}/leaderboard`, page),
+  activities: (page = 1) => listRequest('/activities', page),
   saveActivity: (params) => request('/activities', { method: 'POST', body: JSON.stringify(params) }),
   reportCheating: (params) => request('/cheating_reports', { method: 'POST', body: JSON.stringify(params) })
 };

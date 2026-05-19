@@ -121,10 +121,16 @@ describe('api.updateMe', () => {
 });
 
 describe('api.tournaments', () => {
-  it('GETs /tournaments', async () => {
-    mockFetch([]);
+  it('GETs /tournaments?page=1 by default', async () => {
+    mockFetch({ items: [], pagy: { next: null } });
     await api.tournaments();
-    expect(global.fetch).toHaveBeenCalledWith(`${BASE}/tournaments`, expect.any(Object));
+    expect(global.fetch).toHaveBeenCalledWith(`${BASE}/tournaments?page=1`, expect.any(Object));
+  });
+
+  it('passes the page through the query string', async () => {
+    mockFetch({ items: [], pagy: { next: null } });
+    await api.tournaments(3);
+    expect(global.fetch).toHaveBeenCalledWith(`${BASE}/tournaments?page=3`, expect.any(Object));
   });
 });
 

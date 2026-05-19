@@ -5,7 +5,8 @@
     "save": "Save",
     "error": "Error",
     "ok": "OK",
-    "tryAgain": "Try again"
+    "tryAgain": "Try again",
+    "loadMore": "Load more"
   },
   "auth": {
     "signIn": "Sign In",
