@@ -1,6 +1,8 @@
 # SplitRace — Architecture
 
 > Українською: [architecture.uk.md](architecture.uk.md)
+>
+> Segment tracking deep dive: [segment-tracking.md](segment-tracking.md)
 
 SplitRace is a GPS-tournament running app. Runners record GPS tracks; the system
 detects which tournament segments their route passed through, ranks them per
@@ -28,6 +30,7 @@ that matter:
 User ──┬── owns ───────► Tournament ──┬── has many ── TournamentSegment ── refs ── Segment
        │                              ├── has many ── TournamentParticipant ── refs ── User
        │                              ├── has many ── TournamentScore ── refs ── User
+       │                              ├── has many ── TournamentSegmentUnlock ── refs ── User + SegmentEffort
        │                              └── has many ── TournamentEvent ── refs ── User (actor) + Segment
        ├── has many ── Activity ──── has many ── SegmentEffort ── refs ── Segment
        ├── has many ── Notification ── optionally refs ── TournamentEvent
@@ -44,6 +47,7 @@ User ──┬── owns ───────► Tournament ──┬── ha
 | `TournamentParticipant` | Who joined the tournament (cannot be a `club` user). |
 | `Activity` | A recorded run: GPS points (JSONB) + `gps_track` (PostGIS LineString) + start/finish times + distance. |
 | `SegmentEffort` | One run-through of one segment by one user. There can be many per user/segment (one per activity that crossed the segment). |
+| `TournamentSegmentUnlock` | Tournament-specific source of truth that a user opened an ordered `TournamentSegment` in this tournament. Prevents old global efforts from counting as new tournament progress. |
 | `TournamentScore` | Per-user-per-tournament aggregate: rank, gender_rank, completed_segments_count, score. Recomputed wholesale after each new run. |
 | `TournamentEvent` | Feed entry shown to all tournament participants (e.g. "X opened Segment Y"). Title/body stored in default locale; re-rendered per viewer's locale from `metadata`. |
 | `Notification` | Per-recipient push/in-app notification. Title/body stored in recipient's locale at creation time. |
@@ -94,15 +98,19 @@ When a runner finishes recording on the mobile app and POSTs the activity:
      is in.
 2. **`SegmentMatcher`** ([app/services/segment_matcher.rb](../app/services/segment_matcher.rb))
    - For every active tournament the user participates in:
-     - For every rated tournament segment (in `order_number` order), checks
-       whether `gps_track` passes near both `start_point` and `end_point`
-       (PostGIS `ST_DWithin`, 30 m), and that the closest GPS index to
-       `start` precedes the one to `end`.
-     - On match, creates/updates a `SegmentEffort` (one per activity per
-       segment; faster within the same activity wins).
-     - For segments **the user had never completed before**, walks the
-       `order_number` chain from the first not-yet-completed segment and
-       publishes `segment_unlocked` events until the first gap.
+     - Ignores activities outside the effective tournament window:
+       `max(tournament.starts_at, participant.joined_at)` through
+       `tournament.ends_at`.
+     - Checks rated tournament segments in `order_number` order using
+       adaptive start/end proximity, GPS accuracy filtering, minimum GPS
+       density, minimum matched distance, minimum matched duration, and route
+       coverage.
+     - Verifies route following by projecting GPS points onto the segment
+       polyline and requiring monotonic progress along the route.
+     - On match, creates/updates a `SegmentEffort` and records a
+       `TournamentSegmentUnlock` for the next required tournament segment.
+       Unlocks, not historical efforts, are the source of truth for tournament
+       order and progress.
 3. **`TournamentEventPublisher.segment_unlocked!`** ([app/services/tournament_event_publisher.rb](../app/services/tournament_event_publisher.rb))
    - Creates a `TournamentEvent` (visible in the tournament feed to everyone).
    - For every tournament participant **except the actor**:
@@ -114,6 +122,9 @@ When a runner finishes recording on the mobile app and POSTs the activity:
 
 Same logic also exists as [MatchSegmentsJob](../app/jobs/match_segments_job.rb)
 for async re-runs (e.g. backfills) — Sidekiq + Redis.
+
+For the full segment tracking algorithm, thresholds, diagrams, covered edge
+cases, and test map, see [Segment Tracking](segment-tracking.md).
 
 ## 5. Auth
 
@@ -202,9 +213,12 @@ splitrace/
   completion. (Known trade-off, kept intentionally simple.)
 - **Actor receives no push for their own unlock**, but the `TournamentEvent`
   still shows in the actor's feed. The Notification row is also skipped.
-- **GPS matching is purely geometric**: there's no anti-cheat for someone
-  spoofing GPS or driving the route in a car beyond the per-segment time
-  ranking. Moderators handle the rest via `CheatingReport`.
+- **GPS matching is not just start/end proximity anymore.** The matcher now
+  requires route coverage, monotonic progress along the polyline, minimum GPS
+  density, minimum matched movement, tournament-window checks, and
+  `TournamentSegmentUnlock` records for tournament progress. Suspicious GPS is
+  flagged and severe GPS signals reject matching, but the product still treats
+  this as admin-review evidence rather than an automatic ban.
 - **`mobile/android/` is gitignored** and regenerated by `expo prebuild` on
   every build. Don't expect changes there to survive. Customisation lives in
   `app.json`, `app.config.js`, expo plugins, or the build workflow's

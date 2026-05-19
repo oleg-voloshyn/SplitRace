@@ -1,6 +1,8 @@
 # SplitRace — Архітектура
 
 > In English: [architecture.md](architecture.md)
+>
+> Детально про трекінг сегментів: [segment-tracking.uk.md](segment-tracking.uk.md)
 
 SplitRace — це біговий додаток із GPS-турнірами. Бігун записує GPS-трек, система
 визначає, через які сегменти турніру він пробіг, ранжує учасників у межах турніру
@@ -27,6 +29,7 @@ SplitRace — це біговий додаток із GPS-турнірами. Б
 User ──┬── володіє ───► Tournament ──┬── has many ── TournamentSegment ── refs ── Segment
        │                              ├── has many ── TournamentParticipant ── refs ── User
        │                              ├── has many ── TournamentScore ── refs ── User
+       │                              ├── has many ── TournamentSegmentUnlock ── refs ── User + SegmentEffort
        │                              └── has many ── TournamentEvent ── refs ── User (actor) + Segment
        ├── has many ── Activity ──── has many ── SegmentEffort ── refs ── Segment
        ├── has many ── Notification ── optionally refs ── TournamentEvent
@@ -43,6 +46,7 @@ User ──┬── володіє ───► Tournament ──┬── has 
 | `TournamentParticipant` | Хто долучився до турніру (для `club`-юзерів — заборонено). |
 | `Activity` | Записана пробіжка: GPS-точки (JSONB) + `gps_track` (PostGIS LineString) + час старту/фінішу + дистанція. |
 | `SegmentEffort` | Один прохід одного сегмента одним юзером. На одного юзера може бути багато (по одному на кожну активність, що перетнула сегмент). |
+| `TournamentSegmentUnlock` | Турнірне джерело правди, що користувач відкрив ordered `TournamentSegment` саме в цьому турнірі. Захищає від ситуації, коли старі глобальні efforts рахуються як новий турнірний прогрес. |
 | `TournamentScore` | Агрегат на пару юзер-турнір: rank, gender_rank, completed_segments_count, score. Перераховується цілком після кожної нової пробіжки. |
 | `TournamentEvent` | Запис у стрічці турніру, видимий усім учасникам (напр. "X opened Segment Y"). Title/body зберігається в дефолтній локалі; кожному глядачу рендериться його мовою з `metadata`. |
 | `Notification` | Push/in-app нотіфікація конкретному отримувачу. Title/body пишуться при створенні мовою отримувача. |
@@ -92,15 +96,19 @@ PostGIS — ключовий елемент. `gps_track`, `polyline`, `start_poi
      `TournamentScore.recalculate_all` для кожного активного турніру, в якому юзер бере участь.
 2. **`SegmentMatcher`** ([app/services/segment_matcher.rb](../app/services/segment_matcher.rb))
    - Для кожного активного турніру юзера:
-     - Для кожного рейтингового сегмента турніру (за `order_number`) перевіряє,
-       чи проходить `gps_track` поруч і зі `start_point`, і з `end_point`
-       (PostGIS `ST_DWithin`, 30 м), і чи індекс GPS-точки найближчої до `start`
-       стоїть раніше за індекс найближчої до `end`.
-     - При збігу — створює/оновлює `SegmentEffort` (один на активність на сегмент;
-       у межах однієї активності перемагає швидший час).
-     - Для сегментів, які юзер **ніколи раніше не закривав**, проходиться
-       ланцюжком `order_number` від першого незакритого і публікує події
-       `segment_unlocked` до першого «розриву».
+     - Ігнорує активності поза ефективним турнірним вікном:
+       `max(tournament.starts_at, participant.joined_at)` до
+       `tournament.ends_at`.
+     - Перевіряє рейтингові сегменти за `order_number`, використовуючи
+       адаптивний start/end proximity, GPS accuracy filtering, мінімальну
+       GPS density, мінімальну matched distance, мінімальну matched duration
+       і route coverage.
+     - Перевіряє проходження маршруту через projection GPS-точок на polyline
+       і вимагає монотонного progress along route.
+     - При match створює/оновлює `SegmentEffort` і записує
+       `TournamentSegmentUnlock` для наступного потрібного турнірного сегмента.
+       Unlocks, а не історичні efforts, є джерелом правди для порядку і
+       прогресу в турнірі.
 3. **`TournamentEventPublisher.segment_unlocked!`** ([app/services/tournament_event_publisher.rb](../app/services/tournament_event_publisher.rb))
    - Створює `TournamentEvent` (видимий усім у стрічці турніру).
    - Для кожного учасника турніру **крім actor'а**:
@@ -112,6 +120,9 @@ PostGIS — ключовий елемент. `gps_track`, `polyline`, `start_poi
 
 Та сама логіка існує і як [MatchSegmentsJob](../app/jobs/match_segments_job.rb)
 для асинхронних перезапусків (наприклад, бекфіли) — Sidekiq + Redis.
+
+Повний алгоритм трекінгу сегментів, пороги, діаграми, покриті edge cases і
+мапу тестів дивись у [Трекінг сегментів](segment-tracking.uk.md).
 
 ## 5. Авторизація
 
@@ -197,9 +208,12 @@ splitrace/
   першого завершення. (Свідома компромісна спрощеність.)
 - **Actor не отримує push на свій власний unlock**, але `TournamentEvent` усе одно
   видно йому у стрічці. Notification-запис теж не створюється.
-- **Матчинг GPS — чиста геометрія**: ніякого античіту проти спуфінгу GPS чи
-  «проїхати маршрут на машині», крім подальшого ранжування по часу.
-  Решта — на модераторах через `CheatingReport`.
+- **GPS matching більше не є просто start/end proximity.** Matcher тепер
+  вимагає route coverage, монотонний progress along polyline, мінімальну GPS
+  density, мінімальний matched movement, перевірки tournament window і
+  `TournamentSegmentUnlock` records для турнірного прогресу. Suspicious GPS
+  позначається, а важкі GPS-сигнали reject matching, але продукт все ще
+  трактує це як evidence для admin review, а не як автоматичний бан.
 - **`mobile/android/` ігнорується git'ом** і регенерується `expo prebuild` на
   кожен білд. Не очікуй, що зміни там виживуть. Кастомізація — через
   `app.json`, `app.config.js`, expo-плагіни або post-prebuild патч у білд-workflow.
