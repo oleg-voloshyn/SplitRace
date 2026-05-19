@@ -99,6 +99,8 @@
     "cancel": "Cancel",
     "saving": "Saving run...",
     "runSaved": "Run saved!",
+    "savedSummaryHint": "Your run is stored. Open the summary to review segments and share the result.",
+    "viewSummary": "View summary",
     "newRun": "NEW RUN",
     "time": "Time",
     "distance": "Distance",

@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 import * as Sharing from 'expo-sharing';
 import * as TaskManager from 'expo-task-manager';
-import { Check, Play, Square, Trophy } from 'lucide-react-native';
+import { ArrowRight, Check, Play, Square, Trophy } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { Alert, Platform, ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import ViewShot from 'react-native-view-shot';
@@ -17,6 +17,24 @@ const LOCATION_TASK = 'splitrace-location-task';
 const POINTS_KEY = 'splitrace_run_points';
 const MIN_DISTANCE_M = 30;
 const GPS_MAX_ACCURACY_M = 100;
+const CONFIRMATION_PREVIEW_SCALE = 0.56;
+
+const styles = StyleSheet.create({
+  hiddenShareCard: {
+    position: 'absolute',
+    left: -10000,
+    top: 0
+  },
+  sharePreviewFrame: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden'
+  },
+  scaledSharePreview: {
+    alignItems: 'center',
+    justifyContent: 'center'
+  }
+});
 
 TaskManager.defineTask(LOCATION_TASK, async ({ data, error }) => {
   if (error || !data) {
@@ -45,6 +63,7 @@ function RunTrackerScreen() {
   const [error, setError] = useState(null);
   const [savedActivity, setSavedActivity] = useState(null);
   const [shareFormat, setShareFormat] = useState('story');
+  const [savedView, setSavedView] = useState('confirmation');
   const [previewPoint, setPreviewPoint] = useState(null);
   const [gpsReady, setGpsReady] = useState(false);
   const [gpsStatus, setGpsStatus] = useState('checking');
@@ -292,6 +311,7 @@ function RunTrackerScreen() {
       });
       await AsyncStorage.removeItem(POINTS_KEY);
       setSavedActivity(activity);
+      setSavedView('confirmation');
       setPoints(pts);
       setDuration(activity.elapsed_time_seconds || elapsed);
       setStatus('saved');
@@ -315,6 +335,7 @@ function RunTrackerScreen() {
     setPoints(previewPoint ? [previewPoint] : []);
     setDuration(0);
     setSavedActivity(null);
+    setSavedView('confirmation');
     accumulatedMs.current = 0;
     setError(null);
   }
@@ -385,95 +406,58 @@ function RunTrackerScreen() {
     const hasPassed = passedCount > 0;
     const cardFormat = RUN_SHARE_FORMATS[shareFormat] || RUN_SHARE_FORMATS.story;
 
+    if (savedView === 'confirmation') {
+      return (
+        <RunSavedConfirmation
+          activity={activity}
+          shareFormat={shareFormat}
+          onViewSummary={() => setSavedView('summary')}
+          t={t}
+        />
+      );
+    }
+
     return (
-      <ScrollView className="flex-1 bg-brand-navy" contentContainerClassName="p-5 pb-9 items-center">
-        <Check size={48} color="#4caf50" strokeWidth={3} />
-        <Text className="text-green-500 text-xl font-extrabold mb-4 mt-2">{t('run.runSaved')}</Text>
-
-        <ViewShot
-          ref={shareCardRef}
-          options={{ format: 'png', quality: 1 }}
-          style={{
-            width: cardFormat.width,
-            height: cardFormat.height,
-            marginBottom: 20,
-            borderRadius: 24,
-            overflow: 'hidden'
-          }}
-        >
-          <RunShareCard activity={activity} format={shareFormat} />
-        </ViewShot>
-
-        <View className="w-full bg-white rounded-2xl p-4 shadow-lg">
-          <Text className="text-brand-red text-[13px] font-extrabold mb-3.5 uppercase">
-            {t('run.noSegmentUnlocked')}
-          </Text>
-          <View className="flex-row gap-2">
-            <SummaryStat label={t('run.distance')} value={fmtDist(activity.distance_meters)} />
-            <SummaryStat label={t('run.time')} value={fmtTime(activity.elapsed_time_seconds || duration)} />
-            <SummaryStat
-              label={t('run.pace')}
-              value={fmtPace(activity.elapsed_time_seconds, activity.distance_meters)}
-            />
-          </View>
-          <View className="mt-4 border-t border-gray-200 pt-3.5">
-            <Text className="text-brand-navy text-base font-extrabold mb-2.5">
-              {t('run.segmentsCompleted', { count: passedCount })}
-              {hasPassed ? ':' : ''}
-            </Text>
-            {hasPassed ? (
-              passedSegments.map((seg) => (
-                <View key={seg.id} className="flex-row gap-3 py-2 border-b border-gray-100">
-                  <Text className="text-gray-400 text-sm">•</Text>
-                  <Text className="text-gray-800 text-sm font-semibold flex-1">{seg.name}</Text>
-                </View>
-              ))
-            ) : (
-              <Text className="text-gray-600 leading-5">{t('run.noSegmentsCompleted')}</Text>
-            )}
-            {personalBests.length > 0 && (
-              <View className="mt-3 pt-3 border-t border-gray-100">
-                {personalBests.map((pb) => (
-                  <View key={pb.segment_id} className="flex-row items-center gap-2 py-1.5">
-                    <Trophy size={16} color="#d97706" strokeWidth={2.5} />
-                    <Text className="text-amber-700 text-[13px] leading-[18px] flex-1 font-semibold">
-                      {t('run.newPersonalBest', {
-                        segment: pb.segment_name,
-                        time: pb.formatted_time,
-                        previous: pb.previous_best_formatted
-                      })}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            )}
-            {pendingUnlocks.length > 0 && (
-              <View className="mt-3 pt-3 border-t border-gray-100">
-                {pendingUnlocks.map((p) => (
-                  <Text
-                    key={`${p.tournament_name}-${p.position}`}
-                    className="text-amber-800 text-[13px] leading-[18px]"
-                  >
-                    {t('run.pendingRatedUnlock', { position: p.position })}
-                  </Text>
-                ))}
-              </View>
-            )}
-          </View>
-        </View>
-        <View className="w-full gap-2.5 mt-4">
-          <ShareFormatButtons selected={shareFormat} onSelect={setShareFormat} />
-          <TouchableOpacity
-            className="bg-brand-red rounded-2xl p-4 items-center"
-            onPress={() => shareActivityImage(shareCardRef, activity, t)}
+      <View className="flex-1 bg-brand-navy">
+        <View pointerEvents="none" style={styles.hiddenShareCard}>
+          <ViewShot
+            ref={shareCardRef}
+            options={{ format: 'png', quality: 1 }}
+            style={{
+              width: cardFormat.width,
+              height: cardFormat.height,
+              borderRadius: 24,
+              overflow: 'hidden'
+            }}
           >
-            <Text className="text-white font-extrabold text-base">{t('run.shareResult')}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity className="border border-white/25 rounded-2xl p-4 items-center" onPress={reset}>
-            <Text className="text-white font-bold text-[15px]">{t('run.newRun')}</Text>
-          </TouchableOpacity>
+            <RunShareCard activity={activity} format={shareFormat} />
+          </ViewShot>
         </View>
-      </ScrollView>
+        <ScrollView className="flex-1" contentContainerClassName="p-5 pb-9 items-center">
+          <RunSummaryPanel
+            activity={activity}
+            duration={duration}
+            passedSegments={passedSegments}
+            pendingUnlocks={pendingUnlocks}
+            personalBests={personalBests}
+            passedCount={passedCount}
+            hasPassed={hasPassed}
+            t={t}
+          />
+          <View className="w-full gap-2.5 mt-4">
+            <ShareFormatButtons selected={shareFormat} onSelect={setShareFormat} />
+            <TouchableOpacity
+              className="bg-brand-red rounded-2xl p-4 items-center"
+              onPress={() => shareActivityImage(shareCardRef, activity, t)}
+            >
+              <Text className="text-white font-extrabold text-base">{t('run.shareResult')}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity className="border border-white/25 rounded-2xl p-4 items-center" onPress={reset}>
+              <Text className="text-white font-bold text-[15px]">{t('run.newRun')}</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </View>
     );
   }
 
@@ -531,6 +515,113 @@ function RunTrackerScreen() {
           >
             <Text className="text-white font-bold text-[15px]">{t('run.stop')}</Text>
           </TouchableOpacity>
+        )}
+      </View>
+    </View>
+  );
+}
+
+function RunSavedConfirmation({ activity, shareFormat, onViewSummary, t }) {
+  const cardFormat = RUN_SHARE_FORMATS[shareFormat] || RUN_SHARE_FORMATS.story;
+  const previewWidth = cardFormat.width * CONFIRMATION_PREVIEW_SCALE;
+  const previewHeight = cardFormat.height * CONFIRMATION_PREVIEW_SCALE;
+
+  return (
+    <View className="flex-1 bg-brand-navy px-5 pt-7 pb-6">
+      <View className="items-center">
+        <Check size={52} color="#4caf50" strokeWidth={3} />
+        <Text className="text-green-500 text-xl font-extrabold mt-2 text-center">{t('run.runSaved')}</Text>
+        <Text className="text-white/45 text-[13px] leading-5 mt-2 text-center">{t('run.savedSummaryHint')}</Text>
+      </View>
+
+      <View className="flex-1 items-center justify-center py-5">
+        <View
+          className="rounded-3xl"
+          style={[styles.sharePreviewFrame, { width: previewWidth, height: previewHeight }]}
+        >
+          <View
+            style={[
+              styles.scaledSharePreview,
+              {
+                width: cardFormat.width,
+                height: cardFormat.height,
+                transform: [{ scale: CONFIRMATION_PREVIEW_SCALE }]
+              }
+            ]}
+          >
+            <RunShareCard activity={activity} format={shareFormat} />
+          </View>
+        </View>
+      </View>
+
+      <TouchableOpacity
+        className="bg-brand-red rounded-2xl p-4 flex-row items-center justify-center gap-2"
+        onPress={onViewSummary}
+      >
+        <Text className="text-white font-extrabold text-base">{t('run.viewSummary')}</Text>
+        <ArrowRight size={18} color="#fff" strokeWidth={2.8} />
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+function RunSummaryPanel({
+  activity,
+  duration,
+  passedSegments,
+  pendingUnlocks,
+  personalBests,
+  passedCount,
+  hasPassed,
+  t
+}) {
+  return (
+    <View className="w-full bg-white rounded-2xl p-4 shadow-lg">
+      <Text className="text-brand-red text-[13px] font-extrabold mb-3.5 uppercase">{t('run.noSegmentUnlocked')}</Text>
+      <View className="flex-row gap-2">
+        <SummaryStat label={t('run.distance')} value={fmtDist(activity.distance_meters)} />
+        <SummaryStat label={t('run.time')} value={fmtTime(activity.elapsed_time_seconds || duration)} />
+        <SummaryStat label={t('run.pace')} value={fmtPace(activity.elapsed_time_seconds, activity.distance_meters)} />
+      </View>
+      <View className="mt-4 border-t border-gray-200 pt-3.5">
+        <Text className="text-brand-navy text-base font-extrabold mb-2.5">
+          {t('run.segmentsCompleted', { count: passedCount })}
+          {hasPassed ? ':' : ''}
+        </Text>
+        {hasPassed ? (
+          passedSegments.map((seg) => (
+            <View key={seg.id} className="flex-row gap-3 py-2 border-b border-gray-100">
+              <Text className="text-gray-400 text-sm">•</Text>
+              <Text className="text-gray-800 text-sm font-semibold flex-1">{seg.name}</Text>
+            </View>
+          ))
+        ) : (
+          <Text className="text-gray-600 leading-5">{t('run.noSegmentsCompleted')}</Text>
+        )}
+        {personalBests.length > 0 && (
+          <View className="mt-3 pt-3 border-t border-gray-100">
+            {personalBests.map((pb) => (
+              <View key={pb.segment_id} className="flex-row items-center gap-2 py-1.5">
+                <Trophy size={16} color="#d97706" strokeWidth={2.5} />
+                <Text className="text-amber-700 text-[13px] leading-[18px] flex-1 font-semibold">
+                  {t('run.newPersonalBest', {
+                    segment: pb.segment_name,
+                    time: pb.formatted_time,
+                    previous: pb.previous_best_formatted
+                  })}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
+        {pendingUnlocks.length > 0 && (
+          <View className="mt-3 pt-3 border-t border-gray-100">
+            {pendingUnlocks.map((p) => (
+              <Text key={`${p.tournament_name}-${p.position}`} className="text-amber-800 text-[13px] leading-[18px]">
+                {t('run.pendingRatedUnlock', { position: p.position })}
+              </Text>
+            ))}
+          </View>
         )}
       </View>
     </View>

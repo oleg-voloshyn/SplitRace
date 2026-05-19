@@ -1,4 +1,5 @@
 import React from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import * as Sharing from 'expo-sharing';
 import RunTrackerScreen from '../../screens/RunTrackerScreen';
@@ -15,7 +16,12 @@ const mockT = (key, opts) => {
   const map = {
     'run.ready': 'Ready to run',
     'run.start': 'START',
+    'run.stop': 'STOP',
+    'run.resume': 'Resume',
+    'run.finish': 'Finish',
     'run.runSaved': 'Run saved!',
+    'run.savedSummaryHint': 'Your run is stored.',
+    'run.viewSummary': 'View summary',
     'run.shareResult': 'Share result',
     'run.newRun': 'NEW RUN',
     'run.distance': 'Distance',
@@ -40,6 +46,11 @@ const mockT = (key, opts) => {
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({ t: mockT, i18n: { language: 'en' } })
 }));
+
+beforeEach(async () => {
+  jest.clearAllMocks();
+  await AsyncStorage.clear();
+});
 
 describe('RunTrackerScreen — idle state', () => {
   it('renders START button in idle state', async () => {
@@ -84,6 +95,46 @@ describe('RunTrackerScreen — saved state', () => {
     render(<RunShareCard activity={activity} />);
     expect(screen.getByText('5.00 km')).toBeTruthy();
     expect(screen.getByText('30:00')).toBeTruthy();
+  });
+
+  it('shows saved confirmation before the run summary', async () => {
+    const { api } = require('../../api/client');
+    api.saveActivity.mockResolvedValueOnce({
+      id: 1,
+      elapsed_time_seconds: 120,
+      distance_meters: 1000,
+      segment_efforts: [],
+      segment_efforts_count: 0,
+      passed_segments: [],
+      pending_rated_unlocks: [],
+      new_personal_bests: []
+    });
+
+    render(<RunTrackerScreen />);
+    await waitFor(() => expect(screen.getByText('START')).toBeTruthy());
+
+    fireEvent.press(screen.getByText('START'));
+    await waitFor(() => expect(screen.getByText('STOP')).toBeTruthy());
+
+    fireEvent.press(screen.getByText('STOP'));
+    await waitFor(() => expect(screen.getByText('Finish')).toBeTruthy());
+    await AsyncStorage.setItem(
+      'splitrace_run_points',
+      JSON.stringify([
+        { lat: 50.45, lng: 30.52, ts: 1_000, accuracy: 5 },
+        { lat: 50.46, lng: 30.53, ts: 1_060, accuracy: 5 }
+      ])
+    );
+    fireEvent.press(screen.getByText('Finish'));
+
+    await waitFor(() => expect(screen.getByText('Run saved!')).toBeTruthy());
+    expect(screen.getByText('View summary')).toBeTruthy();
+    expect(screen.queryByText('Share result')).toBeNull();
+
+    fireEvent.press(screen.getByText('View summary'));
+
+    await waitFor(() => expect(screen.getByText('Share result')).toBeTruthy());
+    expect(screen.getByText('NEW RUN')).toBeTruthy();
   });
 });
 
