@@ -82,29 +82,33 @@ module Admin
 
       @tournament.activate!
       redirect_to admin_tournament_path(@tournament), notice: 'Tournament is now active.'
-    rescue => e
-      redirect_to admin_tournament_path(@tournament), alert: e.message
+    rescue AASM::InvalidTransition
+      redirect_to admin_tournament_path(@tournament),
+                  alert: "Cannot activate a tournament with status \"#{@tournament.status}\"."
     end
 
     def approve
       @tournament.approve!(@current_admin)
       redirect_to admin_tournament_path(@tournament), notice: 'Tournament approved and activated.'
-    rescue => e
-      redirect_to admin_tournament_path(@tournament), alert: e.message
+    rescue AASM::InvalidTransition
+      redirect_to admin_tournament_path(@tournament),
+                  alert: 'Only tournaments pending review can be approved.'
     end
 
     def reject
       @tournament.reject!(@current_admin, params[:review_note])
       redirect_to admin_tournament_path(@tournament), notice: 'Tournament rejected.'
-    rescue => e
-      redirect_to admin_tournament_path(@tournament), alert: e.message
+    rescue AASM::InvalidTransition
+      redirect_to admin_tournament_path(@tournament),
+                  alert: 'Only tournaments pending review can be rejected.'
     end
 
     def complete
       @tournament.complete!
       redirect_to admin_tournament_path(@tournament), notice: 'Tournament completed and scores finalized.'
-    rescue => e
-      redirect_to admin_tournament_path(@tournament), alert: e.message
+    rescue AASM::InvalidTransition
+      redirect_to admin_tournament_path(@tournament),
+                  alert: 'Only active tournaments can be completed.'
     end
 
     def add_segment

@@ -23,7 +23,8 @@ module Admin
 
       redirect_to admin_cheating_reports_path, notice: "Report #{@report.status}."
     rescue AASM::InvalidTransition
-      redirect_to admin_cheating_report_path(@report), alert: 'Report has already been reviewed.'
+      redirect_to admin_cheating_report_path(@report),
+                  alert: "Report has already been reviewed (#{@report.status})."
     end
   end
 end

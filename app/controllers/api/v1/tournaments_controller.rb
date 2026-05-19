@@ -157,15 +157,16 @@ module Api
       def activate
         @tournament.activate!
         render json: serialize_tournament(@tournament)
-      rescue AASM::InvalidTransition => e
-        render json: { error: e.message }, status: :unprocessable_content
+      rescue AASM::InvalidTransition
+        render json: { error: "Cannot activate a tournament with status \"#{@tournament.status}\"." },
+               status: :unprocessable_content
       end
 
       def complete
         @tournament.complete!
         render json: serialize_tournament(@tournament)
-      rescue AASM::InvalidTransition => e
-        render json: { error: e.message }, status: :unprocessable_content
+      rescue AASM::InvalidTransition
+        render json: { error: 'Only active tournaments can be completed.' }, status: :unprocessable_content
       end
 
       private
