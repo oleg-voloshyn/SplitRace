@@ -22,10 +22,10 @@ class ApiActivitiesTest < ActionDispatch::IntegrationTest
     get api_v1_activities_path, headers: auth_headers(user)
 
     assert_response :success
-    body = response.parsed_body
-    assert_equal 1, body.first['segment_efforts_count']
-    assert_equal 'Riverside Sprint', body.first['segment_efforts'].first.dig('segment', 'name')
-    assert_equal '05:00', body.first['segment_efforts'].first['formatted_time']
+    activity = response.parsed_body.fetch('items').first
+    assert_equal 1, activity['segment_efforts_count']
+    assert_equal 'Riverside Sprint', activity['segment_efforts'].first.dig('segment', 'name')
+    assert_equal '05:00', activity['segment_efforts'].first['formatted_time']
   end
 
   private

@@ -42,7 +42,7 @@ class ApiNotificationsTest < ActionDispatch::IntegrationTest
     assert_response :success
     body = response.parsed_body
     assert_equal 1, body['unread_count']
-    assert_includes body['notifications'].first['title'], 'Opening Segment'
+    assert_includes body.fetch('items').first['title'], 'Opening Segment'
   end
 
   test 'user can register and unregister expo push token' do
