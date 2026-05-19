@@ -1,6 +1,10 @@
 class SegmentMatcher
-  PROXIMITY_METERS = 30
-  ROUTE_CORRIDOR_METERS = 30
+  LONG_SEGMENT_PROXIMITY_METERS = 30
+  SHORT_SEGMENT_PROXIMITY_METERS = 20
+  LONG_SEGMENT_ROUTE_CORRIDOR_METERS = 30
+  SHORT_SEGMENT_ROUTE_CORRIDOR_METERS = 20
+  MIN_GPS_TOLERANCE_METERS = 10
+  GPS_ACCURACY_PADDING_METERS = 5
   ROUTE_SAMPLE_METERS = 20
   MIN_ROUTE_COVERAGE = 0.75
   SHORT_SEGMENT_DISTANCE_METERS = 800
@@ -45,20 +49,21 @@ class SegmentMatcher
   def passes_through?(segment)
     return false unless segment.start_point && segment.end_point && @activity.gps_track
 
+    proximity = proximity_tolerance_for(segment)
     near_start = Activity.where(id: @activity.id)
                          .where('ST_DWithin(gps_track::geography, ?::geography, ?)',
-                                segment.start_point.to_s, PROXIMITY_METERS)
+                                segment.start_point.to_s, proximity)
                          .exists?
     return false unless near_start
 
     near_end = Activity.where(id: @activity.id)
                        .where('ST_DWithin(gps_track::geography, ?::geography, ?)',
-                              segment.end_point.to_s, PROXIMITY_METERS)
+                              segment.end_point.to_s, proximity)
                        .exists?
     return false unless near_end
 
-    start_idx = closest_point_index(gps_points, segment.start_point)
-    end_idx   = closest_point_index(gps_points, segment.end_point)
+    start_idx = closest_point_index(gps_points, segment.start_point, tolerance: proximity)
+    end_idx   = closest_point_index(gps_points, segment.end_point, tolerance: proximity)
     return false unless enough_gps_points_for_segment?(segment, start_idx:, end_idx:)
 
     !start_idx.nil? && !end_idx.nil? && start_idx < end_idx && follows_route?(segment, start_idx:, end_idx:)
@@ -103,20 +108,21 @@ class SegmentMatcher
   def try_match(segment, after: nil, tournament: nil, participant: nil)
     return nil unless segment.start_point && segment.end_point && @activity.gps_track
 
+    proximity = proximity_tolerance_for(segment)
     near_start = Activity.where(id: @activity.id)
                          .where('ST_DWithin(gps_track::geography, ?::geography, ?)',
-                                segment.start_point.to_s, PROXIMITY_METERS)
+                                segment.start_point.to_s, proximity)
                          .exists?
 
     near_end = Activity.where(id: @activity.id)
                        .where('ST_DWithin(gps_track::geography, ?::geography, ?)',
-                              segment.end_point.to_s, PROXIMITY_METERS)
+                              segment.end_point.to_s, proximity)
                        .exists?
 
     return nil unless near_start && near_end
 
-    start_idx = closest_point_index(gps_points, segment.start_point)
-    end_idx   = closest_point_index(gps_points, segment.end_point)
+    start_idx = closest_point_index(gps_points, segment.start_point, tolerance: proximity)
+    end_idx   = closest_point_index(gps_points, segment.end_point, tolerance: proximity)
     return nil if start_idx.nil? || end_idx.nil? || start_idx >= end_idx
     return nil unless enough_gps_points_for_segment?(segment, start_idx:, end_idx:)
     return nil unless follows_route?(segment, start_idx:, end_idx:)
@@ -149,8 +155,9 @@ class SegmentMatcher
     points = gps_points
     return unless points.size >= 2
 
-    start_idx = closest_point_index(points, segment.start_point)
-    end_idx   = closest_point_index(points, segment.end_point)
+    proximity = proximity_tolerance_for(segment)
+    start_idx = closest_point_index(points, segment.start_point, tolerance: proximity)
+    end_idx   = closest_point_index(points, segment.end_point, tolerance: proximity)
     return if start_idx.nil? || end_idx.nil?
     return if start_idx >= end_idx
 
@@ -175,7 +182,12 @@ class SegmentMatcher
     search_from = 0
 
     sampled_route.each do |route_point|
-      match_idx = closest_activity_index(activity_points, route_point, from: search_from)
+      match_idx = closest_activity_index(
+        activity_points,
+        route_point,
+        from: search_from,
+        tolerance: route_corridor_tolerance_for(segment)
+      )
       next unless match_idx
 
       matched_count += 1
@@ -244,7 +256,7 @@ class SegmentMatcher
     samples
   end
 
-  def closest_activity_index(activity_points, route_point, from:)
+  def closest_activity_index(activity_points, route_point, from:, tolerance:)
     min_dist = Float::INFINITY
     min_idx = nil
 
@@ -252,16 +264,18 @@ class SegmentMatcher
       next if idx < from
 
       dist = haversine(point['lat'].to_f, point['lng'].to_f, route_point['lat'], route_point['lng'])
+      next if dist > point_tolerance(point, tolerance)
+
       if dist < min_dist
         min_dist = dist
         min_idx = idx
       end
     end
 
-    min_idx if min_dist <= ROUTE_CORRIDOR_METERS
+    min_idx
   end
 
-  def closest_point_index(points, geo_point)
+  def closest_point_index(points, geo_point, tolerance:)
     target_lat = geo_point.lat
     target_lng = geo_point.lon
 
@@ -270,13 +284,15 @@ class SegmentMatcher
 
     points.each_with_index do |pt, i|
       dist = haversine(pt['lat'].to_f, pt['lng'].to_f, target_lat, target_lng)
+      next if dist > point_tolerance(pt, tolerance)
+
       if dist < min_dist
         min_dist = dist
         min_idx  = i
       end
     end
 
-    min_idx if min_dist <= PROXIMITY_METERS
+    min_idx
   end
 
   def enough_gps_points_for_segment?(segment, start_idx:, end_idx:)
@@ -291,6 +307,33 @@ class SegmentMatcher
     else
       MIN_SEGMENT_GPS_POINTS
     end
+  end
+
+  def proximity_tolerance_for(segment)
+    if short_segment?(segment)
+      SHORT_SEGMENT_PROXIMITY_METERS
+    else
+      LONG_SEGMENT_PROXIMITY_METERS
+    end
+  end
+
+  def route_corridor_tolerance_for(segment)
+    if short_segment?(segment)
+      SHORT_SEGMENT_ROUTE_CORRIDOR_METERS
+    else
+      LONG_SEGMENT_ROUTE_CORRIDOR_METERS
+    end
+  end
+
+  def short_segment?(segment)
+    segment.distance_meters.to_f < SHORT_SEGMENT_DISTANCE_METERS
+  end
+
+  def point_tolerance(point, base_tolerance)
+    accuracy = point['accuracy'] || point[:accuracy]
+    return base_tolerance unless accuracy.to_f.positive?
+
+    [base_tolerance, [accuracy.to_f + GPS_ACCURACY_PADDING_METERS, MIN_GPS_TOLERANCE_METERS].max].min
   end
 
   def haversine(lat1, lng1, lat2, lng2)

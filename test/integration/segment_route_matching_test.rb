@@ -105,6 +105,36 @@ class SegmentRouteMatchingTest < ActionDispatch::IntegrationTest
                     'too_many_low_accuracy_points'
   end
 
+  test 'does not unlock short segment from nearby parallel high accuracy track' do
+    owner = create_user(email: 'route-parallel-owner@example.com')
+    runner = create_user(email: 'route-parallel-runner@example.com')
+    tournament = create_tournament(owner)
+    segment = create_segment_from_coords(owner, name: 'Parallel Building', coords: ROUTE)
+    tournament.tournament_segments.create!(segment:, order_number: 1, is_rated: true)
+    tournament.tournament_participants.create!(user: runner, joined_at: Time.zone.at(1_700))
+
+    assert_no_difference 'SegmentEffort.count' do
+      assert_no_difference 'TournamentSegmentUnlock.count' do
+        assert_no_difference 'TournamentEvent.count' do
+          post api_v1_activities_path,
+               params: {
+                 started_at: Time.zone.at(1_800).iso8601,
+                 finished_at: Time.zone.at(2_100).iso8601,
+                 distance_meters: 463,
+                 elapsed_time_seconds: 300,
+                 source: 'mobile_android',
+                 gps_points: gps_points_for_route(offset_route(ROUTE, lng_offset: 0.00025), start_ts: 1_800)
+               },
+               headers: auth_headers(runner)
+        end
+      end
+    end
+
+    assert_response :created
+    assert_equal 0, response.parsed_body['segment_efforts_count']
+    assert_empty TournamentEvent.where(tournament:)
+  end
+
   test 'does not unlock short segment from sparse start and finish points only' do
     owner = create_user(email: 'route-sparse-owner@example.com')
     runner = create_user(email: 'route-sparse-runner@example.com')
@@ -208,6 +238,10 @@ class SegmentRouteMatchingTest < ActionDispatch::IntegrationTest
     dense_points.map.with_index do |(lat, lng), index|
       { lat:, lng:, ts: start_ts + (index * 10), accuracy: }
     end
+  end
+
+  def offset_route(coords, lng_offset:)
+    coords.map { |lat, lng| [lat, lng + lng_offset] }
   end
 
   def auth_headers(user)
