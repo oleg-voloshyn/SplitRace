@@ -24,9 +24,9 @@ class ActivityResource
       next nil if rated.empty?
 
       rated_segment_ids    = rated.pluck(:segment_id)
-      unlocked_in_activity = TournamentEvent
+      unlocked_in_activity = TournamentSegmentUnlock
                              .joins(:segment_effort)
-                             .where(tournament:, actor: user)
+                             .where(tournament:, user:)
                              .where(segment_efforts: { activity_id: activity.id })
                              .exists?
       next nil if unlocked_in_activity

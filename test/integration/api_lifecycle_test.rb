@@ -361,6 +361,7 @@ class ApiLifecycleTest < ActionDispatch::IntegrationTest
     assert_equal 2, body['gps_points'].size
     assert_equal 1, body['segment_efforts_count']
     assert_equal 'Matched Segment', body.dig('segment_efforts', 0, 'segment', 'name')
+    assert_equal 1, TournamentSegmentUnlock.where(tournament:, segment:).count
     assert_equal 1, TournamentEvent.where(tournament:, segment:).count
     # Actor (runner) does not receive a notification for their own unlock.
     assert_equal 0, runner.notifications.where(tournament:).count
@@ -384,20 +385,22 @@ class ApiLifecycleTest < ActionDispatch::IntegrationTest
     create_effort(user: runner, segment: first, elapsed: 100, started_at: Time.zone.at(1_950))
 
     assert_no_difference 'SegmentEffort.count' do
-      assert_no_difference 'TournamentEvent.count' do
-        post api_v1_activities_path,
-             params: {
-               started_at: Time.zone.at(2_100).iso8601,
-               finished_at: Time.zone.at(2_220).iso8601,
-               distance_meters: 1_500,
-               elapsed_time_seconds: 120,
-               source: 'mobile_android',
-               gps_points: [
-                 { lat: 50.45, lng: 30.55, ts: 2_100, accuracy: 5 },
-                 { lat: 50.46, lng: 30.56, ts: 2_220, accuracy: 5 }
-               ]
-             },
-             headers: auth_headers(runner)
+      assert_no_difference 'TournamentSegmentUnlock.count' do
+        assert_no_difference 'TournamentEvent.count' do
+          post api_v1_activities_path,
+               params: {
+                 started_at: Time.zone.at(2_100).iso8601,
+                 finished_at: Time.zone.at(2_220).iso8601,
+                 distance_meters: 1_500,
+                 elapsed_time_seconds: 120,
+                 source: 'mobile_android',
+                 gps_points: [
+                   { lat: 50.45, lng: 30.55, ts: 2_100, accuracy: 5 },
+                   { lat: 50.46, lng: 30.56, ts: 2_220, accuracy: 5 }
+                 ]
+               },
+               headers: auth_headers(runner)
+        end
       end
     end
 
@@ -422,23 +425,25 @@ class ApiLifecycleTest < ActionDispatch::IntegrationTest
     tournament.tournament_participants.create!(user: spectator, joined_at: Time.zone.at(1_700))
 
     assert_no_difference 'SegmentEffort.count' do
-      assert_no_difference 'TournamentEvent.count' do
-        assert_no_difference 'Notification.count' do
-          post api_v1_activities_path,
-               params: {
-                 started_at: Time.zone.at(1_800).iso8601,
-                 finished_at: Time.zone.at(2_040).iso8601,
-                 distance_meters: 2_400,
-                 elapsed_time_seconds: 240,
-                 source: 'mobile_android',
-                 gps_points: [
-                   { lat: 50.45, lng: 30.55, ts: 1_800, accuracy: 5 },
-                   { lat: 50.46, lng: 30.56, ts: 1_900, accuracy: 5 },
-                   { lat: 50.45, lng: 30.58, ts: 1_940, accuracy: 5 },
-                   { lat: 50.46, lng: 30.59, ts: 2_040, accuracy: 5 }
-                 ]
-               },
-               headers: auth_headers(runner)
+      assert_no_difference 'TournamentSegmentUnlock.count' do
+        assert_no_difference 'TournamentEvent.count' do
+          assert_no_difference 'Notification.count' do
+            post api_v1_activities_path,
+                 params: {
+                   started_at: Time.zone.at(1_800).iso8601,
+                   finished_at: Time.zone.at(2_040).iso8601,
+                   distance_meters: 2_400,
+                   elapsed_time_seconds: 240,
+                   source: 'mobile_android',
+                   gps_points: [
+                     { lat: 50.45, lng: 30.55, ts: 1_800, accuracy: 5 },
+                     { lat: 50.46, lng: 30.56, ts: 1_900, accuracy: 5 },
+                     { lat: 50.45, lng: 30.58, ts: 1_940, accuracy: 5 },
+                     { lat: 50.46, lng: 30.59, ts: 2_040, accuracy: 5 }
+                   ]
+                 },
+                 headers: auth_headers(runner)
+          end
         end
       end
     end
@@ -463,22 +468,24 @@ class ApiLifecycleTest < ActionDispatch::IntegrationTest
     tournament.tournament_participants.create!(user: runner, joined_at: Time.zone.at(1_700))
 
     assert_difference 'SegmentEffort.count', 1 do
-      assert_difference 'TournamentEvent.count', 1 do
-        post api_v1_activities_path,
-             params: {
-               started_at: Time.zone.at(1_800).iso8601,
-               finished_at: Time.zone.at(2_040).iso8601,
-               distance_meters: 2_400,
-               elapsed_time_seconds: 240,
-               source: 'mobile_android',
-               gps_points: [
-                 { lat: 50.45, lng: 30.55, ts: 1_800, accuracy: 5 },
-                 { lat: 50.46, lng: 30.56, ts: 1_900, accuracy: 5 },
-                 { lat: 50.45, lng: 30.52, ts: 1_940, accuracy: 5 },
-                 { lat: 50.46, lng: 30.53, ts: 2_040, accuracy: 5 }
-               ]
-             },
-             headers: auth_headers(runner)
+      assert_difference 'TournamentSegmentUnlock.count', 1 do
+        assert_difference 'TournamentEvent.count', 1 do
+          post api_v1_activities_path,
+               params: {
+                 started_at: Time.zone.at(1_800).iso8601,
+                 finished_at: Time.zone.at(2_040).iso8601,
+                 distance_meters: 2_400,
+                 elapsed_time_seconds: 240,
+                 source: 'mobile_android',
+                 gps_points: [
+                   { lat: 50.45, lng: 30.55, ts: 1_800, accuracy: 5 },
+                   { lat: 50.46, lng: 30.56, ts: 1_900, accuracy: 5 },
+                   { lat: 50.45, lng: 30.52, ts: 1_940, accuracy: 5 },
+                   { lat: 50.46, lng: 30.53, ts: 2_040, accuracy: 5 }
+                 ]
+               },
+               headers: auth_headers(runner)
+        end
       end
     end
 

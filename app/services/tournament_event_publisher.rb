@@ -1,13 +1,19 @@
 class TournamentEventPublisher
-  def self.segment_unlocked!(tournament:, segment_effort:)
-    segment = segment_effort.segment
-    actor   = segment_effort.user
+  def self.segment_unlocked!(unlock: nil, tournament: nil, segment_effort: nil)
+    unlock ||= record_unlock!(tournament:, segment_effort:)
+    return unless unlock
+
+    tournament = unlock.tournament
+    segment_effort = unlock.segment_effort
+    segment = unlock.segment
+    actor   = unlock.user
 
     metadata = {
       elapsed_time_seconds: segment_effort.elapsed_time_seconds,
       formatted_time: segment_effort.formatted_time,
       segment_name: segment.name,
-      actor_name: actor.display_name
+      actor_name: actor.display_name,
+      position: unlock.position
     }
 
     # Default-locale text is stored on the event so DB validations pass and
@@ -20,6 +26,7 @@ class TournamentEventPublisher
       actor:,
       segment:,
       segment_effort:,
+      tournament_segment_unlock: unlock,
       event_type: 'segment_unlocked',
       title: default_text[:title],
       body: default_text[:body],
@@ -44,6 +51,13 @@ class TournamentEventPublisher
     event
   rescue ActiveRecord::RecordNotUnique, ActiveRecord::RecordInvalid
     nil
+  end
+
+  def self.record_unlock!(tournament:, segment_effort:)
+    return unless tournament && segment_effort
+
+    tournament_segment = tournament.tournament_segments.find_by!(segment_id: segment_effort.segment_id)
+    TournamentSegmentUnlock.record!(tournament:, tournament_segment:, segment_effort:)
   end
 
   def self.localize_segment_unlocked(metadata, locale)

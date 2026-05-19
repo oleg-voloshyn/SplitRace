@@ -6,6 +6,7 @@ class Segment < ApplicationRecord
   has_many :tournaments, through: :tournament_segments
   has_many :segment_efforts, dependent: :destroy
   has_many :tournament_events, dependent: :nullify
+  has_many :tournament_segment_unlocks, dependent: :destroy
 
   validates :name, presence: true, length: { maximum: 120 }
   validates :description, length: { maximum: 10_000 }, allow_blank: true

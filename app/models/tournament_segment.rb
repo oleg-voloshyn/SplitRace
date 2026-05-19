@@ -1,6 +1,7 @@
 class TournamentSegment < ApplicationRecord
   belongs_to :tournament
   belongs_to :segment
+  has_many :tournament_segment_unlocks, dependent: :destroy
 
   validates :order_number, presence: true, numericality: { only_integer: true, greater_than: 0 }
   validate :segment_created_by_tournament_owner

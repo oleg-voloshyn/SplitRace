@@ -41,7 +41,12 @@ class TournamentResource
   end
 
   attribute :feed, if: proc { %i[detailed owned].include?(params[:view]) } do |t|
-    events = t.tournament_events.includes(:actor, :segment).order(created_at: :desc).limit(50).to_a
+    events = t.tournament_events
+              .where.not(tournament_segment_unlock_id: nil)
+              .includes(:actor, :segment)
+              .order(created_at: :desc)
+              .limit(50)
+              .to_a
     TournamentEventResource.new(events).serializable_hash
   end
 end

@@ -173,13 +173,6 @@ class TournamentScoreTest < ActiveSupport::TestCase
   end
 
   def create_unlock_event(tournament:, effort:)
-    TournamentEvent.create!(
-      tournament:,
-      actor: effort.user,
-      segment: effort.segment,
-      segment_effort: effort,
-      event_type: 'segment_unlocked',
-      title: 'Segment unlocked'
-    )
+    TournamentEventPublisher.segment_unlocked!(tournament:, segment_effort: effort)
   end
 end

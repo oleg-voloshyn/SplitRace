@@ -24,14 +24,7 @@ class ApiLeaderboardTest < ActionDispatch::IntegrationTest
       elapsed_time_seconds: 120,
       started_at: Time.zone.at(1_800)
     )
-    TournamentEvent.create!(
-      tournament:,
-      actor: runner,
-      segment: first_segment,
-      segment_effort: effort,
-      event_type: 'segment_unlocked',
-      title: 'Unlocked first segment'
-    )
+    TournamentEventPublisher.segment_unlocked!(tournament:, segment_effort: effort)
 
     get leaderboard_api_v1_tournament_path(tournament.slug), headers: auth_headers(owner)
 

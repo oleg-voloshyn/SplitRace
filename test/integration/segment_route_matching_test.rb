@@ -18,20 +18,22 @@ class SegmentRouteMatchingTest < ActionDispatch::IntegrationTest
     tournament.tournament_participants.create!(user: runner, joined_at: Time.zone.at(1_700))
 
     assert_no_difference 'SegmentEffort.count' do
-      assert_no_difference 'TournamentEvent.count' do
-        post api_v1_activities_path,
-             params: {
-               started_at: Time.zone.at(1_800).iso8601,
-               finished_at: Time.zone.at(1_900).iso8601,
-               distance_meters: 70,
-               elapsed_time_seconds: 100,
-               source: 'mobile_android',
-               gps_points: [
-                 { lat: 50.4500, lng: 30.5200, ts: 1_800, accuracy: 5 },
-                 { lat: 50.4500, lng: 30.5206, ts: 1_900, accuracy: 5 }
-               ]
-             },
-             headers: auth_headers(runner)
+      assert_no_difference 'TournamentSegmentUnlock.count' do
+        assert_no_difference 'TournamentEvent.count' do
+          post api_v1_activities_path,
+               params: {
+                 started_at: Time.zone.at(1_800).iso8601,
+                 finished_at: Time.zone.at(1_900).iso8601,
+                 distance_meters: 70,
+                 elapsed_time_seconds: 100,
+                 source: 'mobile_android',
+                 gps_points: [
+                   { lat: 50.4500, lng: 30.5200, ts: 1_800, accuracy: 5 },
+                   { lat: 50.4500, lng: 30.5206, ts: 1_900, accuracy: 5 }
+                 ]
+               },
+               headers: auth_headers(runner)
+        end
       end
     end
 
@@ -49,17 +51,19 @@ class SegmentRouteMatchingTest < ActionDispatch::IntegrationTest
     tournament.tournament_participants.create!(user: runner, joined_at: Time.zone.at(1_700))
 
     assert_difference 'SegmentEffort.count', 1 do
-      assert_difference 'TournamentEvent.count', 1 do
-        post api_v1_activities_path,
-             params: {
-               started_at: Time.zone.at(1_800).iso8601,
-               finished_at: Time.zone.at(2_100).iso8601,
-               distance_meters: 350,
-               elapsed_time_seconds: 300,
-               source: 'mobile_android',
-               gps_points: gps_points_for_route(ROUTE, start_ts: 1_800)
-             },
-             headers: auth_headers(runner)
+      assert_difference 'TournamentSegmentUnlock.count', 1 do
+        assert_difference 'TournamentEvent.count', 1 do
+          post api_v1_activities_path,
+               params: {
+                 started_at: Time.zone.at(1_800).iso8601,
+                 finished_at: Time.zone.at(2_100).iso8601,
+                 distance_meters: 350,
+                 elapsed_time_seconds: 300,
+                 source: 'mobile_android',
+                 gps_points: gps_points_for_route(ROUTE, start_ts: 1_800)
+               },
+               headers: auth_headers(runner)
+        end
       end
     end
 

@@ -14,6 +14,7 @@ class User < ApplicationRecord
   has_many :created_segments, class_name: 'Segment', foreign_key: :created_by_id, inverse_of: :created_by, dependent: :nullify
   has_many :tournament_events, foreign_key: :actor_id, inverse_of: :actor, dependent: :nullify
   has_many :tournament_scores, dependent: :destroy
+  has_many :tournament_segment_unlocks, dependent: :destroy
 
   ACCOUNT_TYPES = %w[user club].freeze
   GENDERS = %w[male female other].freeze

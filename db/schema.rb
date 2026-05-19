@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_18_090000) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_19_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "postgis"
@@ -136,12 +136,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_18_090000) do
     t.bigint "segment_id"
     t.string "title", null: false
     t.bigint "tournament_id", null: false
+    t.bigint "tournament_segment_unlock_id"
     t.datetime "updated_at", null: false
     t.index ["actor_id"], name: "index_tournament_events_on_actor_id"
     t.index ["segment_effort_id"], name: "index_tournament_events_on_segment_effort_id"
     t.index ["segment_id"], name: "index_tournament_events_on_segment_id"
     t.index ["tournament_id", "event_type", "segment_effort_id"], name: "idx_tournament_events_unique_segment_effort", unique: true, where: "(segment_effort_id IS NOT NULL)"
     t.index ["tournament_id"], name: "index_tournament_events_on_tournament_id"
+    t.index ["tournament_segment_unlock_id"], name: "idx_tournament_events_unique_unlock", unique: true, where: "(tournament_segment_unlock_id IS NOT NULL)"
   end
 
   create_table "tournament_participants", force: :cascade do |t|
@@ -169,6 +171,27 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_18_090000) do
     t.index ["tournament_id"], name: "index_tournament_scores_on_tournament_id"
     t.index ["user_id", "tournament_id"], name: "index_tournament_scores_on_user_id_and_tournament_id", unique: true
     t.index ["user_id"], name: "index_tournament_scores_on_user_id"
+  end
+
+  create_table "tournament_segment_unlocks", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.integer "position", null: false
+    t.bigint "segment_effort_id", null: false
+    t.bigint "segment_id", null: false
+    t.bigint "tournament_id", null: false
+    t.bigint "tournament_segment_id", null: false
+    t.datetime "unlocked_at", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["segment_effort_id"], name: "index_tournament_segment_unlocks_on_segment_effort_id"
+    t.index ["segment_id"], name: "index_tournament_segment_unlocks_on_segment_id"
+    t.index ["tournament_id", "segment_id", "unlocked_at"], name: "idx_tournament_unlocks_first_opener"
+    t.index ["tournament_id", "user_id", "segment_id"], name: "idx_tournament_unlocks_unique_segment", unique: true
+    t.index ["tournament_id", "user_id", "tournament_segment_id"], name: "idx_tournament_unlocks_unique_tournament_segment", unique: true
+    t.index ["tournament_id"], name: "index_tournament_segment_unlocks_on_tournament_id"
+    t.index ["tournament_segment_id"], name: "index_tournament_segment_unlocks_on_tournament_segment_id"
+    t.index ["user_id", "tournament_id"], name: "idx_tournament_unlocks_user_tournament"
+    t.index ["user_id"], name: "index_tournament_segment_unlocks_on_user_id"
   end
 
   create_table "tournament_segments", force: :cascade do |t|
@@ -245,12 +268,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_18_090000) do
   add_foreign_key "segments", "users", column: "created_by_id"
   add_foreign_key "tournament_events", "segment_efforts"
   add_foreign_key "tournament_events", "segments"
+  add_foreign_key "tournament_events", "tournament_segment_unlocks"
   add_foreign_key "tournament_events", "tournaments"
   add_foreign_key "tournament_events", "users", column: "actor_id"
   add_foreign_key "tournament_participants", "tournaments"
   add_foreign_key "tournament_participants", "users"
   add_foreign_key "tournament_scores", "tournaments"
   add_foreign_key "tournament_scores", "users"
+  add_foreign_key "tournament_segment_unlocks", "segment_efforts"
+  add_foreign_key "tournament_segment_unlocks", "segments"
+  add_foreign_key "tournament_segment_unlocks", "tournament_segments"
+  add_foreign_key "tournament_segment_unlocks", "tournaments"
+  add_foreign_key "tournament_segment_unlocks", "users"
   add_foreign_key "tournament_segments", "segments"
   add_foreign_key "tournament_segments", "tournaments"
   add_foreign_key "tournaments", "users", column: "created_by_id"

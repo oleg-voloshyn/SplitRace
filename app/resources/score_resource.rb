@@ -43,8 +43,8 @@ class ScoreResource
     next nil unless participant
 
     TournamentScore
-      .eligible_unlock_events_for(params[:tournament], participant, segment_ids: params[:rated_segment_ids])
-      .maximum(:created_at)
+      .eligible_unlocks_for(params[:tournament], participant, segment_ids: params[:rated_segment_ids])
+      .maximum(:unlocked_at)
   end
 
   attribute(:rank_delta) { nil }

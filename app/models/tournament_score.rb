@@ -103,39 +103,28 @@ class TournamentScore < ApplicationRecord
   def self.first_opener_by_segment(tournament, segment_ids)
     return {} if segment_ids.empty?
 
-    participants_by_user_id = tournament.tournament_participants.index_by(&:user_id)
-
-    tournament.tournament_events
-      .joins(:segment_effort)
-      .where(event_type: 'segment_unlocked', segment_id: segment_ids, actor_id: participants_by_user_id.keys)
-      .where('segment_efforts.user_id = tournament_events.actor_id')
-      .order('tournament_events.segment_id ASC, segment_efforts.started_at ASC, tournament_events.id ASC')
-      .pluck('tournament_events.segment_id', 'tournament_events.actor_id', 'segment_efforts.started_at')
-      .each_with_object({}) do |(segment_id, user_id, started_at), first_openers|
-        participant = participants_by_user_id[user_id]
-        next unless participant
-        next unless SegmentEffort.started_in_tournament_window?(tournament, participant, started_at)
-
+    tournament.tournament_segment_unlocks
+      .where(segment_id: segment_ids)
+      .order(:segment_id, :unlocked_at, :id)
+      .pluck(:segment_id, :user_id)
+      .each_with_object({}) do |(segment_id, user_id), first_openers|
         first_openers[segment_id] ||= user_id
       end
   end
 
-  def self.eligible_unlock_events_for(tournament, participant, segment_ids:)
-    return TournamentEvent.none unless participant
+  def self.eligible_unlocks_for(tournament, participant, segment_ids:)
+    return TournamentSegmentUnlock.none unless participant
 
-    tournament.tournament_events
-              .joins(:segment_effort)
-              .where(actor_id: participant.user_id, event_type: 'segment_unlocked', segment_id: segment_ids)
-              .where(segment_efforts: { user_id: participant.user_id })
-              .merge(SegmentEffort.in_tournament_window(tournament, participant))
+    tournament.tournament_segment_unlocks
+              .where(user_id: participant.user_id, segment_id: segment_ids)
   end
 
   def self.unlock_started_by_segment(tournament, participant, segment_ids:)
-    eligible_unlock_events_for(tournament, participant, segment_ids:)
-      .order('segment_efforts.started_at ASC, tournament_events.id ASC')
-      .pluck('tournament_events.segment_id', 'segment_efforts.started_at')
-      .each_with_object({}) do |(segment_id, started_at), unlocks|
-        unlocks[segment_id] ||= started_at
+    eligible_unlocks_for(tournament, participant, segment_ids:)
+      .order(:unlocked_at, :id)
+      .pluck(:segment_id, :unlocked_at)
+      .each_with_object({}) do |(segment_id, unlocked_at), unlocks|
+        unlocks[segment_id] ||= unlocked_at
       end
   end
 

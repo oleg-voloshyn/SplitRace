@@ -68,13 +68,12 @@ class SegmentMatcher
 
     return if rated_segments.empty?
 
-    rated_segment_ids = rated_segments.map(&:segment_id)
-
     # Segments the user had efforts for BEFORE this activity. Already unlocked
     # segments may be re-run to improve time, but missing positions block all
     # later rated unlocks.
-    previously_completed = TournamentScore
-                           .unlocked_segment_ids_for(tournament, participant, segment_ids: rated_segment_ids)
+    previously_completed = TournamentSegmentUnlock
+                           .where(tournament:, user: @user, tournament_segment_id: rated_segments.map(&:id))
+                           .pluck(:segment_id)
                            .to_set
 
     last_new_unlock_at = nil
@@ -87,7 +86,8 @@ class SegmentMatcher
       effort = try_match(ts.segment, after: last_new_unlock_at, tournament:, participant:)
       break unless effort
 
-      TournamentEventPublisher.segment_unlocked!(tournament:, segment_effort: effort)
+      unlock = TournamentSegmentUnlock.record!(tournament:, tournament_segment: ts, segment_effort: effort)
+      TournamentEventPublisher.segment_unlocked!(unlock:)
       previously_completed.add(ts.segment_id)
       last_new_unlock_at = effort.started_at
     end

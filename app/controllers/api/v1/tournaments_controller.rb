@@ -146,7 +146,11 @@ module Api
       end
 
       def feed
-        events = @tournament.tournament_events.includes(:actor, :segment).order(created_at: :desc).limit(50)
+        events = @tournament.tournament_events
+                            .where.not(tournament_segment_unlock_id: nil)
+                            .includes(:actor, :segment)
+                            .order(created_at: :desc)
+                            .limit(50)
         render json: TournamentEventResource.new(events.to_a).serializable_hash
       end
 

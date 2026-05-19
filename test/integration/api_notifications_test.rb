@@ -19,9 +19,11 @@ class ApiNotificationsTest < ActionDispatch::IntegrationTest
     end
 
     begin
-      assert_difference 'TournamentEvent.count', 1 do
-        assert_difference 'Notification.count', 1 do
-          TournamentEventPublisher.segment_unlocked!(tournament:, segment_effort: effort)
+      assert_difference 'TournamentSegmentUnlock.count', 1 do
+        assert_difference 'TournamentEvent.count', 1 do
+          assert_difference 'Notification.count', 1 do
+            TournamentEventPublisher.segment_unlocked!(tournament:, segment_effort: effort)
+          end
         end
       end
     ensure
@@ -29,11 +31,20 @@ class ApiNotificationsTest < ActionDispatch::IntegrationTest
     end
     assert_equal 1, delivered_notifications.size
     assert_equal spectator.id, delivered_notifications.first.user_id
+    assert_predicate TournamentEvent.last.tournament_segment_unlock, :present?
+
+    TournamentEvent.create!(
+      tournament:,
+      actor: runner,
+      event_type: 'segment_unlocked',
+      title: 'Legacy orphan event'
+    )
 
     get feed_api_v1_tournament_path(tournament.slug), headers: auth_headers(runner)
 
     assert_response :success
     feed = response.parsed_body
+    assert_equal 1, feed.size
     assert_equal 'segment_unlocked', feed.first['event_type']
     assert_includes feed.first['title'], 'Opening Segment'
 
