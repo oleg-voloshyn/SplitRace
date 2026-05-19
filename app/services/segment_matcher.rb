@@ -10,6 +10,7 @@ class SegmentMatcher
   SHORT_SEGMENT_DISTANCE_METERS = 800
   MIN_SHORT_SEGMENT_GPS_POINTS = 4
   MIN_SEGMENT_GPS_POINTS = 2
+  PROGRESS_BACKTRACK_TOLERANCE_METERS = 20
 
   def initialize(activity)
     @activity = activity
@@ -175,26 +176,17 @@ class SegmentMatcher
     activity_points = gps_points[start_idx..end_idx]
     return false if activity_points.blank?
 
-    sampled_route = sample_route(route_points)
-    return false if sampled_route.empty?
+    projection = route_projection_for(route_points)
+    return false if projection[:total_length].zero?
 
-    matched_count = 0
-    search_from = 0
+    matches = route_progress_matches(
+      activity_points,
+      projection:,
+      tolerance: route_corridor_tolerance_for(segment)
+    )
+    return false if matches.size < minimum_gps_points_for(segment)
 
-    sampled_route.each do |route_point|
-      match_idx = closest_activity_index(
-        activity_points,
-        route_point,
-        from: search_from,
-        tolerance: route_corridor_tolerance_for(segment)
-      )
-      next unless match_idx
-
-      matched_count += 1
-      search_from = match_idx
-    end
-
-    (matched_count.to_f / sampled_route.size) >= MIN_ROUTE_COVERAGE
+    route_progress_coverage(matches, projection[:total_length]) >= MIN_ROUTE_COVERAGE
   end
 
   def route_points_for(segment)
@@ -233,46 +225,6 @@ class SegmentMatcher
     return unless point
 
     { 'lat' => point.lat.to_f, 'lng' => point.lon.to_f }
-  end
-
-  def sample_route(route_points)
-    samples = [route_points.first]
-
-    route_points.each_cons(2) do |from, to|
-      distance = haversine(from['lat'], from['lng'], to['lat'], to['lng'])
-      if distance.positive?
-        steps = (distance / ROUTE_SAMPLE_METERS).floor
-        1.upto(steps) do |step|
-          ratio = [(step * ROUTE_SAMPLE_METERS) / distance, 1.0].min
-          samples << {
-            'lat' => from['lat'] + ((to['lat'] - from['lat']) * ratio),
-            'lng' => from['lng'] + ((to['lng'] - from['lng']) * ratio)
-          }
-        end
-      end
-      samples << to
-    end
-
-    samples
-  end
-
-  def closest_activity_index(activity_points, route_point, from:, tolerance:)
-    min_dist = Float::INFINITY
-    min_idx = nil
-
-    activity_points.each_with_index do |point, idx|
-      next if idx < from
-
-      dist = haversine(point['lat'].to_f, point['lng'].to_f, route_point['lat'], route_point['lng'])
-      next if dist > point_tolerance(point, tolerance)
-
-      if dist < min_dist
-        min_dist = dist
-        min_idx = idx
-      end
-    end
-
-    min_idx
   end
 
   def closest_point_index(points, geo_point, tolerance:)
@@ -334,6 +286,98 @@ class SegmentMatcher
     return base_tolerance unless accuracy.to_f.positive?
 
     [base_tolerance, [accuracy.to_f + GPS_ACCURACY_PADDING_METERS, MIN_GPS_TOLERANCE_METERS].max].min
+  end
+
+  def route_projection_for(route_points)
+    total_length = 0.0
+    segments = route_points.each_cons(2).filter_map do |from, to|
+      length = haversine(from['lat'], from['lng'], to['lat'], to['lng'])
+      next unless length.positive?
+
+      segment = { from:, to:, length:, start_measure: total_length }
+      total_length += length
+      segment
+    end
+
+    { segments:, total_length: }
+  end
+
+  def route_progress_matches(activity_points, projection:, tolerance:)
+    matches = []
+
+    activity_points.each do |point|
+      candidates = route_projection_candidates(point, projection, tolerance)
+      next if candidates.empty?
+
+      match = next_progress_match(candidates, point, previous: matches.last, tolerance:)
+      matches << match if match
+    end
+
+    matches
+  end
+
+  def next_progress_match(candidates, point, previous:, tolerance:)
+    unless previous
+      match = candidates.min_by { |candidate| [candidate[:measure], candidate[:distance]] }
+      return match.merge(point:)
+    end
+
+    actual_move = haversine(previous[:point]['lat'].to_f, previous[:point]['lng'].to_f,
+                            point['lat'].to_f, point['lng'].to_f)
+    max_progress_jump = actual_move + progress_jump_padding(tolerance)
+    eligible = candidates.select do |candidate|
+      progress_delta = candidate[:measure] - previous[:measure]
+      progress_delta >= -PROGRESS_BACKTRACK_TOLERANCE_METERS &&
+        progress_delta <= max_progress_jump
+    end
+
+    eligible.min_by { |candidate| [candidate[:distance], candidate[:measure]] }&.merge(point:)
+  end
+
+  def route_projection_candidates(point, projection, tolerance)
+    projection[:segments].filter_map do |segment|
+      candidate = project_point_to_route_segment(point, segment)
+      candidate if candidate[:distance] <= point_tolerance(point, tolerance)
+    end.sort_by { |candidate| [candidate[:distance], candidate[:measure]] }
+  end
+
+  def project_point_to_route_segment(point, segment)
+    from = segment[:from]
+    to = segment[:to]
+    ref_lat = from['lat'].to_f
+    meters_per_lat = 111_320.0
+    meters_per_lng = meters_per_lat * Math.cos(ref_lat * Math::PI / 180.0)
+
+    px = (point['lng'].to_f - from['lng'].to_f) * meters_per_lng
+    py = (point['lat'].to_f - from['lat'].to_f) * meters_per_lat
+    sx = (to['lng'].to_f - from['lng'].to_f) * meters_per_lng
+    sy = (to['lat'].to_f - from['lat'].to_f) * meters_per_lat
+    segment_length_squared = (sx * sx) + (sy * sy)
+    ratio = segment_length_squared.positive? ? (((px * sx) + (py * sy)) / segment_length_squared) : 0.0
+    ratio = ratio.clamp(0.0, 1.0)
+    projected = {
+      'lat' => from['lat'].to_f + ((to['lat'].to_f - from['lat'].to_f) * ratio),
+      'lng' => from['lng'].to_f + ((to['lng'].to_f - from['lng'].to_f) * ratio)
+    }
+
+    {
+      distance: haversine(point['lat'].to_f, point['lng'].to_f, projected['lat'], projected['lng']),
+      measure: segment[:start_measure] + (segment[:length] * ratio)
+    }
+  end
+
+  def route_progress_coverage(matches, total_length)
+    total_bins = (total_length / ROUTE_SAMPLE_METERS).floor + 1
+    return 0.0 if total_bins.zero?
+
+    covered_bins = matches.each_with_object(Set.new) do |match, bins|
+      bins << [(match[:measure] / ROUTE_SAMPLE_METERS).floor, total_bins - 1].min
+    end
+    covered_bins.size.to_f / total_bins
+  end
+
+  def progress_jump_padding(tolerance)
+    (tolerance * 2) + ROUTE_SAMPLE_METERS
   end
 
   def haversine(lat1, lng1, lat2, lng2)

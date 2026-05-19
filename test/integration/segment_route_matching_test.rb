@@ -135,6 +135,47 @@ class SegmentRouteMatchingTest < ActionDispatch::IntegrationTest
     assert_empty TournamentEvent.where(tournament:)
   end
 
+  test 'does not unlock self intersecting segment when runner cuts through crossing' do
+    owner = create_user(email: 'route-loop-owner@example.com')
+    runner = create_user(email: 'route-loop-runner@example.com')
+    tournament = create_tournament(owner)
+    route = [
+      [50.4500, 30.5200],
+      [50.4530, 30.5230],
+      [50.4530, 30.5200],
+      [50.4500, 30.5230]
+    ]
+    cut_route = [
+      [50.4500, 30.5200],
+      [50.4515, 30.5215],
+      [50.4500, 30.5230]
+    ]
+    segment = create_segment_from_coords(owner, name: 'Crossing Loop', coords: route)
+    tournament.tournament_segments.create!(segment:, order_number: 1, is_rated: true)
+    tournament.tournament_participants.create!(user: runner, joined_at: Time.zone.at(1_700))
+
+    assert_no_difference 'SegmentEffort.count' do
+      assert_no_difference 'TournamentSegmentUnlock.count' do
+        assert_no_difference 'TournamentEvent.count' do
+          post api_v1_activities_path,
+               params: {
+                 started_at: Time.zone.at(1_800).iso8601,
+                 finished_at: Time.zone.at(2_300).iso8601,
+                 distance_meters: route_distance(cut_route),
+                 elapsed_time_seconds: 500,
+                 source: 'mobile_android',
+                 gps_points: gps_points_for_route(cut_route, start_ts: 1_800)
+               },
+               headers: auth_headers(runner)
+        end
+      end
+    end
+
+    assert_response :created
+    assert_equal 0, response.parsed_body['segment_efforts_count']
+    assert_empty TournamentEvent.where(tournament:)
+  end
+
   test 'does not unlock short segment from sparse start and finish points only' do
     owner = create_user(email: 'route-sparse-owner@example.com')
     runner = create_user(email: 'route-sparse-runner@example.com')
