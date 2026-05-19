@@ -93,10 +93,13 @@ test('creator can draw a segment on the map and submit rich text description', a
 
   const map = page.locator('.sr-creator-map');
   await expect(map).toBeVisible();
-  // Spread the two clicks far enough that the resulting route clears
-  // Segment::MIN_DISTANCE_METERS (400 m) regardless of map zoom in CI.
-  await map.click({ position: { x: 40, y: 40 } });
-  await map.click({ position: { x: 520, y: 360 } });
+  // Click at ~20% and ~80% of the map's actual bounding box on both axes —
+  // far enough at any zoom to clear Segment::MIN_DISTANCE_METERS (400 m),
+  // and guaranteed to land inside the map element (Playwright otherwise hits
+  // the surrounding form which intercepts pointer events).
+  const mapBox = await map.boundingBox();
+  await map.click({ position: { x: mapBox.width * 0.2, y: mapBox.height * 0.2 } });
+  await map.click({ position: { x: mapBox.width * 0.8, y: mapBox.height * 0.8 } });
   await expect(page.getByText(/Route points:\s*2/)).toBeVisible();
 
   await page.getByRole('button', { name: 'Create segment' }).click();

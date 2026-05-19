@@ -1,9 +1,9 @@
 import React from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
-import { renderWithProviders as render } from '../../test-utils';
 import * as Sharing from 'expo-sharing';
 import RunTrackerScreen from '../../screens/RunTrackerScreen';
+import { renderWithProviders as render } from '../../test-utils';
 
 jest.mock('../../api/client', () => ({
   api: { saveActivity: jest.fn() }
