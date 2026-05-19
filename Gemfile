@@ -34,6 +34,10 @@ gem 'rack-cors', '~> 3.0'
 # Admin views
 gem 'slim-rails', '~> 4.0'
 
+# Slugs
+gem 'babosa', '~> 2.0'
+gem 'friendly_id', '~> 5.5'
+
 group :development, :test do
   gem 'debug', platforms: %i[mri windows]
   gem 'dotenv-rails', '~> 3.1'

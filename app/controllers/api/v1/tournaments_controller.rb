@@ -145,11 +145,7 @@ module Api
       private
 
       def set_tournament
-        @tournament = begin
-          Tournament.find_by!(slug: params[:id])
-        rescue
-          Tournament.find(params[:id])
-        end
+        @tournament = Tournament.friendly.find(params[:id])
       end
 
       def require_tournament_owner!

@@ -2,11 +2,7 @@ module Api
   module V1
     class CheatingReportsController < BaseController
       def create
-        tournament = begin
-          Tournament.find_by!(slug: params[:tournament_slug])
-        rescue
-          Tournament.find(params[:tournament_id])
-        end
+        tournament = Tournament.friendly.find(params[:tournament_slug] || params[:tournament_id])
 
         report = CheatingReport.new(
           reporter: current_user,

@@ -143,9 +143,8 @@ module Admin
     private
 
     def set_tournament
-      @tournament = Tournament.find_by(slug: params[:id])
-      return if @tournament
-
+      @tournament = Tournament.friendly.find(params[:id])
+    rescue ActiveRecord::RecordNotFound
       redirect_to admin_tournaments_path, alert: 'Tournament not found.'
     end
 

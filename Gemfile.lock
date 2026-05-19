@@ -80,6 +80,7 @@ GEM
       uri (>= 0.13.1)
     aes_key_wrap (1.1.0)
     ast (2.4.3)
+    babosa (2.1.0)
     base64 (0.3.0)
     bcrypt (3.1.22)
     bigdecimal (4.1.2)
@@ -110,6 +111,8 @@ GEM
       faraday (>= 1, < 3)
     faraday-net_http (3.4.2)
       net-http (~> 0.5)
+    friendly_id (5.7.0)
+      activerecord (>= 4.0.0)
     globalid (1.3.0)
       activesupport (>= 6.1)
     hashie (5.1.0)
@@ -381,10 +384,12 @@ PLATFORMS
 
 DEPENDENCIES
   activerecord-postgis-adapter (~> 11.0)
+  babosa (~> 2.0)
   bcrypt (~> 3.1)
   bootsnap
   debug
   dotenv-rails (~> 3.1)
+  friendly_id (~> 5.5)
   jwt (~> 3.2)
   multi_json (~> 1.15)
   omniauth (~> 2.1)
