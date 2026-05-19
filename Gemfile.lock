@@ -79,6 +79,7 @@ GEM
       tzinfo (~> 2.0, >= 2.0.5)
       uri (>= 0.13.1)
     aes_key_wrap (1.1.0)
+    alba (3.10.0)
     ast (2.4.3)
     babosa (2.1.0)
     base64 (0.3.0)
@@ -385,6 +386,7 @@ PLATFORMS
 
 DEPENDENCIES
   activerecord-postgis-adapter (~> 11.0)
+  alba (~> 3.10)
   babosa (~> 2.0)
   bcrypt (~> 3.1)
   bootsnap

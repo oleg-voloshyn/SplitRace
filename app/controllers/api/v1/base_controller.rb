@@ -57,24 +57,7 @@ module Api
       end
 
       def user_json(user)
-        {
-          id: user.id,
-          email: user.email,
-          first_name: user.first_name,
-          last_name: user.last_name,
-          display_name: user.display_name,
-          full_name: user.full_name,
-          avatar_url: user.profile_avatar_url,
-          account_type: user.account_type,
-          club_name: user.club_name,
-          gender: user.gender,
-          role: user.role,
-          units: user.units,
-          locale: user.locale,
-          country: user.country,
-          city: user.city,
-          providers: user.oauth_identities.pluck(:provider)
-        }
+        UserResource.new(user, params: { detailed: true }).serializable_hash
       end
     end
   end

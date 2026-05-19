@@ -5,7 +5,7 @@ module Api
         user = User.new(register_params)
         if user.save
           token = JwtService.encode(user_id: user.id)
-          render json: { token:, user: user_json(user) }, status: :created
+          render json: { token:, user: UserResource.new(user).serializable_hash }, status: :created
         else
           render json: { errors: user.errors.full_messages }, status: :unprocessable_content
         end
@@ -15,7 +15,7 @@ module Api
         user = User.find_by(email: params[:email]&.downcase)
         if user&.authenticate(params[:password])
           token = JwtService.encode(user_id: user.id)
-          render json: { token:, user: user_json(user) }
+          render json: { token:, user: UserResource.new(user).serializable_hash }
         else
           render json: { error: 'Invalid email or password' }, status: :unauthorized
         end
@@ -26,7 +26,7 @@ module Api
         user = find_or_create_google_user!(payload)
         token = JwtService.encode(user_id: user.id)
 
-        render json: { token:, user: user_json(user) }
+        render json: { token:, user: UserResource.new(user).serializable_hash }
       rescue GoogleIdentityTokenVerifier::Error => e
         render json: { error: e.message }, status: :unauthorized
       rescue ActiveRecord::RecordInvalid => e
@@ -38,7 +38,7 @@ module Api
         user = find_or_create_apple_user!(payload, params.slice(:first_name, :last_name))
         token = JwtService.encode(user_id: user.id)
 
-        render json: { token:, user: user_json(user) }
+        render json: { token:, user: UserResource.new(user).serializable_hash }
       rescue AppleIdentityTokenVerifier::Error => e
         render json: { error: e.message }, status: :unauthorized
       rescue ActiveRecord::RecordInvalid => e
@@ -118,24 +118,6 @@ module Api
       def token_expires_at(payload)
         expires_at = payload['exp'].presence
         Time.zone.at(expires_at.to_i) if expires_at
-      end
-
-      def user_json(user)
-        {
-          id: user.id,
-          email: user.email,
-          first_name: user.first_name,
-          last_name: user.last_name,
-          display_name: user.display_name,
-          full_name: user.full_name,
-          avatar_url: user.profile_avatar_url,
-          account_type: user.account_type,
-          club_name: user.club_name,
-          gender: user.gender,
-          role: user.role,
-          units: user.units,
-          locale: user.locale
-        }
       end
     end
   end

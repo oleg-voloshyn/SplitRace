@@ -41,6 +41,9 @@ gem 'friendly_id', '~> 5.5'
 # Pagination
 gem 'pagy', '~> 9.0'
 
+# JSON serialization
+gem 'alba', '~> 3.10'
+
 group :development, :test do
   gem 'debug', platforms: %i[mri windows]
   gem 'dotenv-rails', '~> 3.1'
