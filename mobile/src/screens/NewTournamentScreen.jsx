@@ -85,6 +85,48 @@ function getTournamentDateValidation(startsAt, endsAt) {
   return { valid: true, today };
 }
 
+function firstAvailableRatedOrder(selectedSegments, ratedTarget) {
+  const used = new Set(
+    Object.values(selectedSegments)
+      .filter((meta) => meta.rated && meta.ratedOrder)
+      .map((meta) => meta.ratedOrder)
+  );
+
+  for (let position = 1; position <= ratedTarget; position += 1) {
+    if (!used.has(position)) {
+      return position;
+    }
+  }
+
+  return ratedTarget + 1;
+}
+
+function hasCompleteRatedOrder(selectedSegments, ratedTarget) {
+  const positions = Object.values(selectedSegments)
+    .filter((meta) => meta.rated)
+    .map((meta) => meta.ratedOrder)
+    .filter(Boolean);
+  if (positions.length !== ratedTarget) {
+    return false;
+  }
+
+  const uniquePositions = new Set(positions);
+  return (
+    uniquePositions.size === ratedTarget &&
+    Array.from({ length: ratedTarget }, (_, i) => i + 1).every((position) => uniquePositions.has(position))
+  );
+}
+
+function buildTournamentSegmentSubmitOrder(selectedSegments) {
+  const entries = Object.entries(selectedSegments);
+  const rated = entries
+    .filter(([, meta]) => meta.rated)
+    .sort(([, a], [, b]) => (a.ratedOrder || Number.MAX_SAFE_INTEGER) - (b.ratedOrder || Number.MAX_SAFE_INTEGER));
+  const unrated = entries.filter(([, meta]) => !meta.rated).sort(([, a], [, b]) => a.order - b.order);
+
+  return [...rated, ...unrated];
+}
+
 function NewTournamentScreen() {
   const { t } = useTranslation();
   const navigation = useNavigation();
@@ -104,7 +146,7 @@ function NewTournamentScreen() {
       ratedSegments: '2'
     };
   });
-  // Map of segmentId -> { rated: boolean, order: number (insertion order) }
+  // Map of segmentId -> { rated: boolean, order: number (insertion order), ratedOrder?: number }
   const [selectedSegments, setSelectedSegments] = useState({});
   const [mySegments, setMySegments] = useState(null);
   const [showCountryPicker, setShowCountryPicker] = useState(false);
@@ -160,12 +202,56 @@ function NewTournamentScreen() {
   }
 
   function toggleSegmentRated(segment) {
+    const entry = selectedSegments[segment.id];
+    if (!entry) {
+      return;
+    }
+    if (!entry.rated && ratedSelected >= ratedTarget) {
+      Alert.alert(t('common.error'), t('creator.ratedSegmentsLimit'));
+      return;
+    }
+
     setSelectedSegments((prev) => {
-      const entry = prev[segment.id];
-      if (!entry) {
+      const current = prev[segment.id];
+      if (!current) {
         return prev;
       }
-      return { ...prev, [segment.id]: { ...entry, rated: !entry.rated } };
+      if (current.rated) {
+        return { ...prev, [segment.id]: { ...current, rated: false, ratedOrder: null } };
+      }
+
+      return {
+        ...prev,
+        [segment.id]: {
+          ...current,
+          rated: true,
+          ratedOrder: firstAvailableRatedOrder(prev, ratedTarget)
+        }
+      };
+    });
+  }
+
+  function setRatedPosition(segment, position) {
+    setSelectedSegments((prev) => {
+      const entry = prev[segment.id];
+      if (!entry?.rated) {
+        return prev;
+      }
+
+      const next = {
+        ...prev,
+        [segment.id]: { ...entry, ratedOrder: position }
+      };
+      const previousPosition = entry.ratedOrder;
+      const occupied = Object.entries(prev).find(
+        ([id, meta]) => id !== String(segment.id) && meta.rated && meta.ratedOrder === position
+      );
+      if (occupied && previousPosition) {
+        const [occupiedId, occupiedMeta] = occupied;
+        next[occupiedId] = { ...occupiedMeta, ratedOrder: previousPosition };
+      }
+
+      return next;
     });
   }
 
@@ -196,7 +282,7 @@ function NewTournamentScreen() {
   }
 
   function canSubmit() {
-    return selectedCount === totalTarget && ratedSelected === ratedTarget;
+    return selectedCount === totalTarget && hasCompleteRatedOrder(selectedSegments, ratedTarget);
   }
 
   async function handleSubmit() {
@@ -219,12 +305,13 @@ function NewTournamentScreen() {
         rated_segments_count: String(ratedTarget)
       });
 
-      // Add selected segments in insertion order
-      const ordered = Object.entries(selectedSegments).sort(([, a], [, b]) => a.order - b.order);
-      for (const [segmentId, meta] of ordered) {
+      // Rated segments are submitted first in the explicit rated order because
+      // TournamentSegment.order_number is the source of truth for unlock order.
+      const ordered = buildTournamentSegmentSubmitOrder(selectedSegments);
+      for (const [index, [segmentId, meta]] of ordered.entries()) {
         await api.addTournamentSegment(tournament.slug, {
           segment_id: segmentId,
-          order_number: String(meta.order + 1),
+          order_number: String(index + 1),
           is_rated: meta.rated ? '1' : '0'
         });
       }
@@ -268,6 +355,7 @@ function NewTournamentScreen() {
             tournamentCity={form.city}
             onToggle={toggleSegment}
             onToggleRated={toggleSegmentRated}
+            onSetRatedPosition={setRatedPosition}
             onCreateNew={() => navigation.navigate('NewSegment')}
             t={t}
           />
@@ -512,6 +600,7 @@ function PickSegmentsStep({
   tournamentCity,
   onToggle,
   onToggleRated,
+  onSetRatedPosition,
   onCreateNew,
   t
 }) {
@@ -519,13 +608,11 @@ function PickSegmentsStep({
   const [filterByCity, setFilterByCity] = useState(Boolean(tournamentCity));
   const [previewSegment, setPreviewSegment] = useState(null);
 
-  // Rated entries sorted by insertion order — used to display "#N" ordinal on each rated segment.
-  const ratedOrder = useMemo(() => {
-    const ratedEntries = Object.entries(selectedSegments)
-      .filter(([, meta]) => meta.rated)
-      .sort(([, a], [, b]) => a.order - b.order);
-    return ratedEntries.reduce((acc, [id], i) => {
-      acc[id] = i + 1;
+  const ratedPositionOwners = useMemo(() => {
+    return Object.entries(selectedSegments).reduce((acc, [id, meta]) => {
+      if (meta.rated && meta.ratedOrder) {
+        acc[meta.ratedOrder] = id;
+      }
       return acc;
     }, {});
   }, [selectedSegments]);
@@ -618,7 +705,7 @@ function PickSegmentsStep({
           const entry = selectedSegments[segment.id];
           const isSelected = Boolean(entry);
           const isRated = isSelected && entry.rated;
-          const ratedPosition = isRated ? ratedOrder[segment.id] : null;
+          const ratedPosition = isRated ? entry.ratedOrder : null;
           return (
             <View
               key={segment.id}
@@ -667,6 +754,40 @@ function PickSegmentsStep({
                   </TouchableOpacity>
                 )}
               </View>
+              {isRated && (
+                <View className="px-3 pb-3">
+                  <Text className="text-[11px] text-gray-500 mb-2">{t('creator.ratedOrderLabel')}</Text>
+                  <View className="flex-row flex-wrap gap-1.5">
+                    {Array.from({ length: ratedTarget }, (_, index) => {
+                      const position = index + 1;
+                      const active = ratedPosition === position;
+                      const occupiedByOther =
+                        ratedPositionOwners[position] && ratedPositionOwners[position] !== String(segment.id);
+                      return (
+                        <TouchableOpacity
+                          key={position}
+                          onPress={() => onSetRatedPosition(segment, position)}
+                          className={`min-w-[42px] rounded-full border px-3 py-1.5 items-center ${
+                            active
+                              ? 'border-amber-600 bg-amber-50'
+                              : occupiedByOther
+                                ? 'border-gray-300 bg-gray-50'
+                                : 'border-gray-200 bg-white'
+                          }`}
+                        >
+                          <Text
+                            className={`text-xs font-extrabold ${
+                              active ? 'text-amber-700' : occupiedByOther ? 'text-gray-500' : 'text-brand-navy'
+                            }`}
+                          >
+                            #{position}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+              )}
             </View>
           );
         })
@@ -724,3 +845,4 @@ function BottomNav({ step, canGoNext, canSubmit, submitting, onBack, onNext, onS
 }
 
 export default NewTournamentScreen;
+export { buildTournamentSegmentSubmitOrder, firstAvailableRatedOrder, hasCompleteRatedOrder };
