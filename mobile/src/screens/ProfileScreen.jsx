@@ -3,23 +3,15 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { City, Country } from 'country-state-city';
 import * as Sharing from 'expo-sharing';
 import { AlertTriangle, Check, ChevronRight, MapPin, Pencil, Share2 } from 'lucide-react-native';
+import { Controller, useForm, useWatch } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
-import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  ScrollView,
-  Share,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
-} from 'react-native';
+import { ActivityIndicator, Alert, Image, ScrollView, Share, Text, TouchableOpacity, View } from 'react-native';
 import { useActivities, useMyTournaments, useUpdateMe } from '../api/queries';
 import LeafletMap from '../components/LeafletMap';
 import { RunShareCard } from '../components/RunShareCard';
 import SearchableListModal from '../components/SearchableListModal';
 import ShareFormatModal from '../components/ShareFormatModal';
+import FormTextInput from '../components/form/FormTextInput';
 import { useAuth } from '../contexts/AuthContext';
 import { useShareCard } from '../hooks/useShareCard';
 import { SUPPORTED_LANGS } from '../i18n';
@@ -30,7 +22,6 @@ function ProfileScreen() {
   const navigation = useNavigation();
   const { user, setUser, logout } = useAuth();
   const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState(() => profileFormFromUser(user));
   const [bottomTab, setBottomTab] = useState('activities');
 
   const activitiesList = useActivities();
@@ -48,11 +39,15 @@ function ProfileScreen() {
     onCapture: (ref, { activity }) => shareActivityImage(ref, activity, t)
   });
   const isClub = user?.account_type === 'club';
+
+  const { control, handleSubmit, reset, setValue } = useForm({
+    defaultValues: profileFormFromUser(user)
+  });
+  const countryCode = useWatch({ control, name: 'countryCode' });
+  const countryName = useWatch({ control, name: 'country' });
+  const cityName = useWatch({ control, name: 'city' });
   const countries = useMemo(() => Country.getAllCountries(), []);
-  const cities = useMemo(
-    () => (form.countryCode ? City.getCitiesOfCountry(form.countryCode) || [] : []),
-    [form.countryCode]
-  );
+  const cities = useMemo(() => (countryCode ? City.getCitiesOfCountry(countryCode) || [] : []), [countryCode]);
 
   // Refresh "My tournaments" from page 1 each time the Profile screen regains focus.
   const refetchMyTournaments = myTournamentsList.refetch;
@@ -63,19 +58,19 @@ function ProfileScreen() {
   );
 
   function startEdit() {
-    setForm(profileFormFromUser(user));
+    reset(profileFormFromUser(user));
     setEditing(true);
   }
 
-  async function handleSave() {
+  const handleSave = handleSubmit(async (values) => {
     try {
-      const updated = await updateMe.mutateAsync(profilePayload(form, isClub));
+      const updated = await updateMe.mutateAsync(profilePayload(values, isClub));
       setUser(updated);
       setEditing(false);
     } catch {
       Alert.alert(t('common.error'), t('profile.saveError'));
     }
-  }
+  });
 
   function cancelEdit() {
     setEditing(false);
@@ -147,70 +142,87 @@ function ProfileScreen() {
             {isClub ? (
               <>
                 <Label>{t('auth.clubName')}</Label>
-                <Input
-                  value={form.club_name}
-                  onChangeText={(v) => setForm((f) => ({ ...f, club_name: v }))}
+                <FormTextInput
+                  control={control}
+                  name="club_name"
                   placeholder={t('auth.clubName')}
+                  className="bg-gray-50 rounded-lg p-3 mb-1 text-[15px] border border-gray-200"
                 />
               </>
             ) : (
               <>
                 <Label>{t('auth.firstName')}</Label>
-                <Input
-                  value={form.first_name}
-                  onChangeText={(v) => setForm((f) => ({ ...f, first_name: v }))}
+                <FormTextInput
+                  control={control}
+                  name="first_name"
                   placeholder={t('auth.firstName')}
+                  className="bg-gray-50 rounded-lg p-3 mb-1 text-[15px] border border-gray-200"
                 />
                 <Label>{t('auth.lastName')}</Label>
-                <Input
-                  value={form.last_name}
-                  onChangeText={(v) => setForm((f) => ({ ...f, last_name: v }))}
+                <FormTextInput
+                  control={control}
+                  name="last_name"
                   placeholder={t('auth.lastName')}
+                  className="bg-gray-50 rounded-lg p-3 mb-1 text-[15px] border border-gray-200"
                 />
                 <Label>{t('auth.gender')}</Label>
+                <Controller
+                  control={control}
+                  name="gender"
+                  render={({ field: { value, onChange } }) => (
+                    <View className="flex-row gap-2.5 mt-1.5 mb-1.5">
+                      {['male', 'female', 'other'].map((g) => {
+                        const active = value === g;
+                        return (
+                          <TouchableOpacity
+                            key={g}
+                            className={`flex-1 border-2 rounded-lg py-3 items-center flex-row justify-center gap-1 ${
+                              active ? 'border-brand-red bg-red-50' : 'border-gray-200 bg-gray-50'
+                            }`}
+                            onPress={() => onChange(g)}
+                          >
+                            {active && <Check size={13} color="#e53935" strokeWidth={2.5} />}
+                            <Text
+                              className={`text-sm font-medium ${active ? 'text-brand-red font-bold' : 'text-gray-700'}`}
+                            >
+                              {t(`auth.gender_${g}`)}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  )}
+                />
+              </>
+            )}
+
+            <Label>{t('profile.units')}</Label>
+            <Controller
+              control={control}
+              name="units"
+              render={({ field: { value, onChange } }) => (
                 <View className="flex-row gap-2.5 mt-1.5 mb-1.5">
-                  {['male', 'female', 'other'].map((g) => {
-                    const active = form.gender === g;
+                  {['km', 'miles'].map((units) => {
+                    const active = value === units;
                     return (
                       <TouchableOpacity
-                        key={g}
-                        className={`flex-1 border-2 rounded-lg py-3 items-center flex-row justify-center gap-1 ${
+                        key={units}
+                        className={`flex-1 border-2 rounded-lg py-3 items-center ${
                           active ? 'border-brand-red bg-red-50' : 'border-gray-200 bg-gray-50'
                         }`}
-                        onPress={() => setForm((f) => ({ ...f, gender: g }))}
+                        onPress={() => onChange(units)}
                       >
-                        {active && <Check size={13} color="#e53935" strokeWidth={2.5} />}
                         <Text
                           className={`text-sm font-medium ${active ? 'text-brand-red font-bold' : 'text-gray-700'}`}
                         >
-                          {t(`auth.gender_${g}`)}
+                          {t(`profile.${units}`)}
                         </Text>
                       </TouchableOpacity>
                     );
                   })}
                 </View>
-              </>
-            )}
-
-            <Label>{t('profile.units')}</Label>
-            <View className="flex-row gap-2.5 mt-1.5 mb-1.5">
-              {['km', 'miles'].map((units) => {
-                const active = form.units === units;
-                return (
-                  <TouchableOpacity
-                    key={units}
-                    className={`flex-1 border-2 rounded-lg py-3 items-center ${
-                      active ? 'border-brand-red bg-red-50' : 'border-gray-200 bg-gray-50'
-                    }`}
-                    onPress={() => setForm((f) => ({ ...f, units }))}
-                  >
-                    <Text className={`text-sm font-medium ${active ? 'text-brand-red font-bold' : 'text-gray-700'}`}>
-                      {t(`profile.${units}`)}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
+              )}
+            />
 
             <Label>{t('profile.country')}</Label>
             <TouchableOpacity
@@ -218,26 +230,26 @@ function ProfileScreen() {
               className="flex-row items-center bg-gray-50 border border-gray-200 rounded-lg p-3 mb-1"
             >
               <MapPin size={16} color="#6b7280" />
-              <Text className={`ml-2 flex-1 text-[15px] ${form.country ? 'text-brand-navy' : 'text-gray-400'}`}>
-                {form.country || t('creator.selectCountry')}
+              <Text className={`ml-2 flex-1 text-[15px] ${countryName ? 'text-brand-navy' : 'text-gray-400'}`}>
+                {countryName || t('creator.selectCountry')}
               </Text>
               <ChevronRight size={18} color="#9ca3af" />
             </TouchableOpacity>
 
             <Label>{t('profile.city')}</Label>
             <TouchableOpacity
-              onPress={form.countryCode ? () => setShowCityPicker(true) : undefined}
-              disabled={!form.countryCode}
+              onPress={countryCode ? () => setShowCityPicker(true) : undefined}
+              disabled={!countryCode}
               className={`flex-row items-center bg-gray-50 border rounded-lg p-3 mb-1 ${
-                form.countryCode ? 'border-gray-200' : 'border-gray-200 opacity-60'
+                countryCode ? 'border-gray-200' : 'border-gray-200 opacity-60'
               }`}
             >
-              <Text className={`flex-1 text-[15px] ${form.city ? 'text-brand-navy' : 'text-gray-400'}`}>
-                {form.city || (form.countryCode ? t('creator.selectCity') : t('creator.selectCountryFirst'))}
+              <Text className={`flex-1 text-[15px] ${cityName ? 'text-brand-navy' : 'text-gray-400'}`}>
+                {cityName || (countryCode ? t('creator.selectCity') : t('creator.selectCountryFirst'))}
               </Text>
-              {form.city ? (
+              {cityName ? (
                 <TouchableOpacity
-                  onPress={() => setForm((f) => ({ ...f, city: '' }))}
+                  onPress={() => setValue('city', '')}
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
                   <Text className="text-brand-red font-bold">×</Text>
@@ -370,7 +382,9 @@ function ProfileScreen() {
         visible={showCountryPicker}
         onClose={() => setShowCountryPicker(false)}
         onSelect={(country) => {
-          setForm((f) => ({ ...f, country: country.name, countryCode: country.isoCode, city: '' }));
+          setValue('country', country.name);
+          setValue('countryCode', country.isoCode);
+          setValue('city', '');
           setShowCountryPicker(false);
         }}
         title={t('creator.selectCountry')}
@@ -385,7 +399,7 @@ function ProfileScreen() {
         visible={showCityPicker}
         onClose={() => setShowCityPicker(false)}
         onSelect={(city) => {
-          setForm((f) => ({ ...f, city: city.name }));
+          setValue('city', city.name);
           setShowCityPicker(false);
         }}
         title={t('creator.selectCity')}
@@ -509,16 +523,6 @@ function RunSegmentSummary({ activity, t }) {
 
 function Label({ children }) {
   return <Text className="text-[13px] text-gray-700 mb-1.5 mt-1.5">{children}</Text>;
-}
-
-function Input(props) {
-  return (
-    <TextInput
-      className="bg-gray-50 rounded-lg p-3 mb-1 text-[15px] border border-gray-200"
-      placeholderTextColor="#9ca3af"
-      {...props}
-    />
-  );
 }
 
 function LanguageSelector({ t, i18n }) {

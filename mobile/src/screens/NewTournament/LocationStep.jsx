@@ -1,8 +1,12 @@
 import { ChevronRight, MapPin } from 'lucide-react-native';
+import { useWatch } from 'react-hook-form';
 import { Text, TouchableOpacity, View } from 'react-native';
 
-function LocationStep({ form, cities, onPickCountry, onPickCity, onClearCity, t }) {
-  const hasCountry = Boolean(form.country);
+function LocationStep({ control, cities, onPickCountry, onPickCity, onClearCity, t }) {
+  const country = useWatch({ control, name: 'country' });
+  const countryLabel = useWatch({ control, name: 'countryLabel' });
+  const city = useWatch({ control, name: 'city' });
+  const hasCountry = Boolean(country);
   return (
     <View>
       <Text className="text-xl font-bold text-brand-navy mb-1">
@@ -16,7 +20,7 @@ function LocationStep({ form, cities, onPickCountry, onPickCity, onClearCity, t 
       >
         <MapPin size={16} color="#6b7280" />
         <Text className={`ml-2 flex-1 text-base ${hasCountry ? 'text-brand-navy' : 'text-gray-400'}`}>
-          {hasCountry ? form.countryLabel : t('creator.selectCountry')}
+          {hasCountry ? countryLabel : t('creator.selectCountry')}
         </Text>
         <ChevronRight size={18} color="#9ca3af" />
       </TouchableOpacity>
@@ -29,10 +33,10 @@ function LocationStep({ form, cities, onPickCountry, onPickCity, onClearCity, t 
           hasCountry ? 'border-gray-300' : 'border-gray-200 opacity-60'
         }`}
       >
-        <Text className={`flex-1 text-base ${form.city ? 'text-brand-navy' : 'text-gray-400'}`}>
-          {form.city || (hasCountry ? t('creator.selectCity') : t('creator.selectCountryFirst'))}
+        <Text className={`flex-1 text-base ${city ? 'text-brand-navy' : 'text-gray-400'}`}>
+          {city || (hasCountry ? t('creator.selectCity') : t('creator.selectCountryFirst'))}
         </Text>
-        {form.city ? (
+        {city ? (
           <TouchableOpacity onPress={onClearCity} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <Text className="text-brand-red font-bold">×</Text>
           </TouchableOpacity>

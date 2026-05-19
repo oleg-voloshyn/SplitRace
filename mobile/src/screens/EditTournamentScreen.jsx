@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { ChevronDown, ChevronUp, Plus, Star, Trash2 } from 'lucide-react-native';
+import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, Alert, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import {
   useAddTournamentSegment,
   useDeleteTournament,
@@ -13,36 +14,12 @@ import {
   useUpdateTournament
 } from '../api/queries';
 import SegmentPreviewModal from '../components/SegmentPreviewModal';
+import FormTextInput from '../components/form/FormTextInput';
 
 function EditTournamentScreen() {
-  const { t } = useTranslation();
-  const navigation = useNavigation();
   const { slug } = useRoute().params;
   const { data: tournament, refetch: refetchTournament } = useTournament(slug);
-  const { data: mySegments = [], refetch: refetchSegments } = useMySegments();
-  const updateMutation = useUpdateTournament(slug);
-  const deleteMutation = useDeleteTournament();
-  const addSegmentMutation = useAddTournamentSegment();
-  const removeSegmentMutation = useRemoveTournamentSegment(slug);
-  const submitMutation = useSubmitTournamentForReview(slug);
-  const [form, setForm] = useState(null);
-  const [showAdd, setShowAdd] = useState(false);
-  const [previewSegment, setPreviewSegment] = useState(null);
-
-  // Seed the form once when the tournament first loads. Subsequent edits stay
-  // in local state until the user saves.
-  useEffect(() => {
-    if (tournament && !form) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setForm({
-        name: tournament.name || '',
-        description: stripTags(tournament.description) || '',
-        total_segments_count: String(tournament.total_segments_count ?? ''),
-        rated_segments_count: String(tournament.rated_segments_count ?? '')
-      });
-      navigation.setOptions({ title: tournament.name });
-    }
-  }, [tournament, form, navigation]);
+  const { refetch: refetchSegments } = useMySegments();
 
   useFocusEffect(
     useCallback(() => {
@@ -51,13 +28,45 @@ function EditTournamentScreen() {
     }, [refetchTournament, refetchSegments])
   );
 
-  if (!tournament || !form) {
+  if (!tournament) {
     return (
       <View className="flex-1 items-center justify-center bg-gray-100">
         <ActivityIndicator color="#e53935" />
       </View>
     );
   }
+
+  // Re-mount the body when navigating to a different tournament so RHF
+  // re-seeds its defaultValues from the new record.
+  return <EditTournamentBody key={tournament.id} tournament={tournament} slug={slug} />;
+}
+
+function EditTournamentBody({ tournament, slug }) {
+  const { t } = useTranslation();
+  const navigation = useNavigation();
+  const { data: mySegments = [] } = useMySegments();
+  const updateMutation = useUpdateTournament(slug);
+  const deleteMutation = useDeleteTournament();
+  const addSegmentMutation = useAddTournamentSegment();
+  const removeSegmentMutation = useRemoveTournamentSegment(slug);
+  const submitMutation = useSubmitTournamentForReview(slug);
+  const [showAdd, setShowAdd] = useState(false);
+  const [previewSegment, setPreviewSegment] = useState(null);
+
+  const { control, handleSubmit } = useForm({
+    defaultValues: {
+      name: tournament.name || '',
+      description: stripTags(tournament.description) || '',
+      total_segments_count: String(tournament.total_segments_count ?? ''),
+      rated_segments_count: String(tournament.rated_segments_count ?? '')
+    }
+  });
+
+  useFocusEffect(
+    useCallback(() => {
+      navigation.setOptions({ title: tournament.name });
+    }, [navigation, tournament.name])
+  );
 
   const isEditable = tournament.status === 'draft' || tournament.status === 'rejected';
   const isDraft = tournament.status === 'draft';
@@ -67,23 +76,19 @@ function EditTournamentScreen() {
     .reduce((acc, ts, i) => ({ ...acc, [ts.segment.id]: i + 1 }), {});
   const available = mySegments.filter((seg) => !tournament.segments?.some((ts) => ts.segment.id === seg.id));
 
-  function setField(key) {
-    return (value) => setForm((f) => ({ ...f, [key]: value }));
-  }
-
-  async function saveChanges() {
+  const onSave = handleSubmit(async (values) => {
     try {
       await updateMutation.mutateAsync({
-        name: form.name.trim(),
-        description: form.description.trim(),
-        total_segments_count: form.total_segments_count,
-        rated_segments_count: form.rated_segments_count
+        name: values.name.trim(),
+        description: values.description.trim(),
+        total_segments_count: values.total_segments_count,
+        rated_segments_count: values.rated_segments_count
       });
       Alert.alert(t('creator.title'), t('creator.tournamentUpdated'));
     } catch (error) {
       Alert.alert(t('common.error'), error?.errors?.join(', ') || error?.error || t('creator.failed'));
     }
-  }
+  });
 
   async function addSegment(segment) {
     try {
@@ -133,6 +138,8 @@ function EditTournamentScreen() {
     }
   }
 
+  const digitsOnly = (v) => v.replace(/[^0-9]/g, '');
+
   return (
     <ScrollView className="flex-1 bg-gray-100" contentContainerClassName="p-4 pb-10">
       <View className="self-start rounded px-2 py-0.5 mb-3" style={{ backgroundColor: statusBg(tournament.status) }}>
@@ -152,47 +159,48 @@ function EditTournamentScreen() {
       )}
 
       <View className="bg-white rounded-xl p-4 mb-4">
-        <Text className="text-xs text-gray-500 mb-1.5">{t('creator.tournamentName')}</Text>
-        <TextInput
-          className="border border-gray-300 rounded-lg p-3 text-[15px] bg-white"
-          value={form.name}
-          onChangeText={setField('name')}
+        <FormTextInput
+          control={control}
+          name="name"
+          label={t('creator.tournamentName')}
           editable={isEditable}
           maxLength={120}
         />
 
-        <Text className="text-xs text-gray-500 mt-3 mb-1.5">{t('creator.tournamentDescription')}</Text>
-        <TextInput
-          className="border border-gray-300 rounded-lg p-3 text-[15px] bg-white min-h-[100px]"
-          value={form.description}
-          onChangeText={setField('description')}
-          editable={isEditable}
-          multiline
-          textAlignVertical="top"
-          maxLength={10000}
-        />
+        <View className="mt-3">
+          <FormTextInput
+            control={control}
+            name="description"
+            label={t('creator.tournamentDescription')}
+            editable={isEditable}
+            multiline
+            textAlignVertical="top"
+            maxLength={10000}
+            className="border border-gray-300 rounded-lg p-3 text-[15px] bg-white min-h-[100px]"
+          />
+        </View>
 
         <View className="flex-row gap-3 mt-3">
           <View className="flex-1">
-            <Text className="text-xs text-gray-500 mb-1.5">{t('creator.totalSegments')}</Text>
-            <TextInput
-              className="border border-gray-300 rounded-lg p-3 text-[15px] bg-white"
-              value={form.total_segments_count}
-              onChangeText={(v) => setField('total_segments_count')(v.replace(/[^0-9]/g, ''))}
+            <FormTextInput
+              control={control}
+              name="total_segments_count"
+              label={t('creator.totalSegments')}
               editable={isEditable}
               keyboardType="numeric"
               maxLength={3}
+              transform={digitsOnly}
             />
           </View>
           <View className="flex-1">
-            <Text className="text-xs text-gray-500 mb-1.5">{t('creator.ratedSegments')}</Text>
-            <TextInput
-              className="border border-gray-300 rounded-lg p-3 text-[15px] bg-white"
-              value={form.rated_segments_count}
-              onChangeText={(v) => setField('rated_segments_count')(v.replace(/[^0-9]/g, ''))}
+            <FormTextInput
+              control={control}
+              name="rated_segments_count"
+              label={t('creator.ratedSegments')}
               editable={isEditable}
               keyboardType="numeric"
               maxLength={3}
+              transform={digitsOnly}
             />
           </View>
         </View>
@@ -200,7 +208,7 @@ function EditTournamentScreen() {
         {isEditable && (
           <TouchableOpacity
             className={`mt-4 bg-brand-navy rounded-lg p-3 items-center ${updateMutation.isPending ? 'opacity-60' : ''}`}
-            onPress={saveChanges}
+            onPress={onSave}
             disabled={updateMutation.isPending}
           >
             <Text className="text-white font-bold">{updateMutation.isPending ? '...' : t('creator.saveChanges')}</Text>

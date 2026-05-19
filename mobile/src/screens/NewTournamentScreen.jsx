@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { City, Country } from 'country-state-city';
+import { useForm, useWatch } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { Alert, ScrollView, Text, View } from 'react-native';
 import { useAddTournamentSegment, useCreateTournament, useMySegments } from '../api/queries';
@@ -27,6 +28,21 @@ import StepProgress from './NewTournament/StepProgress';
 
 const TOTAL_STEPS = 6;
 
+function defaultFormValues() {
+  const today = localDateString(new Date());
+  return {
+    name: '',
+    description: '',
+    country: null, // ISO code, e.g. "UA"
+    countryLabel: '',
+    city: '',
+    startsAt: today,
+    endsAt: addDaysToDateString(today, 7),
+    totalSegments: '4',
+    ratedSegments: '2'
+  };
+}
+
 function NewTournamentScreen() {
   const { t } = useTranslation();
   const navigation = useNavigation();
@@ -36,27 +52,26 @@ function NewTournamentScreen() {
   // Segment association happens inside handleSubmit after the tournament is
   // created. We instantiate without a slug and pass it per-mutation below.
   const addSegment = useAddTournamentSegment();
-  const [form, setForm] = useState(() => {
-    const today = localDateString(new Date());
-    return {
-      name: '',
-      description: '',
-      country: null, // ISO code, e.g. "UA"
-      countryLabel: '',
-      city: '',
-      startsAt: today,
-      endsAt: addDaysToDateString(today, 7),
-      totalSegments: '4',
-      ratedSegments: '2'
-    };
-  });
+
+  const { control, handleSubmit, setValue } = useForm({ defaultValues: defaultFormValues() });
+  // The wizard's "can I advance?" logic needs to react to specific fields.
+  // useWatch subscribes narrowly so Controller-driven inputs themselves don't
+  // trigger a wizard re-render until one of these tracked values changes.
+  const name = useWatch({ control, name: 'name' });
+  const country = useWatch({ control, name: 'country' });
+  const startsAt = useWatch({ control, name: 'startsAt' });
+  const endsAt = useWatch({ control, name: 'endsAt' });
+  const totalSegments = useWatch({ control, name: 'totalSegments' });
+  const ratedSegments = useWatch({ control, name: 'ratedSegments' });
+  const city = useWatch({ control, name: 'city' });
+
   // Map of segmentId -> { rated: boolean, order: number (insertion order), ratedOrder?: number }
   const [selectedSegments, setSelectedSegments] = useState({});
   const [showCountryPicker, setShowCountryPicker] = useState(false);
   const [showCityPicker, setShowCityPicker] = useState(false);
 
   const countries = useMemo(() => Country.getAllCountries(), []);
-  const cities = useMemo(() => (form.country ? City.getCitiesOfCountry(form.country) || [] : []), [form.country]);
+  const cities = useMemo(() => (country ? City.getCitiesOfCountry(country) || [] : []), [country]);
 
   // Refresh segments whenever this screen regains focus (e.g. user came back
   // from NewSegmentScreen after creating one inline).
@@ -68,22 +83,20 @@ function NewTournamentScreen() {
     }, [step, refetchSegments])
   );
 
-  const ratedTarget = Number(form.ratedSegments) || 0;
-  const totalTarget = Number(form.totalSegments) || 0;
+  const ratedTarget = Number(ratedSegments) || 0;
+  const totalTarget = Number(totalSegments) || 0;
   const selectedCount = Object.keys(selectedSegments).length;
   const ratedSelected = Object.values(selectedSegments).filter((s) => s.rated).length;
 
-  function setField(key, value) {
-    setForm((f) => ({ ...f, [key]: value }));
-  }
-
-  function selectCountry(country) {
-    setForm((f) => ({ ...f, country: country.isoCode, countryLabel: country.name, city: '' }));
+  function selectCountry(c) {
+    setValue('country', c.isoCode);
+    setValue('countryLabel', c.name);
+    setValue('city', '');
     setShowCountryPicker(false);
   }
 
-  function selectCity(city) {
-    setField('city', city.name);
+  function selectCity(c) {
+    setValue('city', c.name);
     setShowCityPicker(false);
   }
 
@@ -156,20 +169,20 @@ function NewTournamentScreen() {
 
   function canGoNext() {
     if (step === 1) {
-      return form.name.trim().length > 0;
+      return name.trim().length > 0;
     }
     if (step === 2) {
       return true; // description is optional
     }
     if (step === 3) {
-      return Boolean(form.country); // city is optional
+      return Boolean(country); // city is optional
     }
     if (step === 4) {
-      return getTournamentDateValidation(form.startsAt, form.endsAt).valid;
+      return getTournamentDateValidation(startsAt, endsAt).valid;
     }
     if (step === 5) {
-      const total = Number(form.totalSegments);
-      const rated = Number(form.ratedSegments);
+      const total = Number(totalSegments);
+      const rated = Number(ratedSegments);
       return Number.isInteger(total) && total > 0 && Number.isInteger(rated) && rated > 0 && rated < total;
     }
     return false;
@@ -179,8 +192,8 @@ function NewTournamentScreen() {
     return selectedCount === totalTarget && hasCompleteRatedOrder(selectedSegments, ratedTarget);
   }
 
-  async function handleSubmit() {
-    const dateValidation = getTournamentDateValidation(form.startsAt, form.endsAt);
+  const onSubmit = handleSubmit(async (values) => {
+    const dateValidation = getTournamentDateValidation(values.startsAt, values.endsAt);
     if (!dateValidation.valid) {
       Alert.alert(t('common.error'), t(dateValidation.startError || dateValidation.endError || 'creator.dateRequired'));
       return;
@@ -188,14 +201,14 @@ function NewTournamentScreen() {
 
     try {
       const tournament = await createTournament.mutateAsync({
-        name: form.name.trim(),
-        description: form.description.trim(),
-        city: form.city.trim(),
-        country: form.country || '',
-        starts_at: localDateTimeIso(form.startsAt, 'start'),
-        ends_at: localDateTimeIso(form.endsAt, 'end'),
-        total_segments_count: String(totalTarget),
-        rated_segments_count: String(ratedTarget)
+        name: values.name.trim(),
+        description: values.description.trim(),
+        city: values.city.trim(),
+        country: values.country || '',
+        starts_at: localDateTimeIso(values.startsAt, 'start'),
+        ends_at: localDateTimeIso(values.endsAt, 'end'),
+        total_segments_count: String(Number(values.totalSegments) || 0),
+        rated_segments_count: String(Number(values.ratedSegments) || 0)
       });
 
       const ordered = buildTournamentSegmentSubmitOrder(selectedSegments);
@@ -213,27 +226,27 @@ function NewTournamentScreen() {
     } catch (error) {
       Alert.alert(t('common.error'), error?.errors?.join(', ') || error?.error || t('creator.failed'));
     }
-  }
+  });
 
   return (
     <View className="flex-1 bg-gray-100">
       <StepProgress current={step} total={TOTAL_STEPS} t={t} />
 
       <ScrollView className="flex-1" contentContainerClassName="p-4 pb-4">
-        {step === 1 && <NameStep form={form} setField={setField} t={t} />}
-        {step === 2 && <DescriptionStep form={form} setField={setField} t={t} />}
+        {step === 1 && <NameStep control={control} t={t} />}
+        {step === 2 && <DescriptionStep control={control} t={t} />}
         {step === 3 && (
           <LocationStep
-            form={form}
+            control={control}
             cities={cities}
             onPickCountry={() => setShowCountryPicker(true)}
             onPickCity={() => setShowCityPicker(true)}
-            onClearCity={() => setField('city', '')}
+            onClearCity={() => setValue('city', '')}
             t={t}
           />
         )}
-        {step === 4 && <DatesStep form={form} setField={setField} t={t} />}
-        {step === 5 && <SegmentsCountStep form={form} setField={setField} t={t} />}
+        {step === 4 && <DatesStep control={control} t={t} />}
+        {step === 5 && <SegmentsCountStep control={control} t={t} />}
         {step === 6 && (
           <PickSegmentsStep
             mySegments={mySegments}
@@ -242,7 +255,7 @@ function NewTournamentScreen() {
             ratedTarget={ratedTarget}
             selectedCount={selectedCount}
             ratedSelected={ratedSelected}
-            tournamentCity={form.city}
+            tournamentCity={city}
             onToggle={toggleSegment}
             onToggleRated={toggleSegmentRated}
             onSetRatedPosition={setRatedPosition}
@@ -260,7 +273,7 @@ function NewTournamentScreen() {
         submitting={createTournament.isPending || addSegment.isPending}
         onBack={() => setStep((s) => Math.max(1, s - 1))}
         onNext={() => setStep((s) => Math.min(TOTAL_STEPS, s + 1))}
-        onSubmit={handleSubmit}
+        onSubmit={onSubmit}
         t={t}
       />
 

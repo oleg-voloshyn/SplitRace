@@ -3,8 +3,10 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 import * as Google from 'expo-auth-session/providers/google';
 import Constants from 'expo-constants';
 import * as WebBrowser from 'expo-web-browser';
+import { Controller, useForm, useWatch } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
-import { KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import FormTextInput from '../components/form/FormTextInput';
 import { useAuth } from '../contexts/AuthContext';
 import { SUPPORTED_LANGS } from '../i18n';
 
@@ -28,75 +30,79 @@ function googleConfiguredForPlatform() {
   return Boolean(cfg.webClientId || cfg.expoClientId);
 }
 
+const DEFAULT_VALUES = {
+  email: '',
+  password: '',
+  first_name: '',
+  last_name: '',
+  gender: '',
+  account_type: 'user',
+  club_name: ''
+};
+
 function LoginScreen() {
   const { t, i18n } = useTranslation();
   const { login, loginWithApple, register } = useAuth();
   const [mode, setMode] = useState('login');
-  const [form, setForm] = useState({
-    email: '',
-    password: '',
-    first_name: '',
-    last_name: '',
-    gender: '',
-    account_type: 'user',
-    club_name: ''
-  });
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
-  const isClubRegistration = mode === 'register' && form.account_type === 'club';
   const googleAvailable = googleConfiguredForPlatform();
 
-  const set = (key) => (val) => setForm((f) => ({ ...f, [key]: val }));
-  const setAccountType = (accountType) =>
-    setForm((current) => ({
-      ...current,
-      account_type: accountType,
-      club_name: accountType === 'club' ? current.club_name : '',
-      first_name: accountType === 'user' ? current.first_name : '',
-      last_name: accountType === 'user' ? current.last_name : '',
-      gender: accountType === 'user' ? current.gender : ''
-    }));
+  const { control, handleSubmit, setValue } = useForm({ defaultValues: DEFAULT_VALUES });
+  const accountType = useWatch({ control, name: 'account_type' });
+  const isClubRegistration = mode === 'register' && accountType === 'club';
 
-  function registrationPayload() {
-    if (form.account_type === 'club') {
+  function setAccountType(nextType) {
+    setValue('account_type', nextType);
+    if (nextType === 'club') {
+      setValue('first_name', '');
+      setValue('last_name', '');
+      setValue('gender', '');
+    } else {
+      setValue('club_name', '');
+    }
+  }
+
+  function registrationPayload(values) {
+    if (values.account_type === 'club') {
       return {
         account_type: 'club',
-        club_name: form.club_name.trim(),
-        email: form.email.trim(),
-        password: form.password
+        club_name: values.club_name.trim(),
+        email: values.email.trim(),
+        password: values.password
       };
     }
 
     return {
       account_type: 'user',
-      email: form.email.trim(),
-      password: form.password,
-      first_name: form.first_name,
-      last_name: form.last_name,
-      gender: form.gender
+      email: values.email.trim(),
+      password: values.password,
+      first_name: values.first_name,
+      last_name: values.last_name,
+      gender: values.gender
     };
   }
 
-  async function submit() {
+  const submit = handleSubmit(async (values) => {
     setError(null);
     setLoading(true);
     try {
       if (mode === 'login') {
-        await login(form.email.trim(), form.password);
+        await login(values.email.trim(), values.password);
       } else {
-        if (!isClubRegistration && !form.gender) {
+        if (values.account_type !== 'club' && !values.gender) {
           setError(t('auth.selectGender'));
           setLoading(false);
           return;
         }
-        await register(registrationPayload());
+        await register(registrationPayload(values));
       }
     } catch (e) {
       setError(e?.errors?.join(', ') || e?.error || t('auth.somethingWrong'));
     } finally {
       setLoading(false);
     }
-  }
+  });
 
   async function submitApple() {
     setError(null);
@@ -163,76 +169,68 @@ function LoginScreen() {
                   <TouchableOpacity
                     key={type}
                     className={`flex-1 border rounded-lg py-2.5 items-center ${
-                      form.account_type === type ? 'border-brand-navy bg-brand-navy' : 'border-gray-300'
+                      accountType === type ? 'border-brand-navy bg-brand-navy' : 'border-gray-300'
                     }`}
                     onPress={() => setAccountType(type)}
                   >
-                    <Text
-                      className={`text-sm ${form.account_type === type ? 'text-white font-semibold' : 'text-gray-700'}`}
-                    >
+                    <Text className={`text-sm ${accountType === type ? 'text-white font-semibold' : 'text-gray-700'}`}>
                       {t(`auth.account_${type}`)}
                     </Text>
                   </TouchableOpacity>
                 ))}
               </View>
-              {form.account_type === 'club' && (
-                <TextInput
-                  className="border border-gray-300 rounded-lg p-3 mb-3 text-[15px]"
-                  placeholder={t('auth.clubName')}
-                  value={form.club_name}
-                  onChangeText={set('club_name')}
-                />
+              {accountType === 'club' && (
+                <View className="mb-3">
+                  <FormTextInput control={control} name="club_name" placeholder={t('auth.clubName')} />
+                </View>
               )}
               {!isClubRegistration && (
                 <>
-                  <TextInput
-                    className="border border-gray-300 rounded-lg p-3 mb-3 text-[15px]"
-                    placeholder={t('auth.firstName')}
-                    value={form.first_name}
-                    onChangeText={set('first_name')}
-                  />
-                  <TextInput
-                    className="border border-gray-300 rounded-lg p-3 mb-3 text-[15px]"
-                    placeholder={t('auth.lastName')}
-                    value={form.last_name}
-                    onChangeText={set('last_name')}
-                  />
-                  <Text className="text-[13px] text-gray-700 mb-1.5">{t('auth.gender')}</Text>
-                  <View className="flex-row gap-2.5 mb-4">
-                    {['male', 'female', 'other'].map((g) => (
-                      <TouchableOpacity
-                        key={g}
-                        className={`flex-1 border rounded-lg py-2.5 items-center ${
-                          form.gender === g ? 'border-brand-navy bg-brand-navy' : 'border-gray-300'
-                        }`}
-                        onPress={() => set('gender')(g)}
-                      >
-                        <Text className={`text-sm ${form.gender === g ? 'text-white font-semibold' : 'text-gray-700'}`}>
-                          {t(`auth.gender_${g}`)}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
+                  <View className="mb-3">
+                    <FormTextInput control={control} name="first_name" placeholder={t('auth.firstName')} />
                   </View>
+                  <View className="mb-3">
+                    <FormTextInput control={control} name="last_name" placeholder={t('auth.lastName')} />
+                  </View>
+                  <Text className="text-[13px] text-gray-700 mb-1.5">{t('auth.gender')}</Text>
+                  <Controller
+                    control={control}
+                    name="gender"
+                    render={({ field: { value, onChange } }) => (
+                      <View className="flex-row gap-2.5 mb-4">
+                        {['male', 'female', 'other'].map((g) => (
+                          <TouchableOpacity
+                            key={g}
+                            className={`flex-1 border rounded-lg py-2.5 items-center ${
+                              value === g ? 'border-brand-navy bg-brand-navy' : 'border-gray-300'
+                            }`}
+                            onPress={() => onChange(g)}
+                          >
+                            <Text className={`text-sm ${value === g ? 'text-white font-semibold' : 'text-gray-700'}`}>
+                              {t(`auth.gender_${g}`)}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    )}
+                  />
                 </>
               )}
             </>
           )}
 
-          <TextInput
-            className="border border-gray-300 rounded-lg p-3 mb-3 text-[15px]"
-            placeholder={t('auth.email')}
-            value={form.email}
-            onChangeText={set('email')}
-            autoCapitalize="none"
-            keyboardType="email-address"
-          />
-          <TextInput
-            className="border border-gray-300 rounded-lg p-3 mb-3 text-[15px]"
-            placeholder={t('auth.password')}
-            value={form.password}
-            onChangeText={set('password')}
-            secureTextEntry
-          />
+          <View className="mb-3">
+            <FormTextInput
+              control={control}
+              name="email"
+              placeholder={t('auth.email')}
+              autoCapitalize="none"
+              keyboardType="email-address"
+            />
+          </View>
+          <View className="mb-3">
+            <FormTextInput control={control} name="password" placeholder={t('auth.password')} secureTextEntry />
+          </View>
 
           {error && <Text className="text-brand-red text-[13px] mb-2.5 text-center">{error}</Text>}
 
