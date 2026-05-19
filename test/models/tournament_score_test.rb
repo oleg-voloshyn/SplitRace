@@ -32,6 +32,40 @@ class TournamentScoreTest < ActiveSupport::TestCase
     assert_equal 200.0, TournamentScore.find_by!(tournament:, user: second_runner).score
   end
 
+  test 'golden fever awards first opener bonus from tournament unlocks, not historical efforts' do
+    owner = create_user(email: 'score-unlock-source-owner@example.com')
+    historical_runner = create_user(email: 'score-unlock-source-history@example.com')
+    opener = create_user(email: 'score-unlock-source-opener@example.com')
+    tournament = create_tournament(
+      owner,
+      total_segments_count: 2,
+      rated_segments_count: 1,
+      starts_at: Time.zone.at(2_000)
+    )
+    segment = create_segment(owner, name: 'Unlock Source Segment', lng_offset: 0.004)
+    tournament.tournament_segments.create!(segment:, order_number: 1, is_rated: true)
+    tournament.tournament_participants.create!(user: historical_runner, joined_at: Time.zone.at(1_900))
+    tournament.tournament_participants.create!(user: opener, joined_at: Time.zone.at(1_900))
+
+    create_effort(user: historical_runner, segment:, elapsed: 60, started_at: Time.zone.at(1_950))
+    opener_effort = create_effort(user: opener, segment:, elapsed: 100, started_at: Time.zone.at(2_100))
+    historical_unlock_effort = create_effort(
+      user: historical_runner,
+      segment:,
+      elapsed: 100,
+      started_at: Time.zone.at(2_200)
+    )
+    create_unlock_event(tournament:, effort: opener_effort)
+    create_unlock_event(tournament:, effort: historical_unlock_effort)
+
+    assert_equal({ segment.id => opener.id }, TournamentScore.first_opener_by_segment(tournament, [segment.id]))
+
+    TournamentScore.recalculate_all(tournament)
+
+    assert_equal 130.0, TournamentScore.find_by!(tournament:, user: opener).score
+    assert_equal 118.0, TournamentScore.find_by!(tournament:, user: historical_runner).score
+  end
+
   test 'golden fever ignores efforts before tournament start and efforts without tournament unlock event' do
     owner = create_user(email: 'score-window-owner@example.com')
     runner = create_user(email: 'score-window-runner@example.com')
