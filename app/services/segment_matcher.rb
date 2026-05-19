@@ -9,7 +9,9 @@ class SegmentMatcher
   MIN_ROUTE_COVERAGE = 0.75
   SHORT_SEGMENT_DISTANCE_METERS = 800
   MIN_SHORT_SEGMENT_GPS_POINTS = 4
-  MIN_SEGMENT_GPS_POINTS = 2
+  MIN_SEGMENT_GPS_POINTS = 4
+  MIN_SEGMENT_ACTIVITY_DISTANCE_RATIO = 0.75
+  MIN_SEGMENT_ACTIVITY_DURATION_SECONDS = 30
   PROGRESS_BACKTRACK_TOLERANCE_METERS = 20
 
   def initialize(activity)
@@ -66,6 +68,7 @@ class SegmentMatcher
     start_idx = closest_point_index(gps_points, segment.start_point, tolerance: proximity)
     end_idx   = closest_point_index(gps_points, segment.end_point, tolerance: proximity)
     return false unless enough_gps_points_for_segment?(segment, start_idx:, end_idx:)
+    return false unless enough_activity_movement_for_segment?(segment, start_idx:, end_idx:)
 
     !start_idx.nil? && !end_idx.nil? && start_idx < end_idx && follows_route?(segment, start_idx:, end_idx:)
   end
@@ -126,6 +129,7 @@ class SegmentMatcher
     end_idx   = closest_point_index(gps_points, segment.end_point, tolerance: proximity)
     return nil if start_idx.nil? || end_idx.nil? || start_idx >= end_idx
     return nil unless enough_gps_points_for_segment?(segment, start_idx:, end_idx:)
+    return nil unless enough_activity_movement_for_segment?(segment, start_idx:, end_idx:)
     return nil unless follows_route?(segment, start_idx:, end_idx:)
 
     elapsed, started = interpolate_time(segment)
@@ -171,7 +175,7 @@ class SegmentMatcher
 
   def follows_route?(segment, start_idx:, end_idx:)
     route_points = route_points_for(segment)
-    return true if route_points.size <= 2
+    return false if route_points.size < 2
 
     activity_points = gps_points[start_idx..end_idx]
     return false if activity_points.blank?
@@ -259,6 +263,30 @@ class SegmentMatcher
     else
       MIN_SEGMENT_GPS_POINTS
     end
+  end
+
+  def enough_activity_movement_for_segment?(segment, start_idx:, end_idx:)
+    return false if start_idx.nil? || end_idx.nil? || start_idx >= end_idx
+
+    activity_points = gps_points[start_idx..end_idx]
+    return false if activity_points.blank?
+
+    segment_activity_distance(activity_points) >= minimum_activity_distance_for(segment) &&
+      segment_activity_duration(activity_points) >= MIN_SEGMENT_ACTIVITY_DURATION_SECONDS
+  end
+
+  def minimum_activity_distance_for(segment)
+    segment.distance_meters.to_f * MIN_SEGMENT_ACTIVITY_DISTANCE_RATIO
+  end
+
+  def segment_activity_distance(activity_points)
+    activity_points.each_cons(2).sum do |from, to|
+      haversine(from['lat'].to_f, from['lng'].to_f, to['lat'].to_f, to['lng'].to_f)
+    end
+  end
+
+  def segment_activity_duration(activity_points)
+    activity_points.last['ts'].to_f - activity_points.first['ts'].to_f
   end
 
   def proximity_tolerance_for(segment)

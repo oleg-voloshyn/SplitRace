@@ -8,6 +8,13 @@ class SegmentRouteMatchingTest < ActionDispatch::IntegrationTest
     [50.4500, 30.5220],
     [50.4500, 30.5206]
   ].freeze
+  CLOSE_LOOP_ROUTE = [
+    [50.4500, 30.5200],
+    [50.4510, 30.5200],
+    [50.4510, 30.5220],
+    [50.4500, 30.5220],
+    [50.4500, 30.5202]
+  ].freeze
 
   test 'does not unlock segment when runner cuts from start to finish off the route line' do
     owner = create_user(email: 'route-cut-owner@example.com')
@@ -72,6 +79,35 @@ class SegmentRouteMatchingTest < ActionDispatch::IntegrationTest
     assert_equal 'Around Building', response.parsed_body.dig('segment_efforts', 0, 'segment', 'name')
   end
 
+  test 'unlocks close loop segment when runner follows the full route' do
+    owner = create_user(email: 'route-close-loop-owner@example.com')
+    runner = create_user(email: 'route-close-loop-runner@example.com')
+    tournament = create_tournament(owner)
+    segment = create_segment_from_coords(owner, name: 'Close Loop', coords: CLOSE_LOOP_ROUTE)
+    tournament.tournament_segments.create!(segment:, order_number: 1, is_rated: true)
+    tournament.tournament_participants.create!(user: runner, joined_at: Time.zone.at(1_700))
+
+    assert_difference 'SegmentEffort.count', 1 do
+      assert_difference 'TournamentSegmentUnlock.count', 1 do
+        assert_difference 'TournamentEvent.count', 1 do
+          post api_v1_activities_path,
+               params: {
+                 started_at: Time.zone.at(1_800).iso8601,
+                 finished_at: Time.zone.at(2_100).iso8601,
+                 distance_meters: route_distance(CLOSE_LOOP_ROUTE),
+                 elapsed_time_seconds: 300,
+                 source: 'mobile_android',
+                 gps_points: gps_points_for_route(CLOSE_LOOP_ROUTE, start_ts: 1_800)
+               },
+               headers: auth_headers(runner)
+        end
+      end
+    end
+
+    assert_response :created
+    assert_equal 1, response.parsed_body['segment_efforts_count']
+  end
+
   test 'does not unlock segment when matching route has rejected GPS quality' do
     owner = create_user(email: 'route-bad-gps-owner@example.com')
     runner = create_user(email: 'route-bad-gps-runner@example.com')
@@ -133,6 +169,70 @@ class SegmentRouteMatchingTest < ActionDispatch::IntegrationTest
     assert_response :created
     assert_equal 0, response.parsed_body['segment_efforts_count']
     assert_empty TournamentEvent.where(tournament:)
+  end
+
+  test 'does not unlock close loop segment when runner only lingers near start and finish' do
+    owner = create_user(email: 'route-linger-owner@example.com')
+    runner = create_user(email: 'route-linger-runner@example.com')
+    tournament = create_tournament(owner)
+    segment = create_segment_from_coords(owner, name: 'Close Loop Linger', coords: CLOSE_LOOP_ROUTE)
+    tournament.tournament_segments.create!(segment:, order_number: 1, is_rated: true)
+    tournament.tournament_participants.create!(user: runner, joined_at: Time.zone.at(1_700))
+
+    assert_no_difference 'SegmentEffort.count' do
+      assert_no_difference 'TournamentSegmentUnlock.count' do
+        assert_no_difference 'TournamentEvent.count' do
+          post api_v1_activities_path,
+               params: {
+                 started_at: Time.zone.at(1_800).iso8601,
+                 finished_at: Time.zone.at(1_920).iso8601,
+                 distance_meters: 35,
+                 elapsed_time_seconds: 120,
+                 source: 'mobile_android',
+                 gps_points: [
+                   { lat: 50.4500, lng: 30.5200, ts: 1_800, accuracy: 5 },
+                   { lat: 50.4500, lng: 30.52005, ts: 1_830, accuracy: 5 },
+                   { lat: 50.4500, lng: 30.52010, ts: 1_860, accuracy: 5 },
+                   { lat: 50.4500, lng: 30.52015, ts: 1_890, accuracy: 5 },
+                   { lat: 50.4500, lng: 30.52020, ts: 1_920, accuracy: 5 }
+                 ]
+               },
+               headers: auth_headers(runner)
+        end
+      end
+    end
+
+    assert_response :created
+    assert_equal 0, response.parsed_body['segment_efforts_count']
+    assert_empty TournamentEvent.where(tournament:)
+  end
+
+  test 'does not unlock close loop segment when matched duration is too short' do
+    owner = create_user(email: 'route-short-duration-owner@example.com')
+    runner = create_user(email: 'route-short-duration-runner@example.com')
+    tournament = create_tournament(owner)
+    segment = create_segment_from_coords(owner, name: 'Close Loop Sprint', coords: CLOSE_LOOP_ROUTE)
+    tournament.tournament_segments.create!(segment:, order_number: 1, is_rated: true)
+    tournament.tournament_participants.create!(user: runner, joined_at: Time.zone.at(1_700))
+    gps_points = gps_points_for_route(CLOSE_LOOP_ROUTE, start_ts: 1_800, seconds_per_point: 1)
+    json_points = json_gps_points(gps_points)
+    activity = runner.activities.create!(
+      started_at: Time.zone.at(1_800),
+      finished_at: Time.zone.at(1_800 + gps_points.size - 1),
+      distance_meters: route_distance(CLOSE_LOOP_ROUTE),
+      elapsed_time_seconds: gps_points.size - 1,
+      source: 'mobile_android',
+      gps_points: json_points,
+      gps_track: gps_track_for(gps_points)
+    )
+
+    assert_no_difference 'SegmentEffort.count' do
+      assert_no_difference 'TournamentSegmentUnlock.count' do
+        assert_no_difference 'TournamentEvent.count' do
+          SegmentMatcher.new(activity).call
+        end
+      end
+    end
   end
 
   test 'does not unlock self intersecting segment when runner cuts through crossing' do
@@ -262,7 +362,7 @@ class SegmentRouteMatchingTest < ActionDispatch::IntegrationTest
     6_371_000 * 2 * Math.asin(Math.sqrt(a))
   end
 
-  def gps_points_for_route(coords, start_ts:, accuracy: 5)
+  def gps_points_for_route(coords, start_ts:, accuracy: 5, seconds_per_point: 10)
     dense_points = []
 
     coords.each_cons(2) do |from, to|
@@ -277,8 +377,24 @@ class SegmentRouteMatchingTest < ActionDispatch::IntegrationTest
     end
 
     dense_points.map.with_index do |(lat, lng), index|
-      { lat:, lng:, ts: start_ts + (index * 10), accuracy: }
+      { lat:, lng:, ts: start_ts + (index * seconds_per_point), accuracy: }
     end
+  end
+
+  def json_gps_points(points)
+    points.map do |point|
+      {
+        'lat' => point[:lat],
+        'lng' => point[:lng],
+        'ts' => point[:ts],
+        'accuracy' => point[:accuracy]
+      }
+    end
+  end
+
+  def gps_track_for(points)
+    factory = RGeo::Geographic.spherical_factory(srid: 4326)
+    factory.line_string(points.map { |point| factory.point(point[:lng], point[:lat]) })
   end
 
   def offset_route(coords, lng_offset:)

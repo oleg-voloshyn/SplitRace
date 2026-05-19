@@ -337,6 +337,7 @@ class ApiLifecycleTest < ActionDispatch::IntegrationTest
     segment = create_segment(owner, name: 'Matched Segment')
     tournament.tournament_segments.create!(segment:, order_number: 1, is_rated: true)
     tournament.tournament_participants.create!(user: runner, joined_at: Time.zone.at(1_700))
+    gps_points = gps_points_for_segment(lng_offset: 0.0, start_ts: 1_800, end_ts: 1_920)
 
     assert_difference 'Activity.count', 1 do
       assert_difference 'SegmentEffort.count', 1 do
@@ -347,10 +348,7 @@ class ApiLifecycleTest < ActionDispatch::IntegrationTest
                distance_meters: 1_000,
                elapsed_time_seconds: 120,
                source: 'mobile_android',
-               gps_points: [
-                 { lat: 50.45, lng: 30.52, ts: 1_800, accuracy: 5 },
-                 { lat: 50.46, lng: 30.53, ts: 1_920, accuracy: 5 }
-               ]
+               gps_points:
              },
              headers: auth_headers(runner)
       end
@@ -358,7 +356,7 @@ class ApiLifecycleTest < ActionDispatch::IntegrationTest
 
     assert_response :created
     body = response.parsed_body
-    assert_equal 2, body['gps_points'].size
+    assert_equal gps_points.size, body['gps_points'].size
     assert_equal 1, body['segment_efforts_count']
     assert_equal 'Matched Segment', body.dig('segment_efforts', 0, 'segment', 'name')
     assert_equal 1, TournamentSegmentUnlock.where(tournament:, segment:).count
@@ -466,25 +464,22 @@ class ApiLifecycleTest < ActionDispatch::IntegrationTest
     tournament.tournament_segments.create!(segment: first, order_number: 1, is_rated: true)
     tournament.tournament_segments.create!(segment: second, order_number: 2, is_rated: true)
     tournament.tournament_participants.create!(user: runner, joined_at: Time.zone.at(1_700))
+    gps_points = gps_points_for_segment(lng_offset: 0.03, start_ts: 1_800, end_ts: 2_100) +
+                 gps_points_for_segment(lng_offset: 0.0, start_ts: 2_500, end_ts: 2_800)
 
     assert_difference 'SegmentEffort.count', 1 do
       assert_difference 'TournamentSegmentUnlock.count', 1 do
         assert_difference 'TournamentEvent.count', 1 do
           post api_v1_activities_path,
-               params: {
-                 started_at: Time.zone.at(1_800).iso8601,
-                 finished_at: Time.zone.at(2_500).iso8601,
-                 distance_meters: 2_000,
-                 elapsed_time_seconds: 700,
-                 source: 'mobile_android',
-                 gps_points: [
-                   { lat: 50.45, lng: 30.55, ts: 1_800, accuracy: 5 },
-                   { lat: 50.46, lng: 30.56, ts: 1_940, accuracy: 5 },
-                   { lat: 50.45, lng: 30.52, ts: 2_300, accuracy: 5 },
-                   { lat: 50.46, lng: 30.53, ts: 2_440, accuracy: 5 }
-                 ]
-               },
-               headers: auth_headers(runner)
+                 params: {
+                   started_at: Time.zone.at(1_800).iso8601,
+                   finished_at: Time.zone.at(2_800).iso8601,
+                   distance_meters: 5_000,
+                   elapsed_time_seconds: 1_000,
+                   source: 'mobile_android',
+                   gps_points:
+                 },
+                 headers: auth_headers(runner)
         end
       end
     end
@@ -583,6 +578,18 @@ class ApiLifecycleTest < ActionDispatch::IntegrationTest
       polyline: factory.multi_line_string([factory.line_string(points)]),
       distance_meters: 1_500
     }
+  end
+
+  def gps_points_for_segment(lng_offset:, start_ts:, end_ts:, steps: 60)
+    0.upto(steps).map do |index|
+      ratio = index / steps.to_f
+      {
+        lat: 50.45 + (0.01 * ratio),
+        lng: 30.52 + lng_offset + (0.01 * ratio),
+        ts: start_ts + ((end_ts - start_ts) * ratio).round,
+        accuracy: 5
+      }
+    end
   end
 
   def auth_headers(user)
