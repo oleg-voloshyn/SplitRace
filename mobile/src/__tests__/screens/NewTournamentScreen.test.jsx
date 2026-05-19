@@ -2,32 +2,7 @@ import {
   buildTournamentSegmentSubmitOrder,
   firstAvailableRatedOrder,
   hasCompleteRatedOrder
-} from '../../screens/NewTournamentScreen';
-
-jest.mock('@react-navigation/native', () => ({
-  useFocusEffect: jest.fn(),
-  useNavigation: () => ({ navigate: jest.fn(), goBack: jest.fn() })
-}));
-
-jest.mock('../../api/client', () => ({
-  api: {
-    mySegments: jest.fn(),
-    createTournament: jest.fn(),
-    addTournamentSegment: jest.fn()
-  }
-}));
-
-jest.mock('../../components/SearchableListModal', () => {
-  return () => null;
-});
-
-jest.mock('../../components/SegmentPreviewModal', () => {
-  return () => null;
-});
-
-jest.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (key) => key })
-}));
+} from '../../utils/tournamentSegments';
 
 describe('NewTournamentScreen rated segment order', () => {
   it('submits rated segments first in the selected rated order', () => {
