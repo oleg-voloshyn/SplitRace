@@ -25,7 +25,7 @@ module Admin
       end
 
       scope = scope.order(tournament_sort_order(participants_count_sql))
-      @tournaments = paginate(scope)
+      @pagy, @tournaments = pagy(scope)
     end
 
     def show

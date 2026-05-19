@@ -15,7 +15,7 @@ module Admin
       end
 
       scope = scope.order(user_sort_order)
-      @users = paginate(scope)
+      @pagy, @users = pagy(scope)
     end
 
     def edit

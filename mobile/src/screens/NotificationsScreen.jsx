@@ -5,7 +5,7 @@ import { api } from '../api/client';
 
 function NotificationsScreen() {
   const { t } = useTranslation();
-  const [data, setData] = useState({ notifications: [], unread_count: 0 });
+  const [data, setData] = useState({ items: [], unread_count: 0 });
 
   useEffect(() => {
     api.notifications().then(setData);
@@ -27,7 +27,7 @@ function NotificationsScreen() {
         )}
       </View>
       <FlatList
-        data={data.notifications}
+        data={data.items}
         keyExtractor={(item) => String(item.id)}
         ListEmptyComponent={<Text className="text-center text-gray-500 mt-10">{t('notifications.empty')}</Text>}
         renderItem={({ item }) => (

@@ -5,8 +5,7 @@ module Api
         activities = current_user.activities
                                  .includes(segment_efforts: :segment)
                                  .order(started_at: :desc)
-                                 .limit(20)
-        render json: activities.map { |a| activity_json(a) }
+        render json: paginated(activities, limit: 20) { |a| activity_json(a) }
       end
 
       def create

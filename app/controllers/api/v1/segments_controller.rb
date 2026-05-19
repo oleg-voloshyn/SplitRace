@@ -8,7 +8,7 @@ module Api
       def index
         segments = params[:mine] == '1' ? current_user.created_segments : Segment.active
         segments = segments.order(:name)
-        render json: segments.map { |s| segment_json(s) }
+        render json: paginated(segments) { |s| segment_json(s) }
       end
 
       def show

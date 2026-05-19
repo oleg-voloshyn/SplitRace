@@ -12,7 +12,7 @@ module Api
         tournaments = Tournament.visible
                                 .includes(tournament_segments: :segment)
                                 .order(starts_at: :desc)
-        render json: tournaments.map { |t| tournament_json(t, preview: true) }
+        render json: paginated(tournaments) { |t| tournament_json(t, preview: true) }
       end
 
       def show
@@ -21,7 +21,7 @@ module Api
 
       def mine
         tournaments = current_user.created_tournaments.order(created_at: :desc)
-        render json: tournaments.map { |t| tournament_json(t, owned: true) }
+        render json: paginated(tournaments) { |t| tournament_json(t, owned: true) }
       end
 
       def create
@@ -125,7 +125,11 @@ module Api
 
         scores = scores.joins(:user).where(users: { gender: }) if gender
 
-        render json: scores.map.with_index(1) { |s, i| score_json(s, i, @tournament) }
+        pagy, records = pagy(scores)
+        render json: {
+          items: records.map.with_index(1) { |s, i| score_json(s, pagy.offset + i, @tournament) },
+          pagy: pagy_meta(pagy)
+        }
       end
 
       def feed

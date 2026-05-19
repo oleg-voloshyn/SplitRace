@@ -17,7 +17,7 @@ module Admin
       end
 
       scope = scope.order(segment_sort_order)
-      @segments = paginate(scope)
+      @pagy, @segments = pagy(scope)
     end
 
     def new

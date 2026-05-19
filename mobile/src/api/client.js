@@ -24,6 +24,13 @@ async function request(path, options = {}) {
   return data;
 }
 
+// Backend paginated endpoints return `{ items, pagy }`. For now mobile only
+// uses the first page — unwrap to keep call sites array-shaped.
+async function listRequest(path, options) {
+  const data = await request(path, options);
+  return data.items ?? [];
+}
+
 const api = {
   login: (email, password) => request('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
   googleLogin: (idToken) => request('/auth/google', { method: 'POST', body: JSON.stringify({ id_token: idToken }) }),
@@ -41,10 +48,10 @@ const api = {
     request('/push_tokens', { method: 'POST', body: JSON.stringify({ push_token: params }) }),
   unregisterPushToken: (token) => request('/push_tokens', { method: 'DELETE', body: JSON.stringify({ token }) }),
   segment: (id) => request(`/segments/${id}`),
-  mySegments: () => request('/segments?mine=1'),
+  mySegments: () => listRequest('/segments?mine=1'),
   createSegment: (params) => request('/segments', { method: 'POST', body: JSON.stringify(params) }),
-  tournaments: () => request('/tournaments'),
-  myTournaments: () => request('/tournaments/mine'),
+  tournaments: () => listRequest('/tournaments'),
+  myTournaments: () => listRequest('/tournaments/mine'),
   createTournament: (params) => request('/tournaments', { method: 'POST', body: JSON.stringify(params) }),
   updateTournament: (slug, params) =>
     request(`/tournaments/${slug}`, { method: 'PATCH', body: JSON.stringify(params) }),
@@ -56,8 +63,8 @@ const api = {
     request(`/tournaments/${slug}/add_segment`, { method: 'POST', body: JSON.stringify(params) }),
   submitTournamentForReview: (slug) => request(`/tournaments/${slug}/submit_for_review`, { method: 'POST' }),
   joinTournament: (slug) => request(`/tournaments/${slug}/join`, { method: 'POST' }),
-  leaderboard: (slug) => request(`/tournaments/${slug}/leaderboard`),
-  activities: () => request('/activities'),
+  leaderboard: (slug) => listRequest(`/tournaments/${slug}/leaderboard`),
+  activities: () => listRequest('/activities'),
   saveActivity: (params) => request('/activities', { method: 'POST', body: JSON.stringify(params) }),
   reportCheating: (params) => request('/cheating_reports', { method: 'POST', body: JSON.stringify(params) })
 };

@@ -1,4 +1,6 @@
 module AdminHelper
+  include Pagy::Frontend
+
   def rich_text_description_editor(form, attribute = :description)
     input_id = "#{form.object_name}_#{attribute}".tr('][', '_').delete_suffix('_')
 
@@ -26,7 +28,7 @@ module AdminHelper
   end
 
   def admin_pagination
-    return if @total_pages.to_i <= 1
+    return if @pagy.nil? || @pagy.pages <= 1
 
     render partial: 'admin/shared/pagination'
   end

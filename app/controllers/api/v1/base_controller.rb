@@ -1,10 +1,29 @@
 module Api
   module V1
     class BaseController < ActionController::API
+      include Pagy::Backend
+
       before_action :authenticate_user!
       around_action :switch_locale
 
       private
+
+      def paginated(scope, **, &block)
+        pagy, records = pagy(scope, **)
+        items = block ? records.map(&block) : records
+        { items:, pagy: pagy_meta(pagy) }
+      end
+
+      def pagy_meta(pagy)
+        {
+          page: pagy.page,
+          pages: pagy.pages,
+          count: pagy.count,
+          limit: pagy.limit,
+          next: pagy.next,
+          prev: pagy.prev
+        }
+      end
 
       def authenticate_user!
         token = request.headers['Authorization']&.split&.last
