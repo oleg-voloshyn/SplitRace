@@ -5,6 +5,7 @@ import SegmentPreviewModal from '../../components/SegmentPreviewModal';
 
 function PickSegmentsStep({
   mySegments,
+  loading,
   selectedSegments,
   totalTarget,
   ratedTarget,
@@ -18,8 +19,13 @@ function PickSegmentsStep({
   t
 }) {
   const [query, setQuery] = useState('');
-  const [filterByCity, setFilterByCity] = useState(Boolean(tournamentCity));
+  // City-filter starts OFF: defaulting it ON was hiding all segments whenever
+  // the tournament's city didn't exactly match the (sometimes differently
+  // transliterated) `segment.city` strings users have stored. The pill below
+  // still lets users opt in explicitly.
+  const [filterByCity, setFilterByCity] = useState(false);
   const [previewSegment, setPreviewSegment] = useState(null);
+  const segments = mySegments ?? [];
 
   const ratedPositionOwners = useMemo(() => {
     return Object.entries(selectedSegments).reduce((acc, [id, meta]) => {
@@ -32,11 +38,8 @@ function PickSegmentsStep({
 
   const cityMatcher = tournamentCity?.trim().toLowerCase();
   const visibleSegments = useMemo(() => {
-    if (!mySegments) {
-      return [];
-    }
     const normalizedQuery = query.trim().toLowerCase();
-    return mySegments.filter((s) => {
+    return segments.filter((s) => {
       if (filterByCity && cityMatcher) {
         if (!s.city || s.city.toLowerCase() !== cityMatcher) {
           return false;
@@ -50,9 +53,9 @@ function PickSegmentsStep({
       }
       return true;
     });
-  }, [mySegments, query, filterByCity, cityMatcher]);
+  }, [segments, query, filterByCity, cityMatcher]);
 
-  if (mySegments === null) {
+  if (loading) {
     return (
       <View className="items-center py-8">
         <ActivityIndicator color="#e53935" />
@@ -111,7 +114,7 @@ function PickSegmentsStep({
 
       {visibleSegments.length === 0 ? (
         <Text className="text-gray-500 text-center py-4">
-          {mySegments.length === 0 ? t('creator.noSegmentsYet') : t('creator.noMatchingSegments')}
+          {segments.length === 0 ? t('creator.noSegmentsYet') : t('creator.noMatchingSegments')}
         </Text>
       ) : (
         visibleSegments.map((segment) => (

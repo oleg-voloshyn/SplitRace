@@ -47,7 +47,7 @@ function NewTournamentScreen() {
   const { t } = useTranslation();
   const navigation = useNavigation();
   const [step, setStep] = useState(1);
-  const { data: mySegments, refetch: refetchSegments } = useMySegments();
+  const { data: mySegments, isLoading: mySegmentsLoading, refetch: refetchSegments } = useMySegments();
   const createTournament = useCreateTournament();
   // Segment association happens inside handleSubmit after the tournament is
   // created. We instantiate without a slug and pass it per-mutation below.
@@ -250,6 +250,7 @@ function NewTournamentScreen() {
         {step === 6 && (
           <PickSegmentsStep
             mySegments={mySegments}
+            loading={mySegmentsLoading}
             selectedSegments={selectedSegments}
             totalTarget={totalTarget}
             ratedTarget={ratedTarget}
